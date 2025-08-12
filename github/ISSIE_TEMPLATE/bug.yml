@@ -1,0 +1,10 @@
+name: Bug Report
+description: Report a bug
+labels: ["type/bug"]
+body:
+  - type: textarea
+    attributes: { label: Steps to reproduce }
+  - type: textarea
+    attributes: { label: Expected vs actual }
+  - type: input
+    attributes: { label: Environment, placeholder: "Browser/OS/Docker tag" }

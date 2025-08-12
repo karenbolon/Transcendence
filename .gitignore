@@ -46,4 +46,4 @@ cache/
 .idea/
 
 # Misc
-*.pdf   # Remove if PDFs should be tracked
+*.pdf

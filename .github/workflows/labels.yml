@@ -1,0 +1,24 @@
+name: Sync Labels
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - .github/labels.yml
+      - .github/workflows/labels.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync GitHub labels from file
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          yaml-file: .github/labels.yml
+          skip-delete: false   # set true if you DON'T want to remove labels not in the file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

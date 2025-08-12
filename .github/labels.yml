@@ -1,0 +1,67 @@
+# priority
+- name: priority/P0
+  color: d73a4a
+  description: Critical — blocks progress
+- name: priority/P1
+  color: fbca04
+  description: Important — do soon
+- name: priority/P2
+  color: cccccc
+  description: Nice-to-have
+
+# type
+- name: type/bug
+  color: d73a4a
+  description: Defect / regression
+- name: type/feat
+  color: 0e8a16
+  description: New feature
+- name: type/chore
+  color: bfd4f2
+  description: Maintenance / refactor
+- name: type/docs
+  color: 5319e7
+  description: Documentation
+- name: type/security
+  color: 8b0000
+  description: Security issue or hardening
+
+# area
+- name: area/frontend
+  color: 1d76db
+- name: area/backend
+  color: 0052cc
+- name: area/ops
+  color: 5319e7
+- name: area/devops
+  color: 0366d6
+- name: area/security
+  color: 8b0000
+- name: area/infra
+  color: 0b1f3a
+
+# module
+- name: module/pong
+  color: 0e8a16
+- name: module/tournament
+  color: a2eeef
+- name: module/remote
+  color: 5319e7
+- name: module/user-mgmt
+  color: d4c5f9
+- name: module/ai
+  color: 7057ff
+- name: module/chat
+  color: f9d0c4
+- name: module/gdpr
+  color: c2e0c6
+- name: module/graphics
+  color: fef2c0
+
+# size
+- name: size/S
+  color: c2e0c6
+- name: size/M
+  color: fef2c0
+- name: size/L
+  color: f9d0c4

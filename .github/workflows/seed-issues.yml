@@ -1,0 +1,31 @@
+name: Seed Issues
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure labels & milestones exist
+        run: |
+          gh label create infra --color BFD4F2 --description "Infrastructure & setup" || true
+          gh label create frontend --color 1D76DB --description "Frontend work" || true
+          gh label create security --color 8B0000 --description "Security work" || true
+          gh milestone create "Week 1" || true
+          gh milestone create "Week 2" || true
+          gh milestone create "Week 3" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create issues from YAML
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Seed: Placeholder (will be replaced per item)"
+          content-filepath: .github/issue-seed.yml
+          token: ${{ secrets.GITHUB_TOKEN }}

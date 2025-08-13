@@ -1,0 +1,17 @@
+issues:
+  - title: Setup repo & .github
+    body: Create repo structure, templates, CODEOWNERS, README.
+    labels: [infra]
+    milestone: Week 1
+  - title: Docker & Vite init
+    body: Docker + reverse proxy + HTTPS, Vite TS SPA scaffold.
+    labels: [infra]
+    milestone: Week 1
+  - title: Canvas Pong basics
+    body: Draw court, paddles, ball; game loop.
+    labels: [frontend]
+    milestone: Week 1
+  - title: Keyboard input
+    body: Two-player same keyboard controls.
+    labels: [frontend]
+    milestone: Week 1

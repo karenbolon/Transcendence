@@ -1,0 +1,12 @@
+Title,Body,Labels,Milestone
+Setup repo & .github folder,"Create repo structure, add issue/PR templates, CODEOWNERS, basic README.",infra,Week 1
+Docker & Vite init,"Set up Docker with reverse proxy + HTTPS, scaffold TypeScript SPA with Vite.",infra,Week 1
+Canvas Pong basics,"Draw court, paddles, ball; set up game loop.",frontend,Week 1
+Keyboard input,"Control paddles via keyboard input for two players.",frontend,Week 1
+Tournament UI skeleton,"Alias input page, player list, and basic match queue view.",frontend,Week 1
+Input validation utils,"Centralized TypeScript validators for all forms.",security,Week 2
+Reverse proxy security headers,"Set up CSP, HSTS, no-sniff, X-Frame-Options in Nginx/Caddy.",security,Week 2
+WAF container,"Run ModSecurity with base ruleset in dev.",security,Week 3
+Vault container,"Run HashiCorp Vault (dev mode) and document secret paths/policies.",security,Week 3
+GDPR features,"Implement anonymization and account deletion requests.",security,Week 4
+2FA + JWT,"Add 2FA login flow and JWT auth to secure routes.",security,Week 4

@@ -5,9 +5,12 @@
 		<meta name="viewport", content="width=device-width, initial-scale=1.0">
 		<title>Pong</title>
 		<link rel="stylesheet" href="pong.css">
-		<script src="pong.js"></script>
+		<script defer src="dist/pong.js"></script>
 	</head>
 	<body>
+		<label>Play to
+			<input id="tagetScore" type="number" min="1" value="5" style="width:4rem">
+		</label>
 		<canvas id="board"></canvas>
 	</body>
 </html>

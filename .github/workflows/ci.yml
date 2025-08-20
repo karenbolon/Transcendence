@@ -10,7 +10,7 @@ jobs:
           node-version: 20
       - run: npm ci --prefix frontend
       - run: npm run -s build --prefix frontend
-      # - run: npm test --prefix frontend  # Uncomment when you add tests
+      - run: npm test --prefix frontend  # Uncomment when you add tests
 
 #when base app runs on Docker and TS, use this: 
 #name: CI

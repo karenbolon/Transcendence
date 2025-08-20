@@ -208,32 +208,34 @@ function handleKeyUp(e: KeyboardEvent): void {
 }
 
 
-function boundaryCheck(yPosition: number): boolean {
-	return (yPosition < 0 || yPosition + playerHeight > boardHeight);
+export function boundaryCheck(yPosition: number): boolean {
+  return (yPosition < 0 || yPosition + playerHeight > boardHeight);
 }
 
-type Rect = { x: number, y: number, width: number, height: number };
+export type Rect = { x: number, y: number, width: number, height: number };
 
-function detectCollision(a: Rect, b: Rect): boolean {
-	//if 2 rectangles intersect, we need to return where the collision
-	//occured (RH side of left paddle with left side of ball or LH of right paddle with right
-	//side of ball)
-	return (a.x < b.x + b.width && //a's top RH doesn't reach b's top RH
-			a.x + a.width > b.x && //a's top LH passes b's top RH
-			a.y < b.y + b.height && //a's top LH doesn't reach b's bottom LH
-			a.y + a.height > b.y); //a's bottom left corner passes b's top LH
+export function detectCollision(a: Rect, b: Rect): boolean {
+  //if 2 rectangles intersect, we need to return where the collision
+  //occured (RH side of left paddle with left side of ball or LH of right paddle with right
+  //side of ball)
+  return (a.x < b.x + b.width && //a's top RH doesn't reach b's top RH
+	a.x + a.width > b.x && //a's top LH passes b's top RH
+	a.y < b.y + b.height && //a's top LH doesn't reach b's bottom LH
+	a.y + a.height > b.y); //a's bottom left corner passes b's top LH
 }
 
-function resetGame(direction: number): void {
-	ball = {
-		x : boardWidth / 2,
-		y : boardHeight / 2,
-		width: ballWidth,
-		height: ballHeight,
-		velocityX : direction,
-		velocityY : 1.5
-	};
+export function resetGame(direction: number): void {
+  ball = {
+	x : boardWidth / 2,
+	y : boardHeight / 2,
+	width: ballWidth,
+	height: ballHeight,
+	velocityX : direction,
+	velocityY : 1.5
+  };
 }
+// Export for testing
+export { ball, boardWidth, boardHeight, playerHeight };
 
 function onCanvasClick(e: MouseEvent): void {
 	if (!gameOver)

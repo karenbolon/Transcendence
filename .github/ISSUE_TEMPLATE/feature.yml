@@ -1,8 +1,0 @@
-name: Feature
-description: Request a feature
-labels: ["type/feat"]
-body:
-  - type: input
-    attributes: { label: Goal, placeholder: "What outcome should users get?" }
-  - type: textarea
-    attributes: { label: Acceptance criteria, placeholder: "- [ ] ..." }

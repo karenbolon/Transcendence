@@ -6,9 +6,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci --prefix frontend || true
-      - run: npm run -s build --prefix frontend || true
+        with:
+          node-version: 20
+      - run: npm ci --prefix frontend
+      - run: npm run -s build --prefix frontend
+      # - run: npm test --prefix frontend  # Uncomment when you add tests
 
 #when base app runs on Docker and TS, use this: 
 #name: CI

@@ -36,6 +36,7 @@ out/
 /data/
 tmp/
 cache/
+.dist/
 
 # Test output (keep test source!)
 /coverage/
@@ -47,3 +48,5 @@ cache/
 
 # Misc
 *.pdf
+.nvmrc
+.nvp*

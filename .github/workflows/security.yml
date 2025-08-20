@@ -1,8 +1,0 @@
-#name: Security
-#on:
-#  pull_request:
-#  push:
-#    branches: [main]
-#jobs:
-#  codeql:
-#    uses: github/codeql-action/.github/workflows/codeql.yml@v3

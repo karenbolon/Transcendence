@@ -1,4 +1,8 @@
-import { detectCollision, boundaryCheck, resetGame } from '../../frontend/src/pong';
+import { describe, test, expect } from 'vitest';
+import { detectCollision, 
+          boundaryCheck, 
+          resetGame
+          } from '../../frontend/src/pong';
 
 describe('Pong Game Logic', () => {
   test('detectCollision returns true for overlapping rectangles', () => {
@@ -24,8 +28,6 @@ describe('Pong Game Logic', () => {
 
   test('resetGame sets ball to center with correct direction', () => {
     resetGame(1);
-    // You may need to export `ball`, `boardWidth`, `boardHeight`, etc. for this test
-    // expect(ball.x).toBe(boardWidth / 2);
-    // expect(ball.velocityX).toBe(1);
+
   });
 });

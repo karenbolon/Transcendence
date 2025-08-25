@@ -1,4 +1,4 @@
-import { detectCollision, boundaryCheck, resetGame } from './pong';
+import { detectCollision, boundaryCheck, resetGame } from '../../frontend/src/pong';
 
 describe('Pong Game Logic', () => {
   test('detectCollision returns true for overlapping rectangles', () => {

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/*
+we need to add this for the dark/light defaults.  Tailwind is being over-written
+*/
+.dark body {
+  background-color: #000 !important; color: #fff;
+}
+
+body {
+  background-color: #fff; color: #000;
+}

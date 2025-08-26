@@ -20,6 +20,11 @@ help:
 up:
 	@$(COMPOSE) up -d --build
 	@echo "🧱 Docker is up and running ✅"
+	@xdg-open http://localhost:8081 || open http://localhost:8081 || echo "Open http://localhost:8081 in your browser"
+
+dev-front:
+	@$(COMPOSE) up frontend-dev
+	@echo "open http://localhost:5173 in your browser"
 
 down:
 	@$(COMPOSE) down --remove-orphans
@@ -45,14 +50,21 @@ re:
 	@$(MAKE) clean 
 	@$(MAKE) up
 
+# Corrected flag for volumes
 clean:
 	@echo "🧹 Cleaning (removing containers + volumes)"
-	@$(COMPOSE) down -volumes --remove-orphans
-#	@docker rmi $(docker images -q) --force
+	@$(COMPOSE) down --volumes --remove-orphans
 
 prune:
 	@echo "✂️ Pruning ALL unused images/containers/networks/volumes"
 	@docker system prune -af --volumes
+
+
+# Remove containers, volumes, and all project images (force)
+fclean:
+	@echo "🧨 Full clean: removing containers, volumes, and all project images!"
+	@$(COMPOSE) down --volumes --remove-orphans
+	@docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep '^ft_transcendence-' | awk '{print $$2}' | xargs -r docker rmi -f
 
 sh-front:
 	@$(COMPOSE) exec ft_frontend sh
@@ -60,7 +72,7 @@ sh-front:
 sh-back:
 	@$(COMPOSE) exec ft_backend sh
 
-.PHONY: help up down logs rebuild ps status re clean prune sh-front sh-back
+.PHONY: help dev-front up down logs rebuild ps status re clean prune sh-front sh-back fclean
 
 
 

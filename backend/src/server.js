@@ -10,7 +10,7 @@ await app.register(helmet);
 app.get('/health', async () => ({ status: 'ok' }));
 app.get('/api/hello', async () => ({ msg: 'Hello from Fastify' }));
 
-const port = NUMBER(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3000;
 const host = '0.0.0.0';
 
 try {

@@ -10,7 +10,9 @@ jobs:
           node-version: 20
       - run: npm ci --prefix frontend
       - name: Generate env.ts for CI
-        run: echo "export const API_BASE = 'http://localhost:3000';" > frontend/env.ts
+        run: |
+          mkdir -p frontend
+          echo "export const API_BASE = 'http://localhost:3000';" > frontend/env.ts
       - run: npm run -s build --prefix frontend
       - run: npm test --prefix frontend  # Uncomment when you add tests
 

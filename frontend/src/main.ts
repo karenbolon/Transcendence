@@ -1,5 +1,10 @@
 import './style.css';
 import { startGame } from './pong';
+import { getHello } from './api/client';
+
+
+getHello().then(console.log).catch(console.error);
+
 
 document.addEventListener('DOMContentLoaded', () => {
 	const canvas = document.getElementById('board') as HTMLCanvasElement | null;

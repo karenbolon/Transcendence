@@ -1,75 +1,78 @@
-COMPOSE_FILE = srcs/docker-compose.yml
-INIT_SCRIPT = ./srcs/init.sh
 ENV_FILE = .env
-DB_PASSWORD := X5mnLigU3w8=
-BACKUP_DIR = /home/ubuntu/data/backup
+COMPOSE := docker compose
 
-all: init restore up
+all: up logs sh-front sh-back
 
-init:
-	@echo "Creating .env file"
-	@/bin/bash $(INIT_SCRIPT)
+help:
+	@echo "Options:"
+	@echo "  up        - Build and start containers (detached)"
+	@echo "  down      - Stop and remove containers"
+	@echo "  logs      - Tail (last 200) logs"
+	@echo "  rebuild   - Rebuild without cache, then up"
+	@echo "  ps        - Show compose services"
+	@echo "  status    - Images, containers, networks, recent logs"
+	@echo "  re        - down + clean + up"
+	@echo "  clean     - down --volumes (CAREFUL: removes data volumes)"
+	@echo "  prune     - System prune EVERYTHING (DANGEROUS)"
+	@echo "  sh-front  - Shell into frontend container"
+	@echo "  sh-back   - Shell into backend container"
 
-#DOCKER COMPOSE
 up:
-	@docker compose -f $(COMPOSE_FILE) up -d --build
+	@$(COMPOSE) up -d --build
+	@echo "🧱 Docker is up and running ✅"
+	@xdg-open http://localhost:8081 || open http://localhost:8081 || echo "Open http://localhost:8081 in your browser"
 
-backup:
-	@echo "Backing up WordPress database to $(BACKUP_DIR)/wordpress.sql"
-	@mkdir -p $(BACKUP_DIR)
-	@docker exec mariadb sh -c 'exec mysqldump -u root -p$(DB_PASSWORD) wordpress' > $(BACKUP_DIR)/wordpress.sql	
-	@mkdir -p $(BACKUP_DIR)/wordpress_data
-	@cp -r /home/ubuntu/data/wordpress_data/* $(BACKUP_DIR)/wordpress_data/
-
-restore:
-	@if [ -f $(BACKUP_DIR)/wordpress.sql ]; then \
-		echo "Restoring WordPress database from backup"; \
-		cp $(BACKUP_DIR)/wordpress.sql /home/ubuntu/data/wordpress.sql; \
-	fi
-
-	@if [ -d $(BACKUP_DIR)/wordpress_data ]; then \
-		echo "Restoring WordPress data from backup"; \
-		cp -r $(BACKUP_DIR)/wordpress_data/* /home/ubuntu/data/wordpress_data/; \
-	fi
+dev-front:
+	@$(COMPOSE) up frontend-dev
+	@echo "open http://localhost:5173 in your browser"
 
 down:
-	@$(MAKE) backup
-	@docker compose -f $(COMPOSE_FILE) down
+	@$(COMPOSE) down --remove-orphans
 
-stop:
-	@docker compose -f $(COMPOSE_FILE) stop
+logs:
+	@$(COMPOSE) logs -f --tail=200
 
-restart:
-	@docker compose -f $(COMPOSE_FILE) stop
-	@docker compose -f $(COMPOSE_FILE) up -d
+rebuild:
+	@$(COMPOSE) build --no-cache
+	@$(COMPOSE) up -d
 
 ps:
-	@docker compose -f $(COMPOSE_FILE) ps
+	@$(COMPOSE) ps
 
 status:
 	@docker images
 	@docker ps -a
 	@docker network ls
-	@docker compose -f $(COMPOSE_FILE) logs
+	@$(COMPOSE) logs
 
 re:
 	@$(MAKE) down
 	@$(MAKE) clean 
 	@$(MAKE) up
 
+# Corrected flag for volumes
 clean:
-	@echo "Cleaning"
-	@docker compose -f $(COMPOSE_FILE) down --volumes --remove-orphans || echo "compose is not running"
-#	@docker rmi $(docker images -q) --force
-	@docker system prune -f
+	@echo "🧹 Cleaning (removing containers + volumes)"
+	@$(COMPOSE) down --volumes --remove-orphans
 
-.PHONY: all up down stop restart ps re status clean
-setup:
-	cd frontend && npm install
+prune:
+	@echo "✂️ Pruning ALL unused images/containers/networks/volumes"
+	@docker system prune -af --volumes
 
-build:
-	cd frontend && npm run build
 
-test:
-	cd frontend && npm test
+# Remove containers, volumes, and all project images (force)
+fclean:
+	@echo "🧨 Full clean: removing containers, volumes, and all project images!"
+	@$(COMPOSE) down --volumes --remove-orphans
+	@docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep '^ft_transcendence-' | awk '{print $$2}' | xargs -r docker rmi -f
+
+sh-front:
+	@$(COMPOSE) exec ft_frontend sh
+
+sh-back:
+	@$(COMPOSE) exec ft_backend sh
+
+.PHONY: help dev-front up down logs rebuild ps status re clean prune sh-front sh-back fclean
+
+
 

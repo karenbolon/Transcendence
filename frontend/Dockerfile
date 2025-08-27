@@ -17,9 +17,9 @@ RUN npm ci
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
 
-
-#copy souce and build
+#copy source
 COPY --chown=node:node . .
+
 RUN npm run build
 
 #runtime (nginx, unprivileged, port 8081)
@@ -27,5 +27,5 @@ FROM nginxinc/nginx-unprivileged:1.27.0-alpine AS runtime
 
 #nginx user is uid 101 in this image
 COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
-EXPOSE 8080
+EXPOSE 8081
 CMD ["/docker-entrypoint.sh", "nginx", "-g", "daemon off;"]

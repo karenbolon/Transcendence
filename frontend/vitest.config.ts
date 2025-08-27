@@ -1,10 +1,7 @@
 import { defineConfig } from 'vitest/config';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [
-    tailwindcss()
-  ],
+  // No plugins needed for Tailwind; handled via PostCSS
   test: {
     environment: 'jsdom',        // DOM APIs for your canvas code
     include: ['src/**/*.test.ts'],

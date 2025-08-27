@@ -1,6 +1,8 @@
 ENV_FILE = .env
 COMPOSE := docker compose
 
+all: up logs sh-front sh-back
+
 help:
 	@echo "Options:"
 	@echo "  up        - Build and start containers (detached)"
@@ -30,12 +32,10 @@ up:
 	@echo "🧱 Docker is up and running ✅"
 	@xdg-open http://localhost:8081 || open http://localhost:8081 || echo "Open http://localhost:8081 in your browser"
 
-
 dev-front:
 	@$(COMPOSE) up frontend-dev
 	@echo "Frontend development mode is up and running ✅"
 	@xdg-open http://localhost:5173 || open http://localhost:5173 || echo "Open http://localhost:5173 in your browser"
-
 
 down:
 	@$(COMPOSE) down --remove-orphans
@@ -70,7 +70,6 @@ prune:
 	@echo "✂️ Pruning ALL unused images/containers/networks/volumes"
 	@docker system prune -af --volumes
 
-
 # Remove containers, volumes, and all project images (force)
 fclean:
 	@echo "🧨 Full clean: removing containers, volumes, and all project images!"
@@ -84,6 +83,7 @@ sh-back:
 	@$(COMPOSE) exec ft_backend sh
 
 .PHONY: help dev up down logs rebuild ps status re clean prune sh-front sh-back fclean build-front
+
 
 
 

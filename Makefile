@@ -17,6 +17,16 @@ help:
 	@echo "  sh-front  - Shell into frontend container"
 	@echo "  sh-back   - Shell into backend container"
 
+all: up logs sh-front sh-back build-front
+
+# For development
+dev: dev-front up logs sh-front sh-back
+
+#build frontend 
+build-front:
+	cd frontend && npm run build
+	@echo "Frontend build mode is up and running ✅"
+
 up:
 	@$(COMPOSE) up -d --build
 	@echo "🧱 Docker is up and running ✅"
@@ -24,7 +34,8 @@ up:
 
 dev-front:
 	@$(COMPOSE) up frontend-dev
-	@echo "open http://localhost:5173 in your browser"
+	@echo "Frontend development mode is up and running ✅"
+	@xdg-open http://localhost:5173 || open http://localhost:5173 || echo "Open http://localhost:5173 in your browser"
 
 down:
 	@$(COMPOSE) down --remove-orphans
@@ -59,7 +70,6 @@ prune:
 	@echo "✂️ Pruning ALL unused images/containers/networks/volumes"
 	@docker system prune -af --volumes
 
-
 # Remove containers, volumes, and all project images (force)
 fclean:
 	@echo "🧨 Full clean: removing containers, volumes, and all project images!"
@@ -72,7 +82,8 @@ sh-front:
 sh-back:
 	@$(COMPOSE) exec ft_backend sh
 
-.PHONY: help dev-front up down logs rebuild ps status re clean prune sh-front sh-back fclean
+.PHONY: help dev up down logs rebuild ps status re clean prune sh-front sh-back fclean build-front
+
 
 
 

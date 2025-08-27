@@ -17,6 +17,5 @@ RUN npm ci --omit=dev
 COPY --chown=node:node . .
 
 EXPOSE 3000
-HEALTHCHECK --interval=10s --timeout=2s --start-period=20s --retries=5 CMD curl -f http://localhost:3000/health || exit 1
 
 CMD ["npm", "start"]

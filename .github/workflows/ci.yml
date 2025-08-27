@@ -4,32 +4,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci --prefix frontend
-      - name: Generate env.ts for CI
-        run: |
-          mkdir -p frontend
-          echo "export const API_BASE = 'http://localhost:3000';" > frontend/env.ts
-      - run: npm run -s build --prefix frontend
-      - run: npm test --prefix frontend  # Uncomment when you add tests
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Build frontend
+        run: npm run -s build --prefix frontend
+      - name: Run frontend tests
+        run: npm test --prefix frontend
 
-#when base app runs on Docker and TS, use this: 
-#name: CI
-#on: [push, pull_request]
-#jobs:
-#  ts:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - uses: actions/setup-node@v4
-#        with: { node-version: 20 }
-#      - run: npm ci --prefix frontend
-#      - run: npm run -s typecheck --prefix frontend || npm run -s build --prefix frontend
-#  docker:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: docker compose build

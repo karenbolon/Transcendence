@@ -1,60 +1,74 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="/styles.css" rel="stylesheet" />
     <title>Pong</title>
-
+    <script>
+      //save preferences so system remembers if reloaded
+      (function () {
+        try {
+          const saved = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const shouldDark = saved ? saved === 'dark' : prefersDark;
+          document.documentElement.classList.toggle('dark', shouldDark);
+        } catch (_) {}
+      })();
+    </script>
   </head>
-  <body class="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+
+  <body class="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-200">
     <main class="max-w-6xl mx-auto p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <!-- Main game area (3/4 on medium+ screen and full width on mobile) -->
-      <section class="md:col-span-3 md:col-start-1">
-        <div id="pong-container" class="flex justify-center">
-          <canvas
-            id="board"
-            class="block rounded bg-gray-800 w-full max-w-[800px] aspect-[4/3]">
-          </canvas>
-        </div>
-      </section>
+        <!-- Main game area (3/4 on medium+ screen and full width on mobile) -->
+        <section class="md:col-span-3 md:col-start-1">
+          <div id="pong-container" class="flex justify-center">
+            <canvas
+              id="board"
+              class="block rounded bg-white dark:bg-gray-800 w-full max-w-[800px] aspect-[4/3]">
+            </canvas>
+          </div>
+        </section>
           
-      <!-- Sidebar: controls 1/4 on medium and full width on mobile 
-       THIS SHOULD HAVE THE BUTTON ON THE RIGHT BUT IT IS APPEARING UNDER-->
-      <aside class="order-first md:order-none md:col-span-1">
-        <div class="sticky top-4 space-y-3">
-          <button
-            id="toggleDark"
-            class="ml-auto px-4 py-2 text-sm font-medium bg-blue-100 text-blue-900 rounded-md">
-            Toggle Dark Mode
-          </button>
-        </div>
-        <!--PUT OTHER BUTTONS HERE IF WE NEED THEM OR A MENU -->
-        <div id="error-message" class="hidden text-red-600 text-center"> </div>
-      </aside>
-    </div>
-  </main>
-  <script type="module" src="/src/main.ts"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const btn = document.getElementById('toggleDark')
+        <!-- Sidebar: controls 1/4 on medium and full width on mobile -->
+        <aside class="order-first md:order-none md:col-span-1 md:col-start-4 md:row-start-1">
+          <div class="sticky top-4 flex justify-end">
+            <button
+              id="toggleDark"
+              class="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-900 rounded-md dark:bg-blue-900 dark:text-blue-100
+                      transition-colors duration-200"
+                      aria-pressed="false"
+                      aria-label="Toggle color scheme">
+              Toggle Dark Mode
+            </button>
+          </div>
+        </aside>
+      </main>
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const btn = document.getElementById('toggleDark');
 
-      function updateButtonText() {
-        btn.textContent = document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
-      }
-      
-      if (btn) {
-        //set initial label
-        updateButtonText();
-        btn.addEventListener('click', () => {
-          document.documentElement.classList.toggle('dark');
-          btn.setAttribute('aria-pressed',
-            String(document.documentElement.classList.contains('dark'))
-          );
-          updateButtonText();
-        });
-      }
-    });  
+        function isDark() {
+          return document.documentElement.classList.contains('dark');
+        }
+        function setDark(enabled) {
+          document.documentElement.classList.toggle('dark', enabled);
+          localStorage.setItem('theme', enabled ? 'dark' : 'light');
+          updateButton();
+        } 
+        function updateButton() {
+          if (!btn) return;
+          const dark = isDark();
+          btn.textContent = dark ? 'Light Mode' : 'Dark Mode';
+          btn.setAttribute('aria-pressed', String(dark));
+        }
+        if (btn) {
+          updateButton();
+          btn.addEventListener('click', () => setDark(!isDark()));
+        }
+      });
     </script>
   </body>
 </html>

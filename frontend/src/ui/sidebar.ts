@@ -1,0 +1,1 @@
+//buils the left menu from the registry

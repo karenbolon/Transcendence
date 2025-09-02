@@ -1,8 +1,6 @@
 ENV_FILE = .env
 COMPOSE := docker compose
 
-all: up logs sh-front sh-back
-
 help:
 	@echo "Options:"
 	@echo "  up        - Build and start containers (detached)"
@@ -31,6 +29,7 @@ up:
 	@$(COMPOSE) up -d --build
 	@echo "🧱 Docker is up and running ✅"
 	@xdg-open http://localhost:8081 || open http://localhost:8081 || echo "Open http://localhost:8081 in your browser"
+
 
 dev-front:
 	@$(COMPOSE) up frontend-dev
@@ -83,7 +82,5 @@ sh-back:
 	@$(COMPOSE) exec ft_backend sh
 
 .PHONY: help dev up down logs rebuild ps status re clean prune sh-front sh-back fclean build-front
-
-
 
 

@@ -16,12 +16,12 @@ async function request(method: string, path: string, body?: unknown) {
 	}
 	if (body !== undefined) init.body = JSON.stringify(body);
 
-	const res = await fetch('${API_BASE}/api${path}', init);
+	const res = await fetch(`${API_BASE}/api${path}`, init);
 
 	//optional refresh (JWT mode)
 	if (AUTH_MODE === 'jwt' && res.status === 401 && !authState.justRefreshed) {
 		authState.justRefreshed = true;
-		const r = await fetch('${API_BASE}/api$/auth/refresh', { method: "POST", credentials: "include" });
+		const r = await fetch(`${API_BASE}/api$/auth/refresh`, { method: "POST", credentials: "include" });
 		if (r.ok) {
 			const { accessToken } = await r.json();
 			authState.accessToken = accessToken;

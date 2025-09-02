@@ -31,3 +31,4 @@ COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8081
 
 CMD ["nginx", "-g", "daemon off;"]
+

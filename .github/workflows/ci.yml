@@ -1,3 +1,7 @@
+
+#checks the behaviour of code, sets Node.js up, installs frontend dependencies
+#runs TypeScript type checking, builds the frontend and tests and builds the frontend 
+#Docker image
 name: CI
 on: [push, pull_request]
 jobs:
@@ -12,8 +16,12 @@ jobs:
           node-version: 20
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+      - name: Type check frontend
+        run: npx tsc --noEmit --project frontend/tsconfig.json
       - name: Build frontend
         run: npm run -s build --prefix frontend
       - name: Run frontend tests
         run: npm test --prefix frontend
+      - name: Build frontend Docker image
+        run: docker build -f frontend/Dockerfile -t frontend-test:ci ./frontend
 

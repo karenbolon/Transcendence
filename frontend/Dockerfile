@@ -30,4 +30,5 @@ COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8081
 
-CMD ["/docker-entrypoint.sh", "nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off;"]
+

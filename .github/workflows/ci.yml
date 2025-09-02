@@ -20,7 +20,7 @@ jobs:
       - name: Install TypeScript for CI
         run: npm install --save-dev typescript --prefix frontend
       - name: Type check frontend
-        run: npx tsc --noEmit --project frontend/tsconfig.json
+        run: cd frontend && npx tsc --noEmit --project frontend/tsconfig.json
       - name: Build frontend
         run: npm run -s build --prefix frontend
       - name: Run frontend tests

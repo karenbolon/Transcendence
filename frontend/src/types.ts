@@ -17,8 +17,8 @@ export interface Module {
     unmount?(): void; //cleanup (event listeners etc)
 };
 
-export ApiClient = {
-    get: <T = any(path: string) => Promise<T>;
-    post: <T = any(path: string, body?: unknown) => Promise<T>;
-};
+export interface ApiClient {
+    get<T = any>(path: string): Promise<T>;
+    post<T = any>(path: string, body?: unknown): Promise<T>;
+}
 

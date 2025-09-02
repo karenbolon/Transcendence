@@ -29,3 +29,6 @@ FROM nginxinc/nginx-unprivileged:1.27.0-alpine AS runtime
 COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8081
+
+CMD ["nginx", "-g", "daemon off;"]
+

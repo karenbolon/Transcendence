@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="/styles.css" rel="stylesheet" />
     <title>Pong</title>
     <script>
       //save preferences so system remembers if reloaded
@@ -19,6 +18,23 @@
   </head>
 
   <body class="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-200">
+    <!-- Global dark mode toggle, always visible with fixed -->
+    <div class="fixed top-4 right-4 left-auto z-50">
+      <button
+        id="toggleDark"
+        class="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-900 rounded-md dark:bg-blue-900 dark:text-blue-100 transition-colors duration-200"
+        aria-pressed="false"
+        aria-label="Toggle color scheme">
+        Toggle Dark Mode
+      </button>
+    </div>
+    <!-- Global score selection form, always visible -->
+    <form id="score-form" class="flex flex-col items-center gap-2 mb-4 w-full max-w-xs mx-auto">
+      <label for="targetScore" class="text-sm">Target Score:</label>
+      <input id="targetScore" name="targetScore" type="number" min="1" max="99" value="11" class="border rounded px-2 py-1 w-24 text-center" />
+      <button type="submit" class="mt-2 px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600">Start Game</button>
+    </form>
+    <!-- everything in main gets reloaded each time the modules are loaded-->
     <main class="max-w-6xl mx-auto p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <!-- Main game area (3/4 on medium+ screen and full width on mobile) -->
@@ -33,16 +49,7 @@
           
         <!-- Sidebar: controls 1/4 on medium and full width on mobile -->
         <aside class="order-first md:order-none md:col-span-1 md:col-start-4 md:row-start-1">
-          <div class="sticky top-4 flex justify-end">
-            <button
-              id="toggleDark"
-              class="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-900 rounded-md dark:bg-blue-900 dark:text-blue-100
-                      transition-colors duration-200"
-                      aria-pressed="false"
-                      aria-label="Toggle color scheme">
-              Toggle Dark Mode
-            </button>
-          </div>
+          <!-- (Sidebar content can go here) -->
         </aside>
       </main>
     <script type="module" src="/src/main.ts"></script>

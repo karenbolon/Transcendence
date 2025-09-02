@@ -1,4 +1,4 @@
-//leaderboard module
+//tournament module
 //index.ts registers routes and sets up listeners
 
 import type { Module, MountCtx} from '../../types';

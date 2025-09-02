@@ -27,11 +27,7 @@ FROM nginxinc/nginx-unprivileged:1.27.0-alpine AS runtime
 
 #nginx user is uid 101 in this image
 COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
-<<<<<<< HEAD
-EXPOSE 8081
-=======
 
 EXPOSE 8081
 
->>>>>>> origin/devops
-CMD ["/docker-entrypoint.sh", "nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off;"]

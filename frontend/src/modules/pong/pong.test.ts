@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { detectCollision, boundaryCheck, resetGame } from './view';
+import { detectCollision, boundaryCheck, resetGame } from './views';
 
 describe('Pong Game Logic', () => {
   test('detectCollision returns true for overlapping rectangles', () => {

@@ -2,4 +2,5 @@
 // Export UI components from here if you want to import them elsewhere
 
 // Example:
-// export { renderSidebar } from './sidebar';
+export { setupDarkModeToggle } from './views';
+export { applySavedTheme } from './views';

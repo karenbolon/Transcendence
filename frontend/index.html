@@ -4,19 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pong</title>
-    <script>
-      //save preferences so system remembers if reloaded
-      (function () {
-        try {
-          const saved = localStorage.getItem('theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const shouldDark = saved ? saved === 'dark' : prefersDark;
-          document.documentElement.classList.toggle('dark', shouldDark);
-        } catch (_) {}
-      })();
-    </script>
   </head>
-
   <body class="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-200">
     <!-- Global dark mode toggle, always visible with fixed -->
     <div class="fixed top-4 right-4 left-auto z-50">
@@ -53,29 +41,5 @@
         </aside>
       </main>
     <script type="module" src="/src/main.ts"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const btn = document.getElementById('toggleDark');
-
-        function isDark() {
-          return document.documentElement.classList.contains('dark');
-        }
-        function setDark(enabled) {
-          document.documentElement.classList.toggle('dark', enabled);
-          localStorage.setItem('theme', enabled ? 'dark' : 'light');
-          updateButton();
-        } 
-        function updateButton() {
-          if (!btn) return;
-          const dark = isDark();
-          btn.textContent = dark ? 'Light Mode' : 'Dark Mode';
-          btn.setAttribute('aria-pressed', String(dark));
-        }
-        if (btn) {
-          updateButton();
-          btn.addEventListener('click', () => setDark(!isDark()));
-        }
-      });
-    </script>
   </body>
 </html>

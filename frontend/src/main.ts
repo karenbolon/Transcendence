@@ -9,6 +9,7 @@ import Pong from "./modules/pong";
 import Auth from "./modules/auth";
 import Leaderboard from "./modules/leaderboard";
 import { api } from "./client";
+import { applySavedTheme, setupDarkModeToggle } from "./ui";
 import type { MountCtx } from "./types";
 
 const modules = [Pong, Auth, Leaderboard];
@@ -41,6 +42,12 @@ function mountModule() {
 		main.innerHTML = "<h2>Not found</h2>";
 	}
 }
+
+applySavedTheme();
+window.addEventListener("DOMContentLoaded", () => {
+	setupDarkModeToggle();
+	mountModule();
+});
 
 window.addEventListener("DOMContentLoaded", mountModule);
 window.addEventListener("popstate", mountModule); 

@@ -1,4 +1,5 @@
 //client.ts
+//handles API requests and communicats with backend
 
 import { authState } from "./modules/auth/state";
 import type { ApiClient } from "./types";

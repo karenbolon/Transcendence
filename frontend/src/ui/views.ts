@@ -1,6 +1,7 @@
 // Put code for leaderboard UI here and export it so it can be used in index.ts
 
 // Example:
+
 // export function loginInfo(container: HTMLElement) {
 //   container.innerHTML = '<h2>login</h2><p>Coming soon!</p>';
 //   // Add login rendering logic here
@@ -43,3 +44,4 @@ export function applySavedTheme() {
     document.documentElement.classList.toggle('dark', shouldDark);
   } catch (_) {}
 }
+

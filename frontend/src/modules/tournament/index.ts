@@ -1,20 +1,20 @@
-//tournament module
-//index.ts registers routes and sets up listeners
+// tournament/index.ts
+import type { Module, MountCtx } from "../../types";
+import { renderTournamentPlayerInput } from "./views";
+import { stopTournamentPongGame } from "./tournamentPong";
 
-import type { Module, MountCtx} from '../../types';
-import { renderLeaderboard } from './views';  //or whatever name you call the function
+const Tournament: Module = {
+  id: "tournament",
+  title: "Tournament",
+  route: "#/tournament",
+  mount({ container }: MountCtx) {
+    // limit to 8 players, min 2
+    renderTournamentPlayerInput(container);
+  },
+  unmount() {
+    stopTournamentPongGame();
+  },
+};
 
-const Leaderboard: Module = {
-	id: 'leaderboard',
-	title: 'Leaderboard',
-	route: '/leaderboard',
-	mount({ container }: MountCtx) {
-		renderLeaderboard(container);
-		// Call the exported function from view.ts to render the UI
-	},
-	unmount() {
-		// Optional: cleanup logic
-	},
-}
 
-export default Leaderboard;
+export default Tournament;

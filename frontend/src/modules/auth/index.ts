@@ -7,10 +7,10 @@ import { authEmail } from './views';
 const Auth: Module = {
 	id: 'auth',
 	title: 'Auth',
-	route: '/auth',
+	route: '#/auth',
 	mount({ container }: MountCtx) {
 		authEmail(container);
-		// Call the exported function from view.ts to render the UI
+		// Call the exported function from view.ts to render the auth logic
 		// Example: authEmail(container);
 	},
 	unmount() {

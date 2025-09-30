@@ -4,4 +4,4 @@
 export function renderLeaderboard(container: HTMLElement) {
    container.innerHTML = '<h2>Leaderboard</h2><p>Coming soon!</p>';
 //   // Add leaderboard rendering logic here
- }
+}

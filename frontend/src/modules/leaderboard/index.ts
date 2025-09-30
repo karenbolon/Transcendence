@@ -7,10 +7,10 @@ import { renderLeaderboard } from './views';  //or whatever name you call the fu
 const Leaderboard: Module = {
 	id: 'leaderboard',
 	title: 'Leaderboard',
-	route: '/leaderboard',
+	route: '#/leaderboard',
 	mount({ container }: MountCtx) {
 		renderLeaderboard(container);
-		// Call the exported function from view.ts to render the UI
+		// Call the exported function from view.ts to render the leaderboard logic
 	},
 	unmount() {
 		// Optional: cleanup logic

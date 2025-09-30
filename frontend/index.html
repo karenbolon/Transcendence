@@ -3,43 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Name of the tab -->
     <title>Pong</title>
   </head>
+  <!-- makes body minimum full viewport height, sets color scheme for light/dark with transition -->
   <body class="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-200">
     <!-- Global dark mode toggle, always visible with fixed -->
-    <div class="fixed top-4 right-4 left-auto z-50">
+    <div class="fixed top-4 right-4 z-50">
       <button
         id="toggleDark"
         class="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-900 rounded-md dark:bg-blue-900 dark:text-blue-100 transition-colors duration-200"
         aria-pressed="false"
         aria-label="Toggle color scheme">
-        Toggle Dark Mode
+        Dark Mode
       </button>
     </div>
-    <!-- Global score selection form, always visible -->
-    <form id="score-form" class="flex flex-col items-center gap-2 mb-4 w-full max-w-xs mx-auto">
-      <label for="targetScore" class="text-sm">Target Score:</label>
-      <input id="targetScore" name="targetScore" type="number" min="1" max="99" value="11" class="border rounded px-2 py-1 w-24 text-center" />
-      <button type="submit" class="mt-2 px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600">Start Game</button>
-    </form>
-    <!-- everything in main gets reloaded each time the modules are loaded-->
-    <main class="max-w-6xl mx-auto p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <!-- Main game area (3/4 on medium+ screen and full width on mobile) -->
+    <!-- views rendered here (main content).  During Hot Module Replacement (HMR), 
+     modules are updated/re-rendered as needed -->
+     <!-- <main class="flex-1 p-4 pr-72"> -->
+      <main class="min-h-screen p-4 pr-72">
+      <!-- Main game area (3/4 on medium+ screen and full width on mobile) -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2"> 
         <section class="md:col-span-3 md:col-start-1">
           <div id="pong-container" class="flex justify-center">
             <canvas
               id="board"
-              class="block rounded bg-white dark:bg-gray-800 w-full max-w-[800px] aspect-[4/3]">
+              class="block rounded bg-white dark:bg-gray-800 w-full max-w-[800px] h-[400px]">
             </canvas>
           </div>
+          <div id="pong-board-footer"></div>
         </section>
-          
-        <!-- Sidebar: controls 1/4 on medium and full width on mobile -->
-        <aside class="order-first md:order-none md:col-span-1 md:col-start-4 md:row-start-1">
-          <!-- (Sidebar content can go here) -->
-        </aside>
-      </main>
+      </div>
+    </main>
+    <!-- menubar: always visible, outside main -->
+    <aside class="fixed top-0 right-0 h-full w-64 bg-white dark:bg-black border-l border-gray-200 dark:border-gray-800 shadow-lg z-40 flex flex-col items-start gap-4 p-4">
+      <div id="game-mode-menu" class="w-full flex flex-col gap-2">
+        <!-- Menu buttons will be rendered here by JS -->
+      </div>
+    </aside>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

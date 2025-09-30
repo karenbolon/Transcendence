@@ -2,6 +2,7 @@
 //handles API requests and communicats with backend
 //need to add the JWT and AUTHENTICATION here
 
+
 //import { authState } from "./modules/auth/state";
 import type { ApiClient } from "./types";
 

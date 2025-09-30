@@ -56,3 +56,4 @@ window.addEventListener("DOMContentLoaded", () => {
 	setupDarkModeToggle();
 	startRouter(mountModule);
 });
+

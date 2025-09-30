@@ -144,13 +144,14 @@ let pongPlayer2Name: string = "Player 2";
 export function startPongGame(canvas: HTMLCanvasElement, opts: GameOpts = {}) {
 	// Ensure previous game loop and listeners are cleaned up
 	stopPongGame();
-			pongPlayer1Name = "Player 1";
-			pongPlayer2Name = "Player 2";
-			pongOnGameEnd = typeof opts.onGameEnd === 'function' ? opts.onGameEnd : undefined;
+	pongPlayer1Name = "Player 1";
+	pongPlayer2Name = "Player 2";
+	pongOnGameEnd = typeof opts.onGameEnd === 'function' ? opts.onGameEnd : undefined;
+
 	//sizes and options
 	boardWidth = opts.width ?? 640;
 	boardHeight = opts.height ?? 480;
-		paddleSpeed = typeof opts.speed === 'number' ? opts.speed : 4;
+	paddleSpeed = typeof opts.speed === 'number' ? opts.speed : 4;
 	targetScore = opts.targetScore ?? 11;
 
 	canvas.width = boardWidth;
@@ -241,15 +242,15 @@ function loop(): void {
 
 
 function update(): void {
-			if (gameOver) {
-				// Tournament integration: call pongOnGameEnd with winner name
-				if (typeof pongOnGameEnd === 'function' && lastWinner) {
-					const winnerName = lastWinner === 1 ? pongPlayer1Name : pongPlayer2Name;
-					pongOnGameEnd(winnerName);
-					pongOnGameEnd = undefined; // Prevent multiple calls
-				}
-				return;
-			}
+	if (gameOver) {
+	// Tournament integration: call pongOnGameEnd with winner name
+		if (typeof pongOnGameEnd === 'function' && lastWinner) {
+			const winnerName = lastWinner === 1 ? pongPlayer1Name : pongPlayer2Name;
+			pongOnGameEnd(winnerName);
+			pongOnGameEnd = undefined; // Prevent multiple calls
+		}
+		return;
+	}
 
 	//paddles
 	const nextPlayer1Y = player1.y + player1.velocityY;
@@ -348,22 +349,22 @@ function draw(ctx: CanvasRenderingContext2D, board: HTMLCanvasElement) {
 		ctx.textAlign = 'center';
 		const winnerText = winMessage ?? "Game Over";
 		ctx.fillText(winnerText, board.width / 2, board.height / 2 - 40);
-	
+
 		// button rect (centered)
-	    playButton.w = 180;
-	    playButton.h = 46;
-	    playButton.x = Math.round(board.width / 2 - playButton.w / 2);
-    	playButton.y = Math.round(board.height / 2 + 10);
+		playButton.w = 180;
+		playButton.h = 46;
+		playButton.x = Math.round(board.width / 2 - playButton.w / 2);
+		playButton.y = Math.round(board.height / 2 + 10);
 
-    	// button background
-    	ctx.fillStyle = "#3b82f6"; // Tailwind blue-500
-    	ctx.fillRect(playButton.x, playButton.y, playButton.w, playButton.h);
+		// button background
+		ctx.fillStyle = "#3b82f6"; // Tailwind blue-500
+		ctx.fillRect(playButton.x, playButton.y, playButton.w, playButton.h);
 
-    	// button label
-    	ctx.fillStyle = "white";
-    	ctx.font = "18px sans-serif";
-    	ctx.fillText(`Play Again`, board.width / 2, playButton.y + playButton.h / 2 + 6);
-  	}
+		// button label
+		ctx.fillStyle = "white";
+		ctx.font = "18px sans-serif";
+		ctx.fillText(`Play Again`, board.width / 2, playButton.y + playButton.h / 2 + 6);
+	}
 }
 
 function handleKeyDown(e: KeyboardEvent): void {
@@ -389,19 +390,19 @@ function handleKeyUp(e: KeyboardEvent): void {
 }
 
 function onCanvasClick(e: MouseEvent): void {
-	if (!gameOver || !canvasRef)
-		return;
-	const rect = canvasRef.getBoundingClientRect();
-	const mx = e.clientX - rect.left;
-	const my = e.clientY - rect.top;
+		if (!gameOver || !canvasRef)
+			return;
+		const rect = canvasRef.getBoundingClientRect();
+		const mx = e.clientX - rect.left;
+		const my = e.clientY - rect.top;
 
-	// ...existing code...
-    
-
-	const dir: 1 | -1 = (lastWinner === 1) ? 1 : (lastWinner === 2) ? -1 : 1;
-	resetGame(dir);
-
-	canvasRef.focus();
+		// Only trigger if click is inside Play Again button
+		if (mx >= playButton.x && mx <= playButton.x + playButton.w &&
+			my >= playButton.y && my <= playButton.y + playButton.h) 
+		{
+			startPongGame(canvasRef, { targetScore });
+			canvasRef.focus();
+		}
 }
 
 // ------- Helper funtions -------

@@ -1,0 +1,40 @@
+#connect to the db
+docker exec -it ft_db psql -U root -d pong_db
+
+#inside of the db
+
+#see all users
+SELECT * FROM users;
+#count users
+SELECT COUNT(*) FROM users;
+#ID and usernames
+SELECT id, username, email FROM users;
+#exit
+\q
+
+#changes in the schema
+# Stop database
+npm run db:stop
+
+# Remove the volume (deletes all data)
+docker volume rm my_app_pgdata
+
+# Start fresh
+npm run db:start:d
+
+# Push schema
+npm run db:push
+
+# Select "Yes"
+
+#Drizzel
+# Generate migration from your schema
+npm run db:generate
+
+# Push to database
+npm run db:push
+
+#quick clean
+docker exec -it ft_db psql -U root -d pong_db -c "
+TRUNCATE TABLE friendships, games, users RESTART IDENTITY CASCADE;
+"

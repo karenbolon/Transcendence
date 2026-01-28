@@ -1,48 +1,53 @@
 <script lang="ts">
-	import { register } from '$lib/store/auth';
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
 
-	let username = $state('');
-	let email = $state('');
-	let password = $state('');
-	let confirmPassword = $state('');
-	let acceptedTerms = $state(false);
+	// Get form data from server
+	export let form: ActionData;
 
-	let error = $state('');
+	let loading = false;
+	// import { register } from '$lib/store/auth';
+
+	// let username = $state('');
+	// let email = $state('');
+	// let password = $state('');
+	// let confirmPassword = $state('');
+	// let acceptedTerms = $state(false);
+
+	// let error = $state('');
 
 
-	function handleRegister(event: Event) {
-		event.preventDefault();
+	// function handleRegister(event: Event) {
+	// 	event.preventDefault();
 
-		error = '';
-		if (!username.trim()) {
+	// 	error = '';
+	// 	if (!username.trim()) {
 
-			error = 'Please enter a username';
-			return;
-		}
+	// 		error = 'Please enter a username';
+	// 		return;
+	// 	}
 
-		if (!email.trim()) {
-			error = 'Please enter an email';
-			return;
-		}
+	// 	if (!email.trim()) {
+	// 		error = 'Please enter an email';
+	// 		return;
+	// 	}
 
-		if (!password.trim()) {
-			error = 'Please enter a password';
-			return;
-		}
+	// 	if (!password.trim()) {
+	// 		error = 'Please enter a password';
+	// 		return;
+	// 	}
 
-		if (password !== confirmPassword) {
-			error = 'Passwords do not match';
-			return;
-		}
+	// 	if (password !== confirmPassword) {
+	// 		error = 'Passwords do not match';
+	// 		return;
+	// 	}
 
-		if (!acceptedTerms) {
-			error = 'You must accept the terms and conditions';
-			return;
-		}
+	// 	if (!acceptedTerms) {
+	// 		error = 'You must accept the terms and conditions';
+	// 		return;
+	// 	}
 
-		register(username, email, password);
-		window.location.href = "/dashboard";
-	}
+	// 	register(username, email, password);
 
 </script>
 
@@ -54,13 +59,28 @@
 		<p >Join the game and start playing!</p>
 	</div>
 
-	<form class="w-full max-w-md space-y-4 p-4" onsubmit={handleRegister}>
+	<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
+		loading = true;
+		return async ({ update }) => {
+			loading = false;
+			await update();
+		};
+	}} >
 
-		{#if error}
+		<!-- Global Error -->
+		{#if form?.error}
 			<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
-				{error}
+				{form.error}
 			</div>
 		{/if}
+
+		<!-- Success Message -->
+		{#if form?.success}
+			<div class="bg-green-500/10 border border-green-500 text-green-500 px-4 py-2 rounded-lg text-sm">
+				Account created! Redirecting...
+			</div>
+		{/if}
+
 
 		<div class="form-group">
 			<label for="username">Username</label>
@@ -69,8 +89,11 @@
 				id="username"
 				name="username"
 				placeholder="Choose a username"
-				bind:value={username}
+				required
 			/>
+			{#if form?.errors?.username}
+				<p class="text-red-500 text-sm mt-1">{form.errors.username}</p>
+			{/if}
 		</div>
 
 		<div class="form-group">
@@ -80,8 +103,11 @@
 				id="email"
 				name="email"
 				placeholder="your.email@example.com"
-				bind:value={email}
+				required
 			/>
+			{#if form?.errors?.email}
+				<p class="text-red-500 text-sm mt-1">{form.errors.email}</p>
+			{/if}
 		</div>
 
 		<div class="form-group">
@@ -91,8 +117,14 @@
 				id="password"
 				name="password"
 				placeholder="Create a password"
-				bind:value={password}
+				required
 			/>
+			{#if form?.errors?.password}
+				<p class="text-red-500 text-sm mt-1">{form.errors.password}</p>
+			{/if}
+			<p class="text-xs text-gray-400 mt-1">
+				Must be 8+ characters with uppercase, lowercase, and number
+			</p>
 		</div>
 
 		<div class="form-group">
@@ -102,19 +134,28 @@
 				id="confirmPassword"
 				name="confirmPassword"
 				placeholder="Re-enter your password"
-				bind:value={confirmPassword}
+				required
 			/>
+			{#if form?.errors?.confirmPassword}
+				<p class="text-red-500 text-sm mt-1">{form.errors.confirmPassword}</p>
+			{/if}
 		</div>
 
 		<div >
 			<label >
-				<input type="checkbox" name="acceptTerms" bind:checked={acceptedTerms} />
+				<input type="checkbox" name="acceptTerms" required />
 				I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a> and
 				<a href="/privacy" class="link" target="_blank">Privacy Policy</a>
 			</label>
 		</div>
 
-		<button class="sign w-full py-3" type="submit">Sign Up</button>
+		<button class="sign w-full py-3" type="submit" disabled={loading}>
+			{#if loading}
+				Signing up...
+			{:else}
+				Sign Up
+			{/if}
+		</button>
 	</form>
 
 		<div class="text-center text-sm text-gray-400">
@@ -122,6 +163,7 @@
 			<a href="/login" class="link">Login</a>
 		</div>
 
+		<!-- OAuth Section (Future) -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
 				<span class="px-2 bg-pong-darker text-gray-400">Or sign up with</span>
@@ -131,13 +173,13 @@
 		<div class="grid grid-cols-2 gap-3">
 			<button
 				type="button"
-				class="btn-secondary py-2 text-sm">
-				🔗 42 Intra
+				class="login py-2 text-sm" disabled>
+				🔗 42 Intra (Coming Soon)
 			</button>
 			<button
 			type="button"
-			class="btn-secondary py-2 text-sm">
-				👤 OAuth
+			class="login py-2 text-sm" disabled>
+				👤 OAuth (Coming Soon)
 			</button>
 		</div>
 	</div>

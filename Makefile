@@ -123,6 +123,31 @@ preview:
 
 
 # ================================================================================
+# TESTING
+# ================================================================================
+
+# Run full test suite (start DB, push schema, run tests)
+test: test-setup
+	@echo "$(TEST) Running tests..."
+	@npx vitest
+	@echo "$(CHECK) Tests complete!"
+
+# Setup test environment (start DB and push schema)
+test-setup:
+	@echo "$(DATABASE) Starting test database..."
+	@npm run db:start:d
+	@echo "$(CHECK) Waiting for database to be ready..."
+	@sleep 3
+	@echo "$(DATABASE) Pushing schema to test database..."
+	@npm run db:push:test
+	@echo "$(CHECK) Test environment ready!"
+
+# Run tests only (assumes DB is already running)
+test-run:
+	@echo "$(TEST) Running tests..."
+	@npx vitest
+
+# ================================================================================
 # Clean
 # ================================================================================
 

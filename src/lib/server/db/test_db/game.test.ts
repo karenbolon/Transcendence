@@ -1,41 +1,9 @@
 // src/lib/server/db/test_db/game.test.ts
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../index';
-import { users, games, friendships, sessions } from '../schema';
+import { users, games } from '../schema';
 import { eq, or } from 'drizzle-orm';
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🧹 Clean database helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(friendships).execute().catch(() => {});
-	await db.delete(games).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 👤 Create test users helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function createTestUsers(count: number = 2) {
-	const timestamp = Date.now();
-	const createdUsers = [];
-
-	for (let i = 1; i <= count; i++) {
-		const [user] = await db
-			.insert(users)
-			.values({
-				username: `player${i}_${timestamp}`,
-				name: `Player ${i}`,
-				email: `player${i}_${timestamp}@example.com`,
-				password_hash: `hash${i}`
-			})
-			.returning();
-		createdUsers.push(user);
-	}
-
-	return createdUsers;
-}
+import { cleanDatabase, createTestUsers } from './test-utils';
 
 describe('Games Schema - Integration Tests', () => {
 	// ══════════════════════════════════════════════════════════════════════════

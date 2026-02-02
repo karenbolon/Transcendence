@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '../index';
-import { users, games, friendships, sessions } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics } from '../schema';
 import type { User } from '../schema';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -19,13 +19,19 @@ import type { User } from '../schema';
  */
 export async function cleanDatabase() {
 	// Delete in reverse dependency order!
-	// 1. Sessions depend on Users
-	// 2. Friendships depend on Users
-	// 3. Games depend on Users
-	// 4. Users have no dependencies
+	// 1. Analytics depend on Users/Games/Tournaments
+	// 2. Messages depend on Users/Games
+	// 3. Sessions depend on Users
+	// 4. Friendships depend on Users
+	// 5. Games depend on Users
+	// 6. Tournaments depend on Users
+	// 7. Users have no dependencies
+	await db.delete(analytics).execute().catch(() => {});
+	await db.delete(messages).execute().catch(() => {});
 	await db.delete(sessions).execute().catch(() => {});
 	await db.delete(friendships).execute().catch(() => {});
 	await db.delete(games).execute().catch(() => {});
+	await db.delete(tournaments).execute().catch(() => {});
 	await db.delete(users).execute().catch(() => {});
 }
 
@@ -51,7 +57,10 @@ export async function createTestUsers(count: number = 2): Promise<User[]> {
 				email: `test_${timestamp}_${i}@test.com`,
 				password_hash: `hash_${timestamp}_${i}`,
 				avatar_url: null,
-				is_online: false
+				is_online: false,
+				games_played: 0,
+				wins: 0,
+				losses: 0
 			})
 			.returning();
 
@@ -73,6 +82,9 @@ export async function createTestUser(
 		avatar_url: string | null;
 		bio: string | null;
 		is_online: boolean;
+		games_played: number;
+		wins: number;
+		losses: number;
 	}> = {}
 ): Promise<User> {
 	const timestamp = Date.now();
@@ -87,7 +99,10 @@ export async function createTestUser(
 			password_hash: overrides.password_hash ?? `hash_${random}`,
 			avatar_url: overrides.avatar_url ?? null,
 			bio: overrides.bio ?? null,
-			is_online: overrides.is_online ?? false
+			is_online: overrides.is_online ?? false,
+			games_played: overrides.games_played ?? 0,
+			wins: overrides.wins ?? 0,
+			losses: overrides.losses ?? 0
 		})
 		.returning();
 
@@ -155,6 +170,137 @@ export async function createTestFriendship(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// 💬 MESSAGE HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a test message between users (optionally tied to a game)
+ */
+export async function createTestMessage(
+	senderId: number,
+	options: Partial<{
+		recipient_id: number | null;
+		game_id: number | null;
+		type: string;
+		content: string;
+		is_read: boolean;
+		read_at: Date | null;
+	}> = {}
+) {
+	const [message] = await db
+		.insert(messages)
+		.values({
+			sender_id: senderId,
+			recipient_id: options.recipient_id ?? null,
+			game_id: options.game_id ?? null,
+			type: options.type ?? 'chat',
+			content: options.content ?? 'Test message',
+			is_read: options.is_read ?? false,
+			read_at: options.read_at ?? null
+		})
+		.returning();
+
+	return message;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🏆 TOURNAMENT HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a test tournament
+ */
+export async function createTestTournament(
+	creatorId: number,
+	options: Partial<{
+		name: string;
+		description: string | null;
+		game_type: string;
+		status: string;
+		max_players: number;
+		winner_id: number | null;
+		started_at: Date | null;
+		finished_at: Date | null;
+	}> = {}
+) {
+	const [tournament] = await db
+		.insert(tournaments)
+		.values({
+			name: options.name ?? 'Test Tournament',
+			description: options.description ?? null,
+			game_type: options.game_type ?? 'pong',
+			status: options.status ?? 'scheduled',
+			max_players: options.max_players ?? 8,
+			created_by: creatorId,
+			winner_id: options.winner_id ?? null,
+			started_at: options.started_at ?? null,
+			finished_at: options.finished_at ?? null
+		})
+		.returning();
+
+	return tournament;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 📊 ANALYTICS HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a test analytics event
+ */
+export async function createTestAnalytics(
+	options: Partial<{
+		user_id: number | null;
+		game_id: number | null;
+		tournament_id: number | null;
+		event_type: string;
+		event_value: number | null;
+		metadata: string | null;
+	}> = {}
+) {
+	const [event] = await db
+		.insert(analytics)
+		.values({
+			user_id: options.user_id ?? null,
+			game_id: options.game_id ?? null,
+			tournament_id: options.tournament_id ?? null,
+			event_type: options.event_type ?? 'test_event',
+			event_value: options.event_value ?? null,
+			metadata: options.metadata ?? null
+		})
+		.returning();
+
+	return event;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🕒 SESSION HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a test session
+ */
+export async function createTestSession(
+	userId: number,
+	options: Partial<{
+		id: string;
+		expiresAt: Date;
+	}> = {}
+) {
+	const timestamp = Date.now();
+	const [session] = await db
+		.insert(sessions)
+		.values({
+			id: options.id ?? `session_${timestamp}_${Math.random().toString(36).slice(2)}`,
+			userId,
+			expiresAt: options.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000)
+		})
+		.returning();
+
+	return session;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // 📊 DEBUG HELPERS (optional - use when debugging test failures)
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -165,16 +311,32 @@ export async function debugDatabaseState() {
 	const allUsers = await db.select().from(users);
 	const allGames = await db.select().from(games);
 	const allFriendships = await db.select().from(friendships);
+	const allMessages = await db.select().from(messages);
+	const allTournaments = await db.select().from(tournaments);
+	const allAnalytics = await db.select().from(analytics);
+	const allSessions = await db.select().from(sessions);
 
 	console.log('\n📊 Current Database State:');
 	console.log(`   Users: ${allUsers.length}`);
 	console.log(`   Games: ${allGames.length}`);
 	console.log(`   Friendships: ${allFriendships.length}`);
+	console.log(`   Messages: ${allMessages.length}`);
+	console.log(`   Tournaments: ${allTournaments.length}`);
+	console.log(`   Analytics: ${allAnalytics.length}`);
+	console.log(`   Sessions: ${allSessions.length}`);
 
 	if (allUsers.length > 0) {
 		console.log('\n   Users:');
 		allUsers.forEach((u) => console.log(`     - ${u.id}: ${u.username}`));
 	}
 
-	return { users: allUsers, games: allGames, friendships: allFriendships };
+	return {
+		users: allUsers,
+		games: allGames,
+		friendships: allFriendships,
+		messages: allMessages,
+		tournaments: allTournaments,
+		analytics: allAnalytics,
+		sessions: allSessions
+	};
 }

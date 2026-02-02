@@ -1,6 +1,6 @@
 // src/lib/server/db/seed.ts
 import 'dotenv/config';
-import { users, games, friendships, sessions } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics } from '../schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -34,9 +34,12 @@ async function seed() {
 	// ════════════════════════════════════════════════════════════════════════
 	console.log('🧹 Cleaning existing data...');
 
+	await db.delete(analytics).execute().catch(() => {});
+	await db.delete(messages).execute().catch(() => {});
 	await db.delete(sessions).execute().catch(() => {});
 	await db.delete(friendships).execute();
 	await db.delete(games).execute();
+	await db.delete(tournaments).execute();
 	await db.delete(users).execute();
 
 	console.log('   ✅ Database cleaned\n');
@@ -54,7 +57,9 @@ async function seed() {
 		{ username: 'eve', name: 'Eve Edwards', email: 'eve@pong.local' },
 		{ username: 'frank', name: 'Frank Fisher', email: 'frank@pong.local' },
 		{ username: 'grace', name: 'Grace Garcia', email: 'grace@pong.local' },
-		{ username: 'henry', name: 'Henry Hill', email: 'henry@pong.local' }
+		{ username: 'henry', name: 'Henry Hill', email: 'henry@pong.local' },
+		{ username: 'irene', name: 'Irene Ivy', email: 'irene@pong.local' },
+		{ username: 'jack', name: 'Jack Johnson', email: 'jack@pong.local' }
 	];
 
 	const createdUsers: { id: number; username: string }[] = [];
@@ -175,8 +180,8 @@ async function seed() {
 	// ════════════════════════════════════════════════════════════════════════
 	// 📊 Step 5: Summary
 	// ════════════════════════════════════════════════════════════════════════
-	const finalUsers = await db.select().from(users);
-	const finalGames = await db.select().from(games);
+	const finalUsers = 		 await db.select().from(users);
+	const finalGames = 		 await db.select().from(games);
 	const finalFriendships = await db.select().from(friendships);
 
 	console.log('\n📊 ══════════════════════════════════════════════════════════');

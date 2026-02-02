@@ -1,18 +1,9 @@
 // src/lib/server/db/test_db/schema.test.ts
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../index';
-import { users, friendships, games, sessions } from '../schema';
+import { users } from '../schema';
 import { eq } from 'drizzle-orm';
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🧹 Clean database helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(friendships).execute().catch(() => {});
-	await db.delete(games).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
-}
+import { cleanDatabase, createTestUsers } from './test-utils';
 
 describe('Users Schema - Integration Tests', () => {
 	// ══════════════════════════════════════════════════════════════════════════
@@ -83,6 +74,9 @@ describe('Users Schema - Integration Tests', () => {
 			expect(user.is_online).toBe(false);
 			expect(user.avatar_url).toBeNull();
 			expect(user.bio).toBeNull();
+			expect(user.games_played).toBe(0);
+			expect(user.wins).toBe(0);
+			expect(user.losses).toBe(0);
 			expect(user.created_at).toBeInstanceOf(Date);
 			expect(user.updated_at).toBeInstanceOf(Date);
 		});
@@ -97,13 +91,26 @@ describe('Users Schema - Integration Tests', () => {
 					password_hash: 'hashed',
 					avatar_url: 'https://example.com/avatar.png',
 					bio: 'I love playing Pong!',
-					is_online: true
+					is_online: true,
+					games_played: 12,
+					wins: 8,
+					losses: 4
 				})
 				.returning();
 
 			expect(user.avatar_url).toBe('https://example.com/avatar.png');
 			expect(user.bio).toBe('I love playing Pong!');
 			expect(user.is_online).toBe(true);
+			expect(user.games_played).toBe(12);
+			expect(user.wins).toBe(8);
+			expect(user.losses).toBe(4);
+		});
+
+		it('should create 10 test users', async () => {
+			const createdUsers = await createTestUsers(10);
+
+			expect(createdUsers).toHaveLength(10);
+			expect(new Set(createdUsers.map((u) => u.username)).size).toBe(10);
 		});
 	});
 
@@ -188,7 +195,10 @@ describe('Users Schema - Integration Tests', () => {
 				.set({
 					name: 'New Name',
 					bio: 'New bio here',
-					is_online: true
+					is_online: true,
+					games_played: 20,
+					wins: 12,
+					losses: 8
 				})
 				.where(eq(users.id, user.id));
 
@@ -197,6 +207,9 @@ describe('Users Schema - Integration Tests', () => {
 			expect(updated.name).toBe('New Name');
 			expect(updated.bio).toBe('New bio here');
 			expect(updated.is_online).toBe(true);
+			expect(updated.games_played).toBe(20);
+			expect(updated.wins).toBe(12);
+			expect(updated.losses).toBe(8);
 		});
 	});
 

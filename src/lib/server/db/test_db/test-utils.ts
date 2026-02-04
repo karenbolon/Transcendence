@@ -218,6 +218,10 @@ export async function createTestTournament(
 		game_type: string;
 		status: string;
 		max_players: number;
+		player_1_id: number;
+		player_2_id: number | null;
+		player_3_id: number | null;
+		player_4_id: number | null;
 		winner_id: number | null;
 		started_at: Date | null;
 		finished_at: Date | null;
@@ -230,7 +234,11 @@ export async function createTestTournament(
 			description: options.description ?? null,
 			game_type: options.game_type ?? 'pong',
 			status: options.status ?? 'scheduled',
-			max_players: options.max_players ?? 8,
+			max_players: options.max_players ?? 4,
+			player_1_id: options.player_1_id ?? creatorId,
+			player_2_id: options.player_2_id ?? null,
+			player_3_id: options.player_3_id ?? null,
+			player_4_id: options.player_4_id ?? null,
 			created_by: creatorId,
 			winner_id: options.winner_id ?? null,
 			started_at: options.started_at ?? null,
@@ -254,7 +262,6 @@ export async function createTestAnalytics(
 		game_id: number | null;
 		tournament_id: number | null;
 		event_type: string;
-		event_value: number | null;
 		metadata: string | null;
 	}> = {}
 ) {
@@ -265,7 +272,6 @@ export async function createTestAnalytics(
 			game_id: options.game_id ?? null,
 			tournament_id: options.tournament_id ?? null,
 			event_type: options.event_type ?? 'test_event',
-			event_value: options.event_value ?? null,
 			metadata: options.metadata ?? null
 		})
 		.returning();

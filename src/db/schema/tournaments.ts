@@ -15,6 +15,7 @@ export const tournaments = pgTable('tournaments', {
     finished_at: timestamp('finished_at'),
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow(),
+    max_players: integer('max_players').notNull().default(4),
     player_1_id: integer('player_1_id').notNull().references(() => users.id),
     player_2_id: integer('player_2_id').references(() => users.id),
     player_3_id: integer('player_3_id').references(() => users.id),

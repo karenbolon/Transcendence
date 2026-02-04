@@ -18,13 +18,15 @@ describe('Tournaments Schema - Integration Tests', () => {
 				.values({
 					name: 'Summer Cup',
 					game_type: 'pong',
-					created_by: creator.id
+					created_by: creator.id,
+					player_1_id: creator.id
 				})
 				.returning();
 
 			expect(tournament.name).toBe('Summer Cup');
 			expect(tournament.status).toBe('scheduled');
-			expect(tournament.max_players).toBe(8);
+			expect(tournament.max_players).toBe(4);
+			expect(tournament.player_1_id).toBe(creator.id);
 			expect(tournament.winner_id).toBeNull();
 			expect(tournament.created_at).toBeInstanceOf(Date);
 			expect(tournament.updated_at).toBeInstanceOf(Date);

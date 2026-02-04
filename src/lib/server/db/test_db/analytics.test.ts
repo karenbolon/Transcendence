@@ -28,7 +28,6 @@ describe('Analytics Schema - Integration Tests', () => {
 					game_id: game.id,
 					tournament_id: tournament.id,
 					event_type: 'match_end',
-					event_value: 1,
 					metadata: 'test metadata'
 				})
 				.returning();
@@ -37,7 +36,7 @@ describe('Analytics Schema - Integration Tests', () => {
 			expect(event.game_id).toBe(game.id);
 			expect(event.tournament_id).toBe(tournament.id);
 			expect(event.event_type).toBe('match_end');
-			expect(event.event_value).toBe(1);
+			expect(event.metadata).toBe('test metadata');
 			expect(event.created_at).toBeInstanceOf(Date);
 		});
 	});

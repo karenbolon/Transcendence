@@ -21,7 +21,7 @@
 		"db:start:d": "docker compose up -d",
 		"db:stop": "docker compose down",
 		"db:reset": "drizzle-kit drop && npm run db:push",
-		"db:push": "drizzle-kit push",
+		"db:push": "drizzle-kit push --force",
 		"db:push:test": "DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test npm run db:push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",

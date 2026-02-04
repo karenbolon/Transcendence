@@ -23,6 +23,11 @@ logs/
 *.log
 
 # Build output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
 dist/
 build/
 out/

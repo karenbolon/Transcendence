@@ -1,85 +1,160 @@
-ENV_FILE = .env
-COMPOSE := docker compose
+# ═══════════════════════════════════════════════════════════════════════════
+#                                      Makefile
+# ═══════════════════════════════════════════════════════════════════════════
+#                                   Colors and emojis
+# ═══════════════════════════════════════════════════════════════════════════
 
-help:
-	@echo "Options:"
-	@echo "  up        - Build and start containers (detached)"
-	@echo "  down      - Stop and remove containers"
-	@echo "  logs      - Tail (last 200) logs"
-	@echo "  rebuild   - Rebuild without cache, then up"
-	@echo "  ps        - Show compose services"
-	@echo "  status    - Images, containers, networks, recent logs"
-	@echo "  re        - down + clean + up"
-	@echo "  clean     - down --volumes (CAREFUL: removes data volumes)"
-	@echo "  prune     - System prune EVERYTHING (DANGEROUS)"
-	@echo "  sh-front  - Shell into frontend container"
-	@echo "  sh-back   - Shell into backend container"
+# Colors for pretty output
+BOLD		= \033[1m
+PINK		= \033[38;5;218m
+LAVENDER	= \033[38;5;183m
+PURPLE		= \033[38;5;141m
+LIGHT_PINK	= \033[38;5;225m
+PEACH		= \033[38;5;217m
+MINT		= \033[38;5;158m
+LILAC		= \033[38;5;189m
+NC			= \033[0m # No Color
 
-all: up logs sh-front sh-back build-front
+# Emojis for visual feedback
+ROCKET = 🚀
+CHECK = ✅
+CROSS = ❌
+PACKAGE = 📦
+DATABASE = 🗄️
+LOCK = 🔒
+CLEAN = 🧹
+TEST = 🧪
+DOCKER = 🐳
 
-# For development
-dev: dev-front up logs sh-front sh-back
+# Docker compose file
+COMPOSE_FILE = compose.yml
+COMPOSE := docker compose -f $(COMPOSE_FILE)
 
-#build frontend 
-build-front:
-	cd frontend && npm run build
-	@echo "Frontend build mode is up and running ✅"
+# ================================================================================
+# SETUP & INSTALLATION
+# ================================================================================
 
-up:
-	@$(COMPOSE) up -d --build
-	@echo "🧱 Docker is up and running ✅"
-	@xdg-open http://localhost:8081 || open http://localhost:8081 || echo "Open http://localhost:8081 in your browser"
+# Install all dependencies
+install:
+	@echo "📦 Installing dependencies..."
+	@npm install
+	@echo "✅ Dependencies installed!"
+
+start: docker-up install dev
+	@echo "🚀 Starting Setup and Installation..."
+
+# Complete reset
+re: clean install
+	@echo "✅ Project reset complete!"
+
+# ================================================================================
+# DOCKER
+# ================================================================================
+
+# Start Docker containers
+docker-up:
+	@echo "🐳 Starting Docker containers..."
+	@if [ -f compose.yml ]; then \
+		$(COMPOSE) up -d; \
+		echo "✅ Docker containers started!"; \
+	else \
+		echo "❌ $(COMPOSE) not found!"; \
+		echo "💡 Run 'make docker-init' to create Docker setup"; \
+	fi
+
+# Stop Docker containers
+docker-down:
+	@echo "🐳 Stopping Docker containers..."
+	@if [ -f $(COMPOSE_FILE) ]; then \
+		$(COMPOSE) down; \
+		echo "✅ Docker containers stopped!"; \
+	else \
+		echo "⚠️  $(COMPOSE_FILE) not found"; \
+	fi
+
+# View Docker logs
+docker-logs:
+	@echo "📋 Viewing Docker logs..."
+	@if [ -f $(COMPOSE_FILE) ]; then \
+		$(COMPOSE) logs -f; \
+	else \
+		echo "❌ $(COMPOSE_FILE) not found!"; \
+	fi
+
+# Clean Docker (stop and remove)
+docker-clean:
+	@echo "🧹 Cleaning Docker..."
+	@if [ -f $(COMPOSE_FILE) ]; then \
+		$(COMPOSE) down -v; \
+		echo "✅ Docker cleaned!"; \
+	else \
+		echo "⚠️  $(COMPOSE_FILE) not found"; \
+	fi
+
+# Initialize Docker setup (we'll create this later)
+docker-init:
+	@echo "🐳 Docker setup not yet configured"
+	@echo "💡 This will be added in the Docker setup milestone"
+
+# ================================================================================
+# DEVELOPMENT
+# ================================================================================
+
+# Start development server
+dev:
+	@echo "🚀 Starting development server..."
+	npm run dev
+
+# Start dev server on specific port
+dev-port:
+	@echo "🚀 Starting development server on port 3000..."
+	npm run dev -- --port 3000
+
+# Build for production
+build:
+	@echo "🏗️  Building for production..."
+	npm run build
+	@echo "✅ Build complete!"
+
+# Preview production build
+preview:
+	@echo "👀 Starting preview server..."
+	npm run preview
 
 
-dev-front:
-	@$(COMPOSE) up frontend-dev
-	@echo "Frontend development mode is up and running ✅"
-	@xdg-open http://localhost:5173 || open http://localhost:5173 || echo "Open http://localhost:5173 in your browser"
+# ================================================================================
+# TESTING
+# ================================================================================
 
-down:
-	@$(COMPOSE) down --remove-orphans
+# Run full test suite (start DB, push schema, run tests)
+test: test-setup
+	@echo "$(TEST) Running tests..."
+	@npx vitest
+	@echo "$(CHECK) Tests complete!"
 
-logs:
-	@$(COMPOSE) logs -f --tail=200
+# Setup test environment (start DB and push schema)
+test-setup:
+	@echo "$(DATABASE) Starting test database..."
+	@npm run db:start:d
+	@echo "$(CHECK) Waiting for database to be ready..."
+	@sleep 3
+	@echo "$(DATABASE) Pushing schema to test database..."
+	@npm run db:push:test
+	@echo "$(CHECK) Test environment ready!"
 
-rebuild:
-	@$(COMPOSE) build --no-cache
-	@$(COMPOSE) up -d
+# Run tests only (assumes DB is already running)
+test-run:
+	@echo "$(TEST) Running tests..."
+	@npx vitest
 
-ps:
-	@$(COMPOSE) ps
+# ================================================================================
+# Clean
+# ================================================================================
 
-status:
-	@docker images
-	@docker ps -a
-	@docker network ls
-	@$(COMPOSE) logs
-
-re:
-	@$(MAKE) down
-	@$(MAKE) clean 
-	@$(MAKE) up
-
-# Corrected flag for volumes
+# Clean build artifacts and node_modules
 clean:
-	@echo "🧹 Cleaning (removing containers + volumes)"
-	@$(COMPOSE) down --volumes --remove-orphans
-
-prune:
-	@echo "✂️ Pruning ALL unused images/containers/networks/volumes"
-	@docker system prune -af --volumes
-
-# Remove containers, volumes, and all project images (force)
-fclean:
-	@echo "🧨 Full clean: removing containers, volumes, and all project images!"
-	@$(COMPOSE) down --volumes --remove-orphans
-	@docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep '^ft_transcendence-' | awk '{print $$2}' | xargs -r docker rmi -f
-
-sh-front:
-	@$(COMPOSE) exec ft_frontend sh
-
-sh-back:
-	@$(COMPOSE) exec ft_backend sh
-
-.PHONY: help dev up down logs rebuild ps status re clean prune sh-front sh-back fclean build-front
-
+	@echo "🧹 Cleaning project..."
+	rm -rf build/
+	rm -rf .svelte-kit/
+	rm -rf node_modules/
+	@echo "✅ Clean complete!"

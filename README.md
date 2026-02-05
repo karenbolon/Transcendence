@@ -1,6 +1,8 @@
 
 # ft_transcendence
 
+TO BE UPDATED...OLD
+
 A modular, security-focused implementation of the classic Pong game — built as a TypeScript single-page application (SPA) and designed for real-time multiplayer gameplay.
 This project is developed as part of the **ft_transcendence** challenge, with an emphasis on adaptability, clean architecture, and future module integration.
 
@@ -33,14 +35,10 @@ This project is developed as part of the **ft_transcendence** challenge, with an
 ## 📝 Onboarding & Collaboration
 
 **Folder Structure:**
-- `frontend/` — Vite-based SPA (TypeScript, Tailwind, all configs here)
-- `backend/` — Placeholder for backend (to be implemented by Finn)
-- `docs/` — Project requirements, onboarding, and module documentation
-- `modules/` — (Optional) For shared code or future module separation
 
 **How to Contribute:**
 1. Clone the repo and check out your feature branch.
-2. Run `npm install` in `frontend/` to get started with the SPA.
+2. TO BE UPDATED
 3. Use `npm run dev` for local development.
 4. Add your module code in the appropriate folder, following the modular structure.
 5. Document any new scripts, configs, or requirements in this README or in `docs/`.
@@ -56,17 +54,10 @@ This project is developed as part of the **ft_transcendence** challenge, with an
 - Add TODOs or comments for integration points for other modules.
 - Review and test your code with a peer before merging.
 
-**Getting Started:**
-```sh
-cd frontend
-npm install
-npm run dev
-```
-
 ---
 
 ## 📚 References
-- See `docs/REQUIREMENTS.md` and `frontend/info/Instructions.pdf` for full project requirements.
+- See `docs/REQUIREMENTS.md` for full project requirements.
 - For module-specific onboarding, see `docs/` or ask the module owner.
 
 ---

@@ -144,8 +144,8 @@
 		<div >
 			<label >
 				<input type="checkbox" name="acceptTerms" required />
-				I agree to the <a href="legal/terms" class="link" target="_blank">Terms of Service</a> and
-				<a href="legal/privacy" class="link" target="_blank">Privacy Policy</a>
+				I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a> and
+				<a href="/privacy" class="link" target="_blank">Privacy Policy</a>
 			</label>
 			<p class="text-[0.65rem] text-gray-400">
 				We use your email and username to create and secure your accounts. 

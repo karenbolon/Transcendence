@@ -5,7 +5,6 @@
 	import PasswordInput from '$lib/component/PasswordInput.svelte';
 
 	let { form }: { form: LoginFormResult | null } = $props();
-
 	let loading = $state(false);
 	let username = $state('');
 	let password = $state('');

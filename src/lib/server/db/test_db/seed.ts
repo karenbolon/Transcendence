@@ -1,6 +1,6 @@
 // src/lib/server/db/seed.ts
 import 'dotenv/config';
-import { users, games, friendships, sessions, messages, tournaments, analytics } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants } from '../schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -39,6 +39,7 @@ async function seed() {
 	await db.delete(sessions).execute().catch(() => {});
 	await db.delete(friendships).execute();
 	await db.delete(games).execute();
+	await db.delete(tournamentParticipants).execute();
 	await db.delete(tournaments).execute();
 	await db.delete(users).execute();
 
@@ -70,7 +71,8 @@ async function seed() {
 			.values({
 				...userData,
 				password_hash: `hashed_password_for_${userData.username}`,
-				is_online: Math.random() > 0.5
+				is_online: Math.random() > 0.5,
+				terms_accepted_at: new Date()
 			})
 			.returning({ id: users.id, username: users.username });
 
@@ -178,11 +180,109 @@ async function seed() {
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
-	// 📊 Step 5: Summary
+	// 🏆 Step 5: Create Tournaments (NEW — Junction Table Pattern)
+	// ════════════════════════════════════════════════════════════════════════
+	console.log('\n🏆 Creating tournaments...');
+
+	// Tournament 1: Finished 4-player tournament
+	const [tournament1] = await db
+		.insert(tournaments)
+		.values({
+			name: 'Spring Cup 2025',
+			description: 'First official Pong tournament!',
+			game_type: 'pong',
+			status: 'finished',
+			max_players: 4,
+			current_round: 2,
+			created_by: createdUsers[0].id,
+			winner_id: createdUsers[0].id,
+			started_at: new Date('2025-03-01'),
+			finished_at: new Date('2025-03-02')
+		})
+		.returning();
+
+	// Add participants with final placements
+	const t1Participants = [
+		{ userId: 0, seed: 1, placement: 1, status: 'champion' },
+		{ userId: 1, seed: 2, placement: 2, status: 'eliminated' },
+		{ userId: 2, seed: 3, placement: 3, status: 'eliminated' },
+		{ userId: 3, seed: 4, placement: 3, status: 'eliminated' }
+	];
+
+	for (const p of t1Participants) {
+		await db.insert(tournamentParticipants).values({
+			tournament_id: tournament1.id,
+			user_id: createdUsers[p.userId].id,
+			seed: p.seed,
+			placement: p.placement,
+			status: p.status
+		});
+	}
+	console.log(`   🏆 ${tournament1.name} (finished, winner: alice)`);
+
+	// Tournament 2: In-progress 8-player tournament
+	const [tournament2] = await db
+		.insert(tournaments)
+		.values({
+			name: 'Summer Showdown',
+			description: '8-player bracket — may the best player win!',
+			game_type: 'pong',
+			status: 'in_progress',
+			max_players: 8,
+			current_round: 1,
+			created_by: createdUsers[1].id,
+			started_at: new Date()
+		})
+		.returning();
+
+	// Add 8 participants (all active, no placements yet)
+	for (let i = 0; i < 8; i++) {
+		await db.insert(tournamentParticipants).values({
+			tournament_id: tournament2.id,
+			user_id: createdUsers[i].id,
+			seed: i + 1,
+			status: 'active'
+		});
+	}
+	console.log(`   🎮 ${tournament2.name} (in_progress, 8 players)`);
+
+	// Tournament 3: Open registration
+	const [tournament3] = await db
+		.insert(tournaments)
+		.values({
+			name: 'Weekend Warriors',
+			description: 'Casual tournament — all skill levels welcome!',
+			game_type: 'pong',
+			status: 'registration',
+			max_players: 4,
+			current_round: 0,
+			created_by: createdUsers[4].id
+		})
+		.returning();
+
+	// Only 2 registered so far
+	await db.insert(tournamentParticipants).values({
+		tournament_id: tournament3.id,
+		user_id: createdUsers[4].id,
+		seed: null,
+		status: 'registered'
+	});
+	await db.insert(tournamentParticipants).values({
+		tournament_id: tournament3.id,
+		user_id: createdUsers[5].id,
+		seed: null,
+		status: 'registered'
+	});
+	console.log(`   ⏳ ${tournament3.name} (registration, 2/4 players)`);
+
+	// ════════════════════════════════════════════════════════════════════════
+	// 📊 Step 6: Summary
 	// ════════════════════════════════════════════════════════════════════════
 	const finalUsers = 		 await db.select().from(users);
 	const finalGames = 		 await db.select().from(games);
 	const finalFriendships = await db.select().from(friendships);
+	const finalTournaments = 	 await db.select().from(tournaments);
+	const finalParticipants = 	 await db.select().from(tournamentParticipants);
 
 	console.log('\n📊 ══════════════════════════════════════════════════════════');
 	console.log('   SEED COMPLETE');
@@ -190,6 +290,8 @@ async function seed() {
 	console.log(`   👤 Users:       ${finalUsers.length}`);
 	console.log(`   🎮 Games:       ${finalGames.length}`);
 	console.log(`   🤝 Friendships: ${finalFriendships.length}`);
+	console.log(`   🏆 Tournaments:              ${finalTournaments.length}`);
+	console.log(`   👥 Tournament Participants:   ${finalParticipants.length}`);
 	console.log('══════════════════════════════════════════════════════════\n');
 }
 

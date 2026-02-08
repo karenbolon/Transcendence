@@ -19,13 +19,13 @@ export const games = pgTable('games', {
 	updated_at: timestamp('updated_at').notNull().defaultNow(),
 	version: integer('version').notNull().default(1)
 }, (table) => ({
-    // MANDATORY VALIDATION: A player cannot play against themselves 
-    notSelfPlay: check('not_self_play', sql`${table.player1_id} <> ${table.player2_id}`),
-    
-    // VALIDATION: Ensure scores aren't negative 
-    positiveScore1: check('pos_score1', sql`${table.player1_score} >= 0`),
-    positiveScore2: check('pos_score2', sql`${table.player2_score} >= 0`),
-    
-    // PERFORMANCE: Index for matchmaking (finding 'waiting' games quickly)
-    statusIndex: index('status_idx').on(table.status),
+	// MANDATORY VALIDATION: A player cannot play against themselves
+	notSelfPlay: check('not_self_play', sql`${table.player1_id} <> ${table.player2_id}`),
+
+	// VALIDATION: Ensure scores aren't negative
+	positiveScore1: check('pos_score1', sql`${table.player1_score} >= 0`),
+	positiveScore2: check('pos_score2', sql`${table.player2_score} >= 0`),
+
+	// PERFORMANCE: Index for matchmaking (finding 'waiting' games quickly)
+	statusIndex: index('status_idx').on(table.status),
 }));

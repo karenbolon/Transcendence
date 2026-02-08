@@ -1,53 +1,62 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { ActionData } from './$types';
+	import type { RegisterFormResult } from '$lib/types/form'
+	import PasswordInput from '$lib/component/PasswordInput.svelte';
+	import PasswordStrength from '$lib/component/PasswordS.svelte';
+	import {
+		validateUsername,
+		validateEmail,
+		validatePassword,
+		validateConfirmPassword
+	} from '$lib/validation/frontend';
 
-	// Get form data from server
-	export let form: ActionData;
+	let { form }: { form: RegisterFormResult | null } = $props();
 
-	let loading = false;
-	// import { register } from '$lib/store/auth';
+	// Tracks what user is typing
+	let loading = $state(false);
+	let username = $state('');
+	let email = $state('');
+	let password = $state('');
+	let confirmPassword = $state('');
 
-	// let username = $state('');
-	// let email = $state('');
-	// let password = $state('');
-	// let confirmPassword = $state('');
-	// let acceptedTerms = $state(false);
+	let touched = $state({
+		username: false,
+		email: false,
+		password: false,
+		confirmPassword: false
+	});
 
-	// let error = $state('');
+	let usernameError = $derived.by(() => {
+		if (!touched.username || !username) return '';
+		return validateUsername(username);
+	});
 
+	let emailError = $derived.by(() => {
+		if (!touched.email || !email) return '';
+		return validateEmail(email);
+	});
 
-	// function handleRegister(event: Event) {
-	// 	event.preventDefault();
+	let passwordError = $derived.by(() => {
+		if (!touched.password || !password) return '';
+		return validatePassword(password);
+	});
 
-	// 	error = '';
-	// 	if (!username.trim()) {
+	let confirmPasswordError = $derived.by(() => {
+		if (!touched.confirmPassword || !confirmPassword) return '';
+		return validateConfirmPassword(password, confirmPassword);
+	});
 
-	// 		error = 'Please enter a username';
-	// 		return;
-	// 	}
-
-	// 	if (!email.trim()) {
-	// 		error = 'Please enter an email';
-	// 		return;
-	// 	}
-
-	// 	if (!password.trim()) {
-	// 		error = 'Please enter a password';
-	// 		return;
-	// 	}
-
-	// 	if (password !== confirmPassword) {
-	// 		error = 'Passwords do not match';
-	// 		return;
-	// 	}
-
-	// 	if (!acceptedTerms) {
-	// 		error = 'You must accept the terms and conditions';
-	// 		return;
-	// 	}
-
-	// 	register(username, email, password);
+	// Overall form validity — button is disabled until everything is valid
+	let isFormValid = $derived(
+		username.length >= 3 &&
+		email.includes('@') &&
+		password.length >= 8 &&
+		password === confirmPassword &&
+		!usernameError &&
+		!emailError &&
+		!passwordError &&
+		!confirmPasswordError
+	);
 
 </script>
 
@@ -74,14 +83,6 @@
 			</div>
 		{/if}
 
-		<!-- Success Message -->
-		{#if form?.success}
-			<div class="bg-green-500/10 border border-green-500 text-green-500 px-4 py-2 rounded-lg text-sm">
-				Account created! Redirecting...
-			</div>
-		{/if}
-
-
 		<div class="form-group">
 			<label for="username">Username</label>
 			<input class="form-r"
@@ -89,8 +90,15 @@
 				id="username"
 				name="username"
 				placeholder="Choose a username"
+				minlength="3"
+				maxlength="20"
 				required
+				bind:value={username}
+				onfocusout={() => touched.username = true}
 			/>
+			{#if usernameError}
+				<p class="text-red-500 text-sm mt-1">{usernameError}</p>
+			{/if}
 			{#if form?.errors?.username}
 				<p class="text-red-500 text-sm mt-1">{form.errors.username}</p>
 			{/if}
@@ -104,7 +112,12 @@
 				name="email"
 				placeholder="your.email@example.com"
 				required
+				bind:value={email}
+				onfocusout={() => touched.email = true}
 			/>
+			{#if emailError}
+				<p class="text-red-400 text-sm mt-1">{emailError}</p>
+			{/if}
 			{#if form?.errors?.email}
 				<p class="text-red-500 text-sm mt-1">{form.errors.email}</p>
 			{/if}
@@ -112,48 +125,62 @@
 
 		<div class="form-group">
 			<label for="password">Password</label>
-			<input class="form-r"
-				type="password"
+			<PasswordInput
 				id="password"
 				name="password"
 				placeholder="Create a password"
+				minlength={8}
 				required
+				bind:value={password}
+				onfocusout={() => touched.password = true}
 			/>
+			{#if passwordError}
+				<p class="text-red-500 text-sm mt-1">{passwordError}</p>
+			{/if}
 			{#if form?.errors?.password}
 				<p class="text-red-500 text-sm mt-1">{form.errors.password}</p>
 			{/if}
-			<p class="text-xs text-gray-400 mt-1">
+
+			<PasswordStrength {password} />
+			<!-- <p class="text-xs text-gray-400 mt-1">
 				Must be 8+ characters with uppercase, lowercase, and number
-			</p>
+			</p> -->
 		</div>
+
+		<!-- password strength indicator -->
 
 		<div class="form-group">
 			<label for="confirmPassword">Confirm Password</label>
-			<input class="form-r"
-				type="password"
+			<PasswordInput
 				id="confirmPassword"
 				name="confirmPassword"
 				placeholder="Re-enter your password"
 				required
+				bind:value={confirmPassword}
+				onfocusout={() => touched.confirmPassword = true}
 			/>
+			{#if confirmPasswordError}
+				<p class="text-red-500 text-sm mt-1">{confirmPasswordError}</p>
+			{/if}
 			{#if form?.errors?.confirmPassword}
 				<p class="text-red-500 text-sm mt-1">{form.errors.confirmPassword}</p>
 			{/if}
 		</div>
 
 		<div >
-			<label >
-				<input type="checkbox" name="acceptTerms" required />
-				I agree to the <a href="legal/terms" class="link" target="_blank">Terms of Service</a> and
-				<a href="legal/privacy" class="link" target="_blank">Privacy Policy</a>
+			<label class="items-start gap-2 cursor-pointer">
+				<input type="checkbox" name="acceptTerms" required class="mt-1" />
+				I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a> and
+				<a href="/privacy" class="link" target="_blank">Privacy Policy</a>
 			</label>
 			<p class="text-[0.65rem] text-gray-400">
-				We use your email and username to create and secure your accounts. 
-				No tracking or analytics cookies are used.
+				<br>
+				We use your email and username to create and secure your accounts.
+				<br>No tracking or analytics cookies are used.
 			</p>
 		</div>
 
-		<button class="sign w-full py-3" type="submit" disabled={loading}>
+		<button class="sign w-full py-3" type="submit" disabled={loading || !isFormValid}>
 			{#if loading}
 				Signing up...
 			{:else}
@@ -188,130 +215,3 @@
 		</div>
 	</div>
 </div>
-
-
-
-<!--
-    {#if error}
-      <div class="bg-pong-accent/20 border border-pong-accent rounded-lg p-3">
-        <p class="text-pong-accent text-sm">{error}</p>
-      </div>
-    {/if}
-
-    <form method="POST" use:enhance={handleSubmit} class="space-y-4">
-
-      <div class="space-y-2">
-        <label for="username" class="block text-sm font-medium text-gray-300">
-          Username
-        </label>
-        <input
-          id="username"
-          name="username"
-          type="text"
-          required
-          placeholder="Choose a username"
-          class="input"
-          disabled={loading}
-          minlength="3"
-          maxlength="20"
-          pattern="[a-zA-Z0-9_]+"
-          title="Username can only contain letters, numbers, and underscores"
-        />
-        <p class="text-xs text-gray-400">3-20 characters, letters, numbers, and underscores only</p>
-      </div>
-
-      <div class="space-y-2">
-        <label for="email" class="block text-sm font-medium text-gray-300">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          placeholder="your.email@example.com"
-          class="input"
-          disabled={loading}
-        />
-      </div>
-
-      <div class="space-y-2">
-        <label for="displayName" class="block text-sm font-medium text-gray-300">
-          Display Name <span class="text-gray-500">(Optional)</span>
-        </label>
-        <input
-          id="displayName"
-          name="displayName"
-          type="text"
-          placeholder="How should we call you?"
-          class="input"
-          disabled={loading}
-          maxlength="50"
-        />
-      </div>
-
-      <div class="space-y-2">
-        <label for="password" class="block text-sm font-medium text-gray-300">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          placeholder="Create a strong password"
-          class="input"
-          disabled={loading}
-          minlength="6"
-          on:input={checkPasswordStrength}
-        />
-        {#if passwordStrength}
-          <div class="flex gap-1">
-            <div class="h-1 flex-1 rounded-full {passwordStrength === 'weak' ? 'bg-pong-accent' : passwordStrength === 'medium' ? 'bg-yellow-500' : 'bg-green-500'}"></div>
-            <div class="h-1 flex-1 rounded-full {passwordStrength === 'medium' || passwordStrength === 'strong' ? (passwordStrength === 'medium' ? 'bg-yellow-500' : 'bg-green-500') : 'bg-gray-600'}"></div>
-            <div class="h-1 flex-1 rounded-full {passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-600'}"></div>
-          </div>
-          <p class="text-xs {passwordStrength === 'weak' ? 'text-pong-accent' : passwordStrength === 'medium' ? 'text-yellow-500' : 'text-green-500'}">
-            Password strength: {passwordStrength}
-          </p>
-        {/if}
-      </div>
-
-      <div class="space-y-2">
-        <label for="confirmPassword" class="block text-sm font-medium text-gray-300">
-          Confirm Password
-        </label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          required
-          placeholder="Re-enter your password"
-          class="input"
-          disabled={loading}
-        />
-      </div>
-
-      <div class="space-y-2">
-        <label class="flex items-start gap-2 text-sm text-gray-300 cursor-pointer">
-          <input
-            type="checkbox"
-            name="acceptTerms"
-            required
-            class="w-4 h-4 mt-0.5 rounded border-pong-purple/30 bg-pong-darker text-pong-pink focus:ring-pong-pink"
-          />
-          <span>
-            I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a>
-            and <a href="/privacy" class="link" target="_blank">Privacy Policy</a>
-          </span>
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        disabled={loading}
-        class="btn-primary w-full py-3"
-      >
-        {loading ? 'Creating account...' : 'Create Account'}
-      </button>
-    </form-->

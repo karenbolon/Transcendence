@@ -3,14 +3,8 @@
 	import favicon from '$lib/assets/favicon.ico';
 	import Header from '$lib/component/Header.svelte';
 	import Footer from '$lib/component/Footer.svelte';
-	import { onMount } from 'svelte';
-	import { checkAuth } from '$lib/store/auth';
 
-	let { children } = $props();
-
-	onMount(() => {
-		checkAuth();
-	});
+	let { children, data } = $props();
 
 </script>
 
@@ -21,7 +15,7 @@
 </svelte:head>
 
 <div class="web">
-	<Header />
+	<Header user={data.user} />
 	<main>{@render children()}</main>
 	<Footer />
 </div>

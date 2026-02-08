@@ -2,12 +2,12 @@ import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { games } from './games';
 import { messages } from './messages';
-import { tournaments } from './tournaments';
+import { tournaments, tournamentParticipants } from './tournaments';
 import { analytics } from './analytics';
 import { sessions } from './sessions';
 import { friendships } from './friendships';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants };
 
 export const usersRelations = relations(users, ({ many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),
@@ -18,6 +18,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	sentMessages: many(messages, { relationName: 'sentMessages' }),
 	receivedMessages: many(messages, { relationName: 'receivedMessages' }),
 	tournamentsCreated: many(tournaments, { relationName: 'createdTournaments' }),
+	tournamentEntries: many(tournamentParticipants, { relationName: 'userTournaments' }),
 	tournamentsWon: many(tournaments, { relationName: 'wonTournaments' }),
 	analyticsEvents: many(analytics, { relationName: 'userAnalytics' })
 }));
@@ -73,6 +74,20 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 	})
 }));
 
+// Add relations for tournamentParticipants
+export const tournamentParticipantsRelations = relations(tournamentParticipants, ({ one }) => ({
+	tournament: one(tournaments, {
+		fields: [tournamentParticipants.tournament_id],
+		references: [tournaments.id],
+		relationName: 'tournamentEntries'
+	}),
+	user: one(users, {
+		fields: [tournamentParticipants.user_id],
+		references: [users.id],
+		relationName: 'userTournaments'
+	}),
+}));
+
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
 	creator: one(users, {
 		fields: [tournaments.created_by],
@@ -84,6 +99,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
 		references: [users.id],
 		relationName: 'wonTournaments'
 	}),
+	participants: many(tournamentParticipants, { relationName: 'tournamentEntries' }),
 	analyticsEvents: many(analytics, { relationName: 'tournamentAnalytics' })
 }));
 
@@ -122,3 +138,6 @@ export type NewTournament = typeof tournaments.$inferInsert;
 
 export type Analytics = typeof analytics.$inferSelect;
 export type NewAnalytics = typeof analytics.$inferInsert;
+
+export type TournamentParticipant = typeof tournamentParticipants.$inferSelect;
+export type NewTournamentParticipant = typeof tournamentParticipants.$inferInsert;

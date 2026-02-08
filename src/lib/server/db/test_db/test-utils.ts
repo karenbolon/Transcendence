@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '../index';
-import { users, games, friendships, sessions, messages, tournaments, analytics } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants } from '../schema';
 import type { User } from '../schema';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -24,13 +24,16 @@ export async function cleanDatabase() {
 	// 3. Sessions depend on Users
 	// 4. Friendships depend on Users
 	// 5. Games depend on Users
-	// 6. Tournaments depend on Users
-	// 7. Users have no dependencies
+	// 6. TournamentParticipants depend on Tournaments/Users
+	// 7. Tournaments depend on Users
+	// 8. Users have no dependencies
+
 	await db.delete(analytics).execute().catch(() => {});
 	await db.delete(messages).execute().catch(() => {});
 	await db.delete(sessions).execute().catch(() => {});
 	await db.delete(friendships).execute().catch(() => {});
 	await db.delete(games).execute().catch(() => {});
+	await db.delete(tournamentParticipants).execute().catch(() => {});
 	await db.delete(tournaments).execute().catch(() => {});
 	await db.delete(users).execute().catch(() => {});
 }
@@ -218,10 +221,7 @@ export async function createTestTournament(
 		game_type: string;
 		status: string;
 		max_players: number;
-		player_1_id: number;
-		player_2_id: number | null;
-		player_3_id: number | null;
-		player_4_id: number | null;
+		current_round: number;
 		winner_id: number | null;
 		started_at: Date | null;
 		finished_at: Date | null;
@@ -235,10 +235,7 @@ export async function createTestTournament(
 			game_type: options.game_type ?? 'pong',
 			status: options.status ?? 'scheduled',
 			max_players: options.max_players ?? 4,
-			player_1_id: options.player_1_id ?? creatorId,
-			player_2_id: options.player_2_id ?? null,
-			player_3_id: options.player_3_id ?? null,
-			player_4_id: options.player_4_id ?? null,
+			current_round: options.current_round ?? 0,
 			created_by: creatorId,
 			winner_id: options.winner_id ?? null,
 			started_at: options.started_at ?? null,
@@ -247,6 +244,58 @@ export async function createTestTournament(
 		.returning();
 
 	return tournament;
+}
+
+ // Add new helper
+export async function addTournamentParticipant(
+	tournamentId: number,
+	userId: number,
+	options: Partial<{
+		seed: number | null;
+		placement: number | null;
+		status: string;
+	}> = {}
+) {
+	const [participant] = await db
+			.insert(tournamentParticipants)
+			.values({
+					tournament_id: tournamentId,
+					user_id: userId,
+					seed: options.seed ?? null,
+					placement: options.placement ?? null,
+					status: options.status ?? 'registered'
+			})
+			.returning();
+
+	return participant;
+}
+
+export async function createTournamentWithPlayers(
+	creatorId: number,
+	playerIds: number[],
+	options: Partial<{
+		name: string;
+		game_type: string;
+		status: string;
+		max_players: number;
+	}> = {}
+) {
+	const tournament = await createTestTournament(creatorId, {
+		...options,
+		max_players: options.max_players ?? playerIds.length
+	});
+
+	const participants = [];
+	for (let i = 0; i < playerIds.length; i++) {
+		const participant = await addTournamentParticipant(
+			tournament.id,
+			playerIds[i],
+			{ seed: i + 1 }
+		);
+		participants.push(participant);
+	}
+
+	return { tournament, participants };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -319,6 +368,7 @@ export async function debugDatabaseState() {
 	const allFriendships = await db.select().from(friendships);
 	const allMessages = await db.select().from(messages);
 	const allTournaments = await db.select().from(tournaments);
+	const allParticipants = await db.select().from(tournamentParticipants);
 	const allAnalytics = await db.select().from(analytics);
 	const allSessions = await db.select().from(sessions);
 
@@ -328,6 +378,7 @@ export async function debugDatabaseState() {
 	console.log(`   Friendships: ${allFriendships.length}`);
 	console.log(`   Messages: ${allMessages.length}`);
 	console.log(`   Tournaments: ${allTournaments.length}`);
+	console.log(`   Participants: ${allParticipants.length}`);
 	console.log(`   Analytics: ${allAnalytics.length}`);
 	console.log(`   Sessions: ${allSessions.length}`);
 
@@ -342,6 +393,7 @@ export async function debugDatabaseState() {
 		friendships: allFriendships,
 		messages: allMessages,
 		tournaments: allTournaments,
+		tournamentParticipants: allParticipants,
 		analytics: allAnalytics,
 		sessions: allSessions
 	};

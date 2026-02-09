@@ -1,66 +1,221 @@
 
-# ft_transcendence
+*This project has been created as part of the 42 curriculum by keramos-, kbolon, jadyar, fdunkel.*
 
-TO BE UPDATED...OLD
-
-A modular, security-focused implementation of the classic Pong game — built as a TypeScript single-page application (SPA) and designed for real-time multiplayer gameplay.
-This project is developed as part of the **ft_transcendence** challenge, with an emphasis on adaptability, clean architecture, and future module integration.
+# ft_transcendence 🏓
+A real-time multiplayer Pong game built with Svelte.
 
 ---
 
-## 🚀 Features (Base Implementation)
-- TypeScript SPA with browser back/forward navigation support
-- Real-time Pong gameplay (two players, same keyboard)
-- Simple tournament system with alias input & matchmaking
-- Dockerized environment for one-command startup
-- HTTPS/WSS-ready architecture
-- Input validation & basic security hardening from day one
+# Description
 
-## 🔒 Security by Design
-- HTTPS enforced for all communication
-- Frontend & backend input validation
-- Environment-based secrets management (`.env` files)
-- Ready for WAF/ModSecurity & HashiCorp Vault integration
-- GDPR and 2FA/JWT modules planned for expansion
+ft_transcendence is a full-stack web application centered around a modern implementation of the classic Pong game.
+The project is developed as part of the 42 curriculum and focuses on real-time interaction, clean architecture, security, and extensibility through modular design.
 
-## 🛠 Tech Stack
-- **Frontend:** TypeScript (Vite, modular architecture, Tailwind CSS)
-- **Backend:** Minimal PHP (extendable to Fastify/Node.js via module)
-- **Containerization:** Docker
-- **Networking:** WebSockets (wss)
-- **Security:** HTTPS, input sanitization, secret storage
+Players can compete in live Pong matches, manage user profiles, and participate in tournaments.
+The project is designed to evolve through optional modules such as AI opponents, matchmaking, statistics, and advanced user interaction.
+
+## Why SvelteKit
+
+We chose **SvelteKit** as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
+SvelteKit provides file-based routing, server endpoints, and excellent performance with minimal boilerplate.
+---
+
+# Key Features
+
+- Real-time Pong gameplay
+- Multiplayer support
+- User authentication & profiles
+- Tournament-ready architecture
+- Dockerized development environment
+- Secure, modular, and extensible design
 
 ---
 
-## 📝 Onboarding & Collaboration
+## Technical Stack
 
-**Folder Structure:**
+### Frontend & Backend
+- **SvelteKit**
+- **TypeScript**
+- **Vite** is used as the build tool and dev server for fast iteration.
+- Modern component-based architecture
+- Responsive & accessible UI
+- Backend endpoints via SvelteKit
+- WebSockets for real-time gameplay
+- Secure authentication & input validation
+- **Drizzle ORM** provides type-safe database access and schema management.
+- **Lucia** is used for authentication, offering a secure and framework-agnostic auth solution that integrates cleanly with SvelteKit.
 
-**How to Contribute:**
-1. Clone the repo and check out your feature branch.
-2. TO BE UPDATED
-3. Use `npm run dev` for local development.
-4. Add your module code in the appropriate folder, following the modular structure.
-5. Document any new scripts, configs, or requirements in this README or in `docs/`.
-6. Use clear commit messages and push regularly.
-7. Open a PR for review and tag the relevant module owner(s).
+### Database
+- **PostgreSQL**
+- Separate production and test databases
+- Clear relational schema
 
-**Best Practices:**
-- Do not use libraries that provide a full solution for any feature/module (see project rules).
-- Use small, focused libraries only for subcomponents.
-- Validate all user input and handle errors gracefully.
-- Use `.env` for secrets and never commit credentials.
-- Keep Docker and build scripts simple and extensible.
-- Add TODOs or comments for integration points for other modules.
-- Review and test your code with a peer before merging.
+### DevOps
+- **Docker & Docker Compose**
+- Environment-based configuration (.env)
+- One-command startup
+
+## Project Structure (High-Level)
+.
+├── src/
+│   ├── routes/                 # SvelteKit routes (pages + API endpoints)
+│   │   ├── (api)/              # API route groups (auth, etc.)
+│   │   ├── (legal)/            # Privacy Policy & Terms
+│   │   ├── dashboard/          # Authenticated user pages
+│   │   ├── profile/            # User profile pages
+│   │   └── +layout.svelte      # Root layout
+│   │
+│   ├── lib/
+│   │   ├── component/          # Reusable UI components
+│   │   ├── server/             # Backend logic (auth, DB access)
+│   │   │   ├── auth/           # Lucia authentication
+│   │   │   └── db/             # Database access & helpers
+│   │   ├── store/              # Client-side state stores
+│   │   └── assets/             # Static assets (icons, logos)
+│   │
+│   ├── db/
+│   │   └── schema/             # Drizzle ORM database schemas
+│   │
+│   ├── hooks.server.ts         # Global request hooks
+│   ├── app.html                # HTML template
+│   └── app.d.ts                # Type definitions
+│
+├── static/                     # Static public files (robots.txt, etc.)
+├── drizzle.config.ts           # Drizzle ORM configuration
+├── compose.yml                 # Docker Compose setup
+├── Makefile                    # Convenience commands
+├── scripts/                    # Utility scripts
+├── e2e/                        # Playwright end-to-end tests
+├── package.json                # Project dependencies
+└── README.md
+
+---
+# Installation & Running the Project
+
+## Prerequisites
+- Docker & Docker Compose
+- Make
+- Node.js + npm (required by the Makefile targets)
+
+## Environment Setup (in bash):
+Copy the environment templates and adjust as necessary:
+cp .env.example .env
+cp .env.example .env.test
+
+## Start the Project (in bash)
+make start
+
+## Useful Commands
+make docker-down
+make docker-clean
+make clean
+make test
+
+The application will start with:
+- Build the Docker images
+- start the PostgreSQL production and test databases
+- Start the SvelteKit application (frontend & backend)
+
+- make down will stop running the containers without removing data
+- make clean will stop containers and remove associated volumes and cached data
+- make test runs automated tests using the dedicated test database to ensure production data is not affected.
 
 ---
 
-## 📚 References
-- See `docs/REQUIREMENTS.md` for full project requirements.
-- For module-specific onboarding, see `docs/` or ask the module owner.
+# Testing
+
+Dedicated test database (db_test)
+Tests are isolated from production data
+
+Ports:
+	- PostgreSQL (production): localhost:5432
+	- PostgreSQL (test): localhost:5433
+---
+
+# Team Information
+Name		Role(s)	Responsibilities
+jadyar		Product Owner	Vision, feature prioritization, validation
+keramos-	Project Manager	Planning, coordination, deadlines
+fdunkel		Technical Lead	Architecture, stack decisions, reviews
+kbolon		Developer	Feature implementation, testing
 
 ---
 
-**Let’s build something amazing — together!**
+# Project Management
 
+Task tracking via GitHub Issues
+Feature branches with pull requests
+Regular team syncs
+Code reviews before merging
+
+---
+
+# Implemented Features
+
+Pong game engine
+Real-time paddle & ball synchronization
+User registration & login
+Secure session handling
+Responsive game UI
+(Extend this list as features are added.)
+
+---
+# Modules
+Selected Modules
+Module	Type	Points	Description
+Web Framework (Frontend & Backend)	Major	2	SvelteKit used for full-stack
+Real-time Gameplay	Major	2	WebSockets for live matches
+User Management	Major	2	Auth, profiles
+Tournament System	Minor	1	Brackets & matchmaking
+AI Opponent	Major	2	Playable non-perfect AI
+
+(Adjust to match your final module choices.)
+---
+
+# Database Schema (Overview)
+
+users
+id, username, email, password_hash
+
+matches
+id, player1_id, player2_id, result, timestamp
+
+tournaments
+id, name, status
+
+scores
+user_id, wins, losses
+---
+
+# Security & Best Practices
+
+HTTPS-ready architecture
+Input validation on frontend & backend
+Password hashing
+Secrets managed via .env
+No credentials committed to Git
+---
+
+# Use of AI Tools
+
+AI tools were used for:
+Documentation drafting and refinement
+High-level architecture discussions
+Debugging assistance
+All generated content was reviewed, understood, and adapted by the team.
+---
+
+# Resources
+
+SvelteKit Documentation
+PostgreSQL Documentation
+Docker & Docker Compose Docs
+WebSocket specifications
+---
+
+# Notes
+
+Compatible with latest Chrome
+No console errors or warnings
+Privacy Policy & Terms of Service are included and accessible in the app
+Built with teamwork, curiosity, and a lot of late-night debugging and coffee...so much coffee 🏓

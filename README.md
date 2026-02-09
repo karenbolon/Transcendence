@@ -14,8 +14,6 @@ The project is developed as part of the 42 curriculum and focuses on real-time i
 Players can compete in live Pong matches, manage user profiles, and participate in tournaments.
 The project is designed to evolve through optional modules such as AI opponents, matchmaking, statistics, and advanced user interaction.
 
-## Why SvelteKit
-
 We chose SvelteKit as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
 
 SvelteKit provides:

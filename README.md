@@ -122,7 +122,6 @@ The application startup will:
 - Build the Docker images
 - Start the PostgreSQL production and test databases
 - Start the SvelteKit application (frontend & backend)
-
 - make down will stop running the containers without removing data
 - make clean will stop containers and remove associated volumes and cached data
 - make test runs automated tests using the dedicated test database to ensure production data is not affected.
@@ -176,6 +175,7 @@ AI Opponent	Major	2	Playable non-perfect AI
 ---
 
 # Database Schema (Overview)
+```text
 users
 id, username, email, password_hash
 
@@ -187,7 +187,7 @@ id, name, status
 
 scores
 user_id, wins, losses
-
+```
 ---
 
 # Security & Best Practices

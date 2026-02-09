@@ -16,7 +16,7 @@ The project is designed to evolve through optional modules such as AI opponents,
 
 ## Why SvelteKit
 
-We chose **SvelteKit** as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
+We chose SvelteKit as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
 SvelteKit provides file-based routing, server endpoints, and excellent performance with minimal boilerplate.
 ---
 
@@ -56,6 +56,7 @@ SvelteKit provides file-based routing, server endpoints, and excellent performan
 - One-command startup
 
 ## Project Structure (High-Level)
+```text
 .
 ├── src/
 │   ├── routes/                 # SvelteKit routes (pages + API endpoints)
@@ -88,6 +89,7 @@ SvelteKit provides file-based routing, server endpoints, and excellent performan
 ├── e2e/                        # Playwright end-to-end tests
 ├── package.json                # Project dependencies
 └── README.md
+```
 
 ---
 # Installation & Running the Project
@@ -99,21 +101,27 @@ SvelteKit provides file-based routing, server endpoints, and excellent performan
 
 ## Environment Setup (in bash):
 Copy the environment templates and adjust as necessary:
+
+```bash
 cp .env.example .env
 cp .env.example .env.test
+```
 
 ## Start the Project (in bash)
 make start
 
 ## Useful Commands
+
+```bash
 make docker-down
 make docker-clean
 make clean
 make test
+```
 
-The application will start with:
+The application startup will:
 - Build the Docker images
-- start the PostgreSQL production and test databases
+- Start the PostgreSQL production and test databases
 - Start the SvelteKit application (frontend & backend)
 
 - make down will stop running the containers without removing data

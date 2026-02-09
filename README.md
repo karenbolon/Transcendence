@@ -17,7 +17,11 @@ The project is designed to evolve through optional modules such as AI opponents,
 ## Why SvelteKit
 
 We chose SvelteKit as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
-SvelteKit provides file-based routing, server endpoints, and excellent performance with minimal boilerplate.
+
+SvelteKit provides:
+- File-based routing
+- Server-side endpoints
+- Excellent performance with minimal boilerplate
 ---
 
 # Key Features

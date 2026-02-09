@@ -5,7 +5,6 @@
 	import PasswordInput from '$lib/component/PasswordInput.svelte';
 
 	let { form }: { form: LoginFormResult | null } = $props();
-	
 	let loading = $state(false);
 	let username = $state('');
 	let password = $state('');
@@ -33,12 +32,12 @@
 </script>
 
 <div class="flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
-	<div class="card ">
-
+	<div class="container">
 		<div class="text-center">
-			<h1 class="game-title text-4xl mb-2">Login</h1>
+			<h1 class="brand-name text-4xl mb-2">Login</h1>
 			<p >Welcome back! Ready to play?</p>
 		</div>
+
 		<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
 			loading = true;
 			return async ({ update }) => {
@@ -54,7 +53,7 @@
 
 			<div class="form-group">
 				<label for="username">Username</label>
-				<input class="form-r"
+				<input class="form-fill"
 					type="text"
 					id="username"
 					name="username"
@@ -92,8 +91,7 @@
 				</a>
 			</div>
 
-
-			<button class="sign w-full py-3" type="submit" disabled={loading || !isFormValid}>
+			<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 				{#if loading}
 					Logging in...
 				{:else}

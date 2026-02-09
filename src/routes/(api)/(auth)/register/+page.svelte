@@ -57,14 +57,12 @@
 		!passwordError &&
 		!confirmPasswordError
 	);
-
 </script>
 
 <div class="register-page flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
-	<div class="card ">
-
+	<div class="container">
 	<div class="text-center">
-		<h1 class="game-title text-4xl mb-2">Sign Up</h1>
+		<h1 class="brand-name text-4xl mb-2">Sign Up</h1>
 		<p >Join the game and start playing!</p>
 	</div>
 
@@ -76,7 +74,6 @@
 		};
 	}} >
 
-		<!-- Global Error -->
 		{#if form?.error}
 			<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
 				{form.error}
@@ -85,7 +82,7 @@
 
 		<div class="form-group">
 			<label for="username">Username</label>
-			<input class="form-r"
+			<input class="form-fill"
 				type="text"
 				id="username"
 				name="username"
@@ -106,7 +103,7 @@
 
 		<div class="form-group">
 			<label for="email">Email</label>
-			<input class="form-r"
+			<input class="form-fill"
 				type="email"
 				id="email"
 				name="email"
@@ -142,12 +139,7 @@
 			{/if}
 
 			<PasswordStrength {password} />
-			<!-- <p class="text-xs text-gray-400 mt-1">
-				Must be 8+ characters with uppercase, lowercase, and number
-			</p> -->
 		</div>
-
-		<!-- password strength indicator -->
 
 		<div class="form-group">
 			<label for="confirmPassword">Confirm Password</label>
@@ -180,7 +172,7 @@
 			</p>
 		</div>
 
-		<button class="sign w-full py-3" type="submit" disabled={loading || !isFormValid}>
+		<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 			{#if loading}
 				Signing up...
 			{:else}

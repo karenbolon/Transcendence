@@ -6,8 +6,8 @@
 </script>
 
 <div class="flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
-	<div class="card text-center">
-		<h1 class="game-title text-3xl mb-4">Welcome!</h1>
+	<div class="container text-center">
+		<h1 class="brand-name text-3xl mb-4">Welcome!</h1>
 
 		<p class="text-xl mb-2">
 			Hello, <strong class="text-pink-500">{data.user.username}</strong>!
@@ -15,11 +15,11 @@
 		<p class="text-gray-400 mb-6">{data.user.email}</p>
 
 		<div class="space-y-3">
-			<a href="/profile" class="sign inline-block">My Profile</a>
+			<a href="/profile" class="btn-login inline-block">My Profile</a>
 		</div>
 
 		<form method="POST" action="/logout" use:enhance>
-			<button type="submit" class="sign">
+			<button type="submit" class="btn-signup">
 				Logout
 			</button>
 		</form>

@@ -5,7 +5,6 @@
 	import Footer from '$lib/component/Footer.svelte';
 
 	let { children, data } = $props();
-
 </script>
 
 <svelte:head>

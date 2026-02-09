@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <rect fill="#1a1a2e" width="64" height="64"/>
+  <!-- Ears -->
+  <rect fill="#f97316" x="10" y="4" width="12" height="16"/>
+  <rect fill="#f97316" x="42" y="4" width="12" height="16"/>
+  <rect fill="#fbbf24" x="14" y="8" width="6" height="10"/>
+  <rect fill="#fbbf24" x="44" y="8" width="6" height="10"/>
+  <!-- Head -->
+  <rect fill="#f97316" x="10" y="16" width="44" height="32"/>
+  <rect fill="#fb923c" x="12" y="18" width="40" height="28"/>
+  <!-- Eyes -->
+  <rect fill="#0a0a1a" x="18" y="24" width="10" height="12"/>
+  <rect fill="#0a0a1a" x="36" y="24" width="10" height="12"/>
+  <rect fill="#4ade80" x="20" y="26" width="6" height="8"/>
+  <rect fill="#4ade80" x="38" y="26" width="6" height="8"/>
+  <rect fill="#0a0a1a" x="22" y="28" width="2" height="4"/>
+  <rect fill="#0a0a1a" x="40" y="28" width="2" height="4"/>
+  <!-- Nose -->
+  <rect fill="#ff6b9d" x="28" y="36" width="8" height="4"/>
+  <!-- Mouth -->
+  <rect fill="#0a0a1a" x="30" y="40" width="4" height="4"/>
+  <rect fill="#0a0a1a" x="26" y="42" width="4" height="2"/>
+  <rect fill="#0a0a1a" x="34" y="42" width="4" height="2"/>
+  <!-- Whiskers -->
+  <rect fill="#e5e5e5" x="4" y="38" width="12" height="2"/>
+  <rect fill="#e5e5e5" x="4" y="42" width="14" height="2"/>
+  <rect fill="#e5e5e5" x="48" y="38" width="12" height="2"/>
+  <rect fill="#e5e5e5" x="46" y="42" width="14" height="2"/>
+  <!-- Body hint -->
+  <rect fill="#f97316" x="20" y="48" width="24" height="14"/>
+  <rect fill="#fb923c" x="22" y="50" width="20" height="10"/>
+</svg>

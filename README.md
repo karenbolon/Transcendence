@@ -14,10 +14,12 @@ The project is developed as part of the 42 curriculum and focuses on real-time i
 Players can compete in live Pong matches, manage user profiles, and participate in tournaments.
 The project is designed to evolve through optional modules such as AI opponents, matchmaking, statistics, and advanced user interaction.
 
-## Why SvelteKit
-
 We chose SvelteKit as our full-stack framework to keep frontend and backend logic within a single, coherent codebase.
-SvelteKit provides file-based routing, server endpoints, and excellent performance with minimal boilerplate.
+
+SvelteKit provides:
+- File-based routing
+- Server-side endpoints
+- Excellent performance with minimal boilerplate
 ---
 
 # Key Features
@@ -111,7 +113,6 @@ cp .env.example .env.test
 make start
 
 ## Useful Commands
-
 ```bash
 make docker-down
 make docker-clean
@@ -123,7 +124,6 @@ The application startup will:
 - Build the Docker images
 - Start the PostgreSQL production and test databases
 - Start the SvelteKit application (frontend & backend)
-
 - make down will stop running the containers without removing data
 - make clean will stop containers and remove associated volumes and cached data
 - make test runs automated tests using the dedicated test database to ensure production data is not affected.
@@ -131,13 +131,12 @@ The application startup will:
 ---
 
 # Testing
-
 Dedicated test database (db_test)
 Tests are isolated from production data
 
 Ports:
-	- PostgreSQL (production): localhost:5432
-	- PostgreSQL (test): localhost:5433
+- PostgreSQL (production): localhost:5432
+- PostgreSQL (test): localhost:5433
 ---
 
 # Team Information
@@ -150,7 +149,6 @@ kbolon		Developer	Feature implementation, testing
 ---
 
 # Project Management
-
 Task tracking via GitHub Issues
 Feature branches with pull requests
 Regular team syncs
@@ -159,7 +157,6 @@ Code reviews before merging
 ---
 
 # Implemented Features
-
 Pong game engine
 Real-time paddle & ball synchronization
 User registration & login
@@ -177,11 +174,10 @@ User Management	Major	2	Auth, profiles
 Tournament System	Minor	1	Brackets & matchmaking
 AI Opponent	Major	2	Playable non-perfect AI
 
-(Adjust to match your final module choices.)
 ---
 
 # Database Schema (Overview)
-
+```text
 users
 id, username, email, password_hash
 
@@ -193,36 +189,35 @@ id, name, status
 
 scores
 user_id, wins, losses
+```
 ---
 
 # Security & Best Practices
+- HTTPS-ready architecture
+- Input validation on frontend & backend
+- Password hashing
+- Secrets managed via .env
+- No credentials committed to Git
 
-HTTPS-ready architecture
-Input validation on frontend & backend
-Password hashing
-Secrets managed via .env
-No credentials committed to Git
 ---
 
 # Use of AI Tools
-
 AI tools were used for:
-Documentation drafting and refinement
-High-level architecture discussions
-Debugging assistance
+- Documentation drafting and refinement
+- High-level architecture discussions
+- Debugging assistance
 All generated content was reviewed, understood, and adapted by the team.
+
 ---
 
 # Resources
-
-SvelteKit Documentation
-PostgreSQL Documentation
-Docker & Docker Compose Docs
-WebSocket specifications
+- SvelteKit Documentation
+- PostgreSQL Documentation
+- Docker & Docker Compose Docs
+- WebSocket specifications
 ---
 
 # Notes
-
 Compatible with latest Chrome
 No console errors or warnings
 Privacy Policy & Terms of Service are included and accessible in the app

@@ -7,7 +7,7 @@ import { users, sessions } from '$lib/server/db/schema';
 // import type { User as DatabaseUser } from '$lib/server/db/schema';
 
 // Create the adapter (connects Lucia to our database)
-const adapter = new DrizzlePostgreSQLAdapter(db, sessions, users);
+const adapter = new DrizzlePostgreSQLAdapter(db, sessions as any, users as any);
 
 // Initialize Lucia with our configuration
 export const lucia = new Lucia(adapter, {

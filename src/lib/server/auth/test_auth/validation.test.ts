@@ -184,7 +184,7 @@ describe('Input Validation', () => {
 			});
 
 			it('should accept long password', () => {
-				expect(validatePassword('Password1' + 'a'.repeat(100)).success).toBe(true);
+				expect(validatePassword('Password1' + 'a'.repeat(55)).success).toBe(true);
 			});
 
 		});
@@ -219,11 +219,11 @@ describe('Input Validation', () => {
 				expect(result.success).toBe(false);
 			});
 
-			it('should reject password longer than 255 characters', () => {
-				const longPassword = 'Aa1' + 'a'.repeat(253);
+			it('should reject password longer than 64 characters', () => {
+				const longPassword = 'Aa1' + 'a'.repeat(62);
 				const result = validatePassword(longPassword);
 				expect(result.success).toBe(false);
-				expect(result.error).toBe('Password must be at most 255 characters');
+				expect(result.error).toBe('Password must be at most 64 characters');
 			});
 		});
 	});

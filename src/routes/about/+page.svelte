@@ -1,17 +1,7 @@
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     ABOUT PAGE — src/routes/(pages)/about/+page.svelte
-
-     This page showcases the team and project.
-     Uses Tailwind utility classes (like the Terms page) + custom styles
-     scoped to this component for the team cards and gaming theme.
-═══════════════════════════════════════════════════════════════════════════ -->
-
+<!-- Idea of how can look the About page. -->
+<!-- Have on mind that i haven incorporate everything, correctly until is compleately approve -->
 <div class="about-page">
 	<div class="max-w-4xl mx-auto px-4 py-10">
-
-		<!-- ═══════════════════════════════════════════════════════════════
-		     HERO SECTION — Project title with gaming flair
-		     ═══════════════════════════════════════════════════════════════ -->
 		<div class="hero">
 			<h1 class="game-title hero-title">ft_transcendence</h1>
 			<p class="hero-subtitle">
@@ -21,10 +11,6 @@
 				<span>🎮</span> 42 Berlin · Final Project · 2025/2026
 			</div>
 		</div>
-
-		<!-- ═══════════════════════════════════════════════════════════════
-		     ABOUT THE PROJECT
-		     ═══════════════════════════════════════════════════════════════ -->
 		<section class="section">
 			<h2 class="section-title">About the Project</h2>
 			<p class="text-gray-300 leading-relaxed">
@@ -38,10 +24,6 @@
 				fun to play and beautiful to look at. 🏓✨
 			</p>
 		</section>
-
-		<!-- ═══════════════════════════════════════════════════════════════
-		     TECH STACK — What we built it with
-		     ═══════════════════════════════════════════════════════════════ -->
 		<section class="section">
 			<h2 class="section-title">Tech Stack</h2>
 			<div class="tech-grid">
@@ -90,20 +72,7 @@
 			</div>
 		</section>
 
-		<!-- ═══════════════════════════════════════════════════════════════
-		     THE TEAM — One card per member
-
-		     Each card has:
-		     - Avatar placeholder (initials in a circle)
-		     - Name
-		     - Role
-		     - Social links (GitHub, LinkedIn, 42 Intra)
-
-		     WHY initials instead of real photos?
-		     - No need to host image files
-		     - Always looks clean
-		     - Can be replaced with real avatars later
-		     ═══════════════════════════════════════════════════════════════ -->
+		<!-- Team card -->
 		<section class="section">
 			<h2 class="section-title">Meet the Team</h2>
 			<div class="team-grid">
@@ -183,9 +152,7 @@
 			</div>
 		</section>
 
-		<!-- ═══════════════════════════════════════════════════════════════
-		     42 BERLIN SECTION
-		     ═══════════════════════════════════════════════════════════════ -->
+		<!-- 42 BERLIN SECTION-->
 		<section class="section">
 			<h2 class="section-title">Built at 42 Berlin</h2>
 			<p class="text-gray-300 leading-relaxed">
@@ -202,24 +169,11 @@
 	</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     SCOPED STYLES — Only affect this About page
-═══════════════════════════════════════════════════════════════════════════ -->
 <style>
-	/* ═════════════════════════════════════════════════
-	   PAGE BASE
-	   ═════════════════════════════════════════════════ */
 	.about-page {
 		min-height: 100%;
 		width: 100%;
 	}
-
-	/* ═════════════════════════════════════════════════
-	   HERO SECTION — The big title at the top
-
-	   text-align: center → Centers all child text
-	   margin-bottom: 3rem → Space before the next section
-	   ═════════════════════════════════════════════════ */
 	.hero {
 		text-align: center;
 		margin-bottom: 3rem;
@@ -251,13 +205,6 @@
 		background: rgba(255, 107, 157, 0.1);
 		border: 1px solid rgba(255, 107, 157, 0.2);
 	}
-
-	/* ═════════════════════════════════════════════════
-	   SECTIONS — Repeating content blocks
-
-	   Each section gets a subtle top border to visually
-	   separate it from the section above.
-	   ═════════════════════════════════════════════════ */
 	.section {
 		margin-top: 2.5rem;
 		padding-top: 2.5rem;
@@ -270,16 +217,6 @@
 		color: #fff;
 		margin-bottom: 1rem;
 	}
-
-	/* ═════════════════════════════════════════════════
-	   TECH STACK GRID
-
-	   CSS Grid with auto-fill creates a responsive grid:
-	   - Each item is at least 180px wide
-	   - On big screens: 3 columns
-	   - On small screens: automatically fewer columns
-	   - No media query needed — CSS Grid handles it!
-	   ═════════════════════════════════════════════════ */
 	.tech-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -311,27 +248,12 @@
 		font-size: 0.75rem;
 		margin: 0;
 	}
-
-	/* ═════════════════════════════════════════════════
-	   TEAM GRID — 2x2 card layout
-
-	   repeat(2, 1fr) → always 2 columns
-	   On mobile: switches to 1 column
-	   ═════════════════════════════════════════════════ */
 	.team-grid {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 1.25rem;
 		margin-top: 1.25rem;
 	}
-
-	/* ═════════════════════════════════════════════════
-	   TEAM CARD — Each team member's card
-
-	   text-align: center → Everything inside is centered
-	   transition: transform → Slight scale-up on hover
-	   (a subtle "this is interactive" hint)
-	   ═════════════════════════════════════════════════ */
 	.team-card {
 		background: rgba(255, 255, 255, 0.03);
 		border: 1px solid rgba(255, 255, 255, 0.06);
@@ -345,14 +267,6 @@
 		transform: translateY(-2px);
 		border-color: rgba(255, 107, 157, 0.3);
 	}
-
-	/* ═════════════════════════════════════════════════
-	   AVATAR — Circle with initials
-
-	   width/height: 4rem → 64px circle
-	   border-radius: 50% → Makes it a perfect circle
-	   The pink gradient background matches your accent
-	   ═════════════════════════════════════════════════ */
 	.avatar {
 		width: 4rem;
 		height: 4rem;
@@ -379,13 +293,6 @@
 		font-size: 0.8rem;
 		margin: 0.25rem 0 0;
 	}
-
-	/* ═════════════════════════════════════════════════
-	   SOCIAL LINKS — Icon row under each member
-
-	   justify-content: center → Centers the icons
-	   gap: 1rem → Space between icons
-	   ═════════════════════════════════════════════════ */
 	.member-links {
 		display: flex;
 		justify-content: center;
@@ -408,9 +315,6 @@
 		height: 1.15rem;
 	}
 
-	/* ═════════════════════════════════════════════════
-	   ACCENT LINK — Pink colored link with underline
-	   ═════════════════════════════════════════════════ */
 	.accent-link {
 		color: #ff6b9d;
 		text-decoration: underline;
@@ -421,13 +325,6 @@
 		color: #ff8db5;
 	}
 
-	/* ═════════════════════════════════════════════════
-	   RESPONSIVE — Mobile layout
-
-	   On screens smaller than 640px:
-	   - Team grid becomes 1 column (cards stack)
-	   - Hero title gets smaller
-	   ═════════════════════════════════════════════════ */
 	@media (max-width: 640px) {
 		.team-grid {
 			grid-template-columns: 1fr;

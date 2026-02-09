@@ -111,7 +111,6 @@ cp .env.example .env.test
 make start
 
 ## Useful Commands
-
 ```bash
 make docker-down
 make docker-clean
@@ -131,7 +130,6 @@ The application startup will:
 ---
 
 # Testing
-
 Dedicated test database (db_test)
 Tests are isolated from production data
 
@@ -150,7 +148,6 @@ kbolon		Developer	Feature implementation, testing
 ---
 
 # Project Management
-
 Task tracking via GitHub Issues
 Feature branches with pull requests
 Regular team syncs
@@ -159,7 +156,6 @@ Code reviews before merging
 ---
 
 # Implemented Features
-
 Pong game engine
 Real-time paddle & ball synchronization
 User registration & login
@@ -177,11 +173,9 @@ User Management	Major	2	Auth, profiles
 Tournament System	Minor	1	Brackets & matchmaking
 AI Opponent	Major	2	Playable non-perfect AI
 
-(Adjust to match your final module choices.)
 ---
 
 # Database Schema (Overview)
-
 users
 id, username, email, password_hash
 
@@ -193,36 +187,35 @@ id, name, status
 
 scores
 user_id, wins, losses
+
 ---
 
 # Security & Best Practices
+- HTTPS-ready architecture
+- Input validation on frontend & backend
+- Password hashing
+- Secrets managed via .env
+- No credentials committed to Git
 
-HTTPS-ready architecture
-Input validation on frontend & backend
-Password hashing
-Secrets managed via .env
-No credentials committed to Git
 ---
 
 # Use of AI Tools
-
 AI tools were used for:
-Documentation drafting and refinement
-High-level architecture discussions
-Debugging assistance
+- Documentation drafting and refinement
+- High-level architecture discussions
+- Debugging assistance
 All generated content was reviewed, understood, and adapted by the team.
+
 ---
 
 # Resources
-
-SvelteKit Documentation
-PostgreSQL Documentation
-Docker & Docker Compose Docs
-WebSocket specifications
+- SvelteKit Documentation
+- PostgreSQL Documentation
+- Docker & Docker Compose Docs
+- WebSocket specifications
 ---
 
 # Notes
-
 Compatible with latest Chrome
 No console errors or warnings
 Privacy Policy & Terms of Service are included and accessible in the app

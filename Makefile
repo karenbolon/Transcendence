@@ -28,7 +28,7 @@ DOCKER = 🐳
 
 # Docker compose file
 COMPOSE_FILE = compose.yml
-COMPOSE := docker compose -f $(COMPOSE_FILE)
+COMPOSE := docker-compose -f $(COMPOSE_FILE)
 
 # ================================================================================
 # SETUP & INSTALLATION

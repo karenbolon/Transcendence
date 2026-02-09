@@ -23,7 +23,10 @@ docker volume rm my_app_pgdata
 npm run db:start:d
 
 # Push schema
-npm run db:push
+npm run db:push:test
+
+#run test
+npx vitest
 
 # Select "Yes"
 

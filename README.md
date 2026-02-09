@@ -136,8 +136,8 @@ Dedicated test database (db_test)
 Tests are isolated from production data
 
 Ports:
-	- PostgreSQL (production): localhost:5432
-	- PostgreSQL (test): localhost:5433
+- PostgreSQL (production): localhost:5432
+- PostgreSQL (test): localhost:5433
 ---
 
 # Team Information

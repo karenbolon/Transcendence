@@ -1,0 +1,264 @@
+{
+  "nav": {
+    "home": "Home",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "game": {
+    "start": "Start game",
+    "pause": "Pause",
+    "winner": "Winner: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "Email",
+      "confirm_password": "Confirm password"
+    },
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome back! Ready to play?",
+      "submit": "Login",
+      "remember_me": "Remember me",
+      "forgot_password": "Forgot password?",
+      "no_account": "Don't have an account?",
+      "signup_link": "Sign up",
+      "continue_with": "Or continue with",
+      "oauth_42": "🔗 42 Intra hi",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Username",
+      "password": "Password"
+    },
+    "register": {
+      "title": "Sign Up",
+      "subtitle": "Join the game and start playing!",
+      "success": "Account created! Redirecting...",
+      "submit": "Sign Up",
+      "submitting": "Signing up...",
+      "have_account": "Already have an account?",
+      "login_link": "Login",
+      "or_signup_with": "Or sign up with",
+      "oauth_42_coming": "🔗 42 Intra (Coming Soon)",
+      "oauth_coming": "👤 OAuth (Coming Soon)",
+      "accept_terms_prefix": "I agree to the",
+      "terms_link": "Terms of Service",
+      "and": "and",
+      "privacy_link": "Privacy Policy",
+      "privacy_note": "We use your email and username to create and secure your accounts. No tracking or analytics cookies are used.",
+      "password_hint": "Must be 8+ characters with uppercase, lowercase, and number"
+    },
+    "placeholders": {
+      "username": "Enter your username",
+      "password": "Enter your password",
+      "register_username": "Choose a username",
+      "register_email": "your.email@example.com",
+      "register_password": "Create a password",
+      "register_confirm_password": "Re-enter your password"
+    },
+    "errors": {
+      "username_required": "Please enter your username",
+      "password_required": "Please enter your password",
+      "login_failed": "Login failed",
+      "email_required": "Please enter an email",
+      "passwords_no_match": "Passwords do not match",
+      "terms_required": "You must accept the terms and conditions"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "last_updated": "Last updated: 04/02/2026",
+      "who_we_are": {
+        "title": "Who We Are",
+        "body": "This website (“we”, “us”, “our”) provides an online Pong game (the “Service”). This application is operated by Pixies that Ride Pink Pony Unicorns (the “Team”), a student project created as part of an academic program at 42Berlin."
+      },
+      "data_collect": {
+        "title": "What Data do we Collect",
+        "intro": "We collect only the data required to operate the game:",
+        "username_label": "Username",
+        "username_desc": "to identify players in the game",
+        "email_label": "Email address",
+        "email_desc": "used for account-related communication (e.g. account creation, password recovery)"
+      },
+      "data_not_collect": {
+        "title": "We do not Collect",
+        "real_names": "Real names",
+        "payment": "Payment information",
+        "location": "Location data",
+        "sensitive": "Sensitive personal data"
+      },
+      "legal_basis": {
+        "title": "Why we collect this data (Legal Basis)",
+        "intro": "Under the General Data Protection Regulation (GDPR), we must have a legal reason to process your data. We rely on:",
+        "contractual_title": "Contractual necessity (Art. 6(1)(b) GDPR):",
+        "contractual_item": "Your username and email are required to create and maintain a game account.",
+        "legit_title": "Legitimate interests (Art. 6(1)(f) GDPR):",
+        "legit_item": "To ensure the security, stability, and proper functioning of the Service."
+      },
+      "use_data": {
+        "title": "How We Use Your Data",
+        "intro": "We process this data to:",
+        "items": {
+          "account": "Create and manage your game account",
+          "identify": "Identify you in the game (username)",
+          "participate": "Allow users to participate in the game",
+          "communicate": "Communicate with you about your account (email)",
+          "security": "Maintain the security and proper functioning of the application"
+        }
+      },
+      "sharing": {
+        "title": "Data Sharing",
+        "body": "We do not sell or use personal data for advertising. Data is only processed by technical service providers required to run the application."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "body": "Personal data is stored only for as long as the user account remains active. Users may request deletion of their account at any time."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "body": "You have the right to access, correct, or request deletion of your personal data in accordance with GDPR. You also have the right to lodge a complaint with a supervisory authority."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "This website uses essential cookies that are required for core functionality, such as user authentication and maintaining active sessions. We do not use tracking cookies, advertising cookies, or third-party analytics cookies. If this changes, this policy will be updated accordingly."
+      },
+      "changes": {
+        "title": "Changes to This Policy",
+        "body": "We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated “Last updated” date."
+      },
+      "contact": {
+        "title": "Contact",
+        "intro": "For privacy-related requests, contact us at:"
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "last_updated": "Last updated: 04/02/2026",
+      "introduction": {
+        "title": "Introduction",
+        "body": "Welcome to ft_transcendence (“the Service”), a web-based multiplayer application developed as part of the 42 curriculum. By accessing or using the Service, you agree to be bound by these Terms of Service (“Terms”). If you do not agree with these Terms, you must not use the Service."
+      },
+      "description": {
+        "title": "Description of the Service",
+        "intro": "The Service is provided for educational and demonstration purposes only and is an online platform that allows users to:",
+        "items": {
+          "account": "Create an account using an email address and username",
+          "login": "Log in securely",
+          "interact": "Interact with other users",
+          "play": "Play online games (e.g. Pong)",
+          "realtime": "Participate in real-time features such as matches, tournaments, or chat"
+        }
+      },
+      "eligibility": {
+        "title": "Eligibility",
+        "intro": "You must:",
+        "items": {
+          "age": "Be at least 13 years old to use the Service",
+          "accurate": "Provide accurate and complete registration information",
+          "security": "Maintain the security of your account credentials"
+        },
+        "note": "You are responsible for all activity that occurs under your account"
+      },
+      "accounts": {
+        "title": "User Accounts",
+        "intro": "When creating an account, you agree to:",
+        "items": {
+          "accurate": "Provide accurate and up-to-date information",
+          "impersonate": "Not impersonate another person or entity",
+          "share": "Not share your login credential with others"
+        },
+        "note": "We reserve the right to suspend or delete accounts that violate these Terms."
+      },
+      "acceptable_use": {
+        "title": "Acceptable Use",
+        "intro": "You agree not to:",
+        "items": {
+          "illegal": "Use the Service for illegal purposes",
+          "harass": "Harass, abuse, threaten, or harm other users",
+          "malicious": "Upload malicious code or attempt to compromise system security",
+          "exploit": "Exploit bugs, cheats, or unintended gameplay mechanics",
+          "unauthorized": "Attempt unauthorised access to accounts, servers, or data"
+        },
+        "note": "Violation of these rules may result in account suspension or termination."
+      },
+      "ugc": {
+        "title": "User-Generated Content",
+        "intro": "You are responsible for any content you submit, including:",
+        "items": {
+          "usernames": "Usernames",
+          "profile": "Profile information",
+          "chat": "Chat messages",
+          "ingame": "In-game interactions"
+        },
+        "prohibited_intro": "You agree not to submit content that is:",
+        "prohibited": {
+          "items": {
+            "offensive": "Offensive, hateful, or discriminatory",
+            "illegal": "Illegal or infringing on others’ rights",
+            "misleading": "Misleading or impersonating another user"
+          }
+        },
+        "note": "We reserve the right to remove content that violates these Terms."
+      },
+      "privacy": {
+        "title": "Privacy and Data Protection",
+        "intro": "Your use of the Service is also governed by our Privacy Policy, which explains:",
+        "items": {
+          "collect": "What personal data we collect",
+          "used": "How it is used",
+          "rights": "Your rights under GDPR"
+        },
+        "note": "Please review the Privacy Policy carefully before using the Service."
+      },
+      "availability": {
+        "title": "Availability and Changes",
+        "intro": "The Service is provided “as is” and “as available”. We do not guarantee:",
+        "items": {
+          "continuous": "Continuous availability",
+          "error_free": "Error-free operation",
+          "preservation": "Preservation of data or game statistics"
+        },
+        "note": "As this is an educational project, features may change, reset, or be removed at any time."
+      },
+      "termination": {
+        "title": "Termination",
+        "intro": "We may suspend or terminate your access to the Service:",
+        "items": {
+          "violate": "If you violate these Terms",
+          "security": "If required for security or maintenance reasons",
+          "discontinued": "If the project is discontinued"
+        },
+        "note": "You may stop using the Service at any time."
+      },
+      "ip": {
+        "title": "Intellectual Property",
+        "intro": "All code, design, and content related to ft_transcendence:",
+        "items": {
+          "owned": "Is owned by the project contributors",
+          "educational": "Is provided for educational purposes",
+          "commercial": "May not be reused commercially without permission"
+        },
+        "note": "User-generated content remains the property of the user who created it."
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "intro": "To the maximum extent permitted by law:",
+        "items": {
+          "loss": "We are not liable for data loss, service interruptions, or gameplay issues",
+          "behaviour": "We are not responsible for user behaviour or interactions",
+          "warranties": "The Service is provided without warranties of any kind"
+        },
+        "note": "Use of the Service is at your own risk."
+      },
+      "law": {
+        "title": "Governing Law",
+        "body": "These Terms are governed by the laws of the European Union, including applicable GDPR provisions, without regard to conflict-of-law principles."
+      },
+      "contact": {
+        "title": "Contact",
+        "intro": "For questions regarding these Terms or the Service, please contact:"
+      }
+    }
+  }
+}

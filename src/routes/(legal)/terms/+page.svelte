@@ -1,161 +1,132 @@
+<script>
+    import { t } from 'svelte-i18n';
+
+</script>
 <div class="min-h-screen bg-pong-darker text-gray-100">
 	<div class="max-w-3xl mx-auto px-4 py-10">
-	<h1 class="text-3xl font-bold tracking-tight">Terms of Service</h1>
-	<p class="text-sm text-gray-400 mt-2"><em>Last updated: 04/02/2026</em></p>
+	<h1 class="text-3xl font-bold tracking-tight">{$t('legal.terms.title')}</h1>
+	<p class="text-sm text-gray-400 mt-2"><em>{$t('legal.terms.last_updated')}</em></p>
 
 	<hr class="my-8 border-white/10" />
-	<h2 class="text-xl font-semibold mt-8 mb-2">Introduction</h2>
-	<p class="text-gray-200 leading-relaxed">
-		Welcome to ft_transcendence (“the Service”), a web-based multiplayer application developed as part of the 42 curriculum. 
-		By accessing or using the Service, you agree to be bound by these Terms of Service (“Terms”).  
-		If you do not agree with these Terms, you must not use the Service.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.introduction.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.introduction.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Description of the Service</h2>
-	<p class="text-gray-200 leading-relaxed">
-		The Service is provided for educational and demonstration purposes only and 
-		is an online platform that allows users to:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.description.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.description.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Create an account using an email address and username</li>
-		<li>Log in securely</li>
-		<li>Interact with other users</li>
-		<li>Play online games (e.g. Pong)</li>
-		<li>Participate in real-time features such as matches, tournaments, or chat</li>
+		<li>{$t('legal.terms.description.items.account')}</li>
+		<li>{$t('legal.terms.description.items.login')}</li>
+		<li>{$t('legal.terms.description.items.interact')}</li>
+		<li>{$t('legal.terms.description.items.play')}</li>
+		<li>{$t('legal.terms.description.items.realtime')}</li>
 	</ul>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Eligibility</h2>
-	<p class="text-gray-200 leading-relaxed">
-		You must:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.eligibility.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.eligibility.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Be at least 13 years old to use the Service</li>
-		<li>Provide accurate and complete registration information</li>
-		<li>Maintain the security of your account credentials</li>
+		<li>{$t('legal.terms.eligibility.items.age')}</li>
+		<li>{$t('legal.terms.eligibility.items.accurate')}</li>
+		<li>{$t('legal.terms.eligibility.items.security')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">You are responsible for all activity that occurs under your account</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.eligibility.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
- 	<h2 class="text-xl font-semibold mt-8 mb-2">User Accounts</h2>
-	<p class="text-gray-200 leading-relaxed">
-		When creating an account, you agree to:
-	</p>
+ 	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.accounts.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.accounts.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Provide accurate and up-to-date information</li>
-		<li>Not impersonate another person or entity</li>
-		<li>Not share your login credential with others</li>
+		<li>{$t('legal.terms.accounts.items.accurate')}</li>
+		<li>{$t('legal.terms.accounts.items.impersonate')}</li>
+		<li>{$t('legal.terms.accounts.items.share')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">We reserve the right to suspend or delete accounts that violate these Terms.
-	</p>	
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.accounts.note')}</p>	
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Acceptable Use</h2>
-	<p class="text-gray-200 leading-relaxed">
-		You agree not to:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.acceptable_use.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.acceptable_use.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Use the Service for illegal purposes</li>
-		<li>Harass, abuse, threaten, or harm other users</li>
-		<li>Upload malicious code or attempt to compromise system security</li>
-		<li>Exploit bugs, cheats, or unintended gameplay mechanics</li>
-		<li>Attempt unauthorised access to accounts, servers, or data</li>
+		<li>{$t('legal.terms.acceptable_use.items.illegal')}</li>
+		<li>{$t('legal.terms.acceptable_use.items.harass')}</li>
+		<li>{$t('legal.terms.acceptable_use.items.malicious')}</li>
+		<li>{$t('legal.terms.acceptable_use.items.exploit')}</li>
+		<li>{$t('legal.terms.acceptable_use.items.unauthorized')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">Violation of these rules may result in account suspension or termination.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.acceptable_use.note')}</p>
 
 	<div class="my-8 h-px bg-white/5"></div>
-	<h2 class="text-xl font-semibold mt-8 mb-2">User-Generated Content</h2>
-	<p class="text-gray-200 leading-relaxed">
-		You are responsible for any content you submit, including:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.ugc.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.ugc.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Usernames</li>
-		<li>Profile information</li>
-		<li>Chat messages</li>
-		<li>In-game interactions</li>
+		<li>{$t('legal.terms.ugc.items.usernames')}</li>
+		<li>{$t('legal.terms.ugc.items.profile')}</li>
+		<li>{$t('legal.terms.ugc.items.chat')}</li>
+		<li>{$t('legal.terms.ugc.items.ingame')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">
-		You agree not to submit contact that is:
-	</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.ugc.prohibited_intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Offensive, hateful, or discriminatory</li>
-		<li>Illegal or infringing on others’ rights</li>
-		<li>Misleading or impersonating another user</li>
+		<li>{$t('legal.terms.ugc.prohibited.items.offensive')}</li>
+		<li>{$t('legal.terms.ugc.prohibited.items.illegal')}</li>
+		<li>{$t('legal.terms.ugc.prohibited.items.misleading')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">We reserve the right to remove content that violates these Terms.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.ugc.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Privacy and Data Protection</h2>
-	<p class="text-gray-200 leading-relaxed">
-		Your use of the Service is also governed by our Privacy Policy, which explains:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.privacy.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.privacy.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>What personal data we collect</li>
-		<li>How it is used</li>
-		<li>Your rights under GDPR</li>
+		<li>{$t('legal.terms.privacy.items.collect')}</li>
+		<li>{$t('legal.terms.privacy.items.used')}</li>
+		<li>{$t('legal.terms.privacy.items.rights')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">Please review the Privacy Policy carefully before using the Service.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.privacy.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Availability and Changes</h2>
-	<p class="text-gray-200 leading-relaxed">
-		The Service is provided “as is” and “as available”. We do not guarantee:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.availability.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.availability.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Continuous availability</li>
-		<li>Error-free operation</li>
-		<li>Preservation of data or game statistics</li>
+		<li>{$t('legal.terms.availability.items.continuous')}</li>
+		<li>{$t('legal.terms.availability.items.error_free')}</li>
+		<li>{$t('legal.terms.availability.items.preservation')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">As this is an educational project, features may change, reset, or be removed at any time.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.availability.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Termination</h2>
-	<p class="text-gray-200 leading-relaxed">
-		We may suspend or terminate your access to the Service:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.termination.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.termination.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>If you violate these Terms</li>
-		<li>If required for security or maintenance reasons</li>
-		<li>If the project is discontinued</li>
+		<li>{$t('legal.terms.termination.items.violate')}</li>
+		<li>{$t('legal.terms.termination.items.security')}</li>
+		<li>{$t('legal.terms.termination.items.discontinued')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">You may stop using the Service at any time.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.termination.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Intellectual Property</h2>
-	<p class="text-gray-200 leading-relaxed">
-		All code, design, and content related to ft_transcendence:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.ip.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.ip.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Is owned by the project contributors</li>
-		<li>Is provided for educational purposes</li>
-		<li>May not be resumed commercially without permission</li>
+		<li>{$t('legal.terms.ip.items.owned')}</li>
+		<li>{$t('legal.terms.ip.items.educational')}</li>
+		<li>{$t('legal.terms.ip.items.commercial')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">User-generated content remains the property of the user who created it.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.ip.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Limitation of Liability</h2>
-	<p class="text-gray-200 leading-relaxed">
-		To the maximum extent permitted by law:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.liability.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.liability.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>We are not liable of data loss, service interruptions, or gameplay issues</li>
-		<li>We are not responsible for user behaviour or interactions</li>
-		<li>The Service is provided without warranties of any kind</li>
+		<li>{$t('legal.terms.liability.items.loss')}</li>
+		<li>{$t('legal.terms.liability.items.behaviour')}</li>
+		<li>{$t('legal.terms.liability.items.warranties')}</li>
 	</ul>
-	<p class="text-gray-200 leading-relaxed mt-4">Use of the Service is at your own risk.</p>
+	<p class="text-gray-200 leading-relaxed mt-4">{$t('legal.terms.liability.note')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Governing Law</h2>
-	<p class="text-gray-200 leading-relaxed">
-		These Terms are governed by the laws of the European Union, including applicable 
-		GDPR provisions, without regard to conflict-of-law principles.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.law.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.law.body')}</p>
 	<hr class="my-8 border-white/10" />
-	<h2 class="text-xl font-semibold mt-8 mb-2">Contact</h2>
-	<p class="text-gray-200 leading-relaxed">
-		For questions regarding these Terms or the Service, please contact:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.terms.contact.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.terms.contact.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
 		<a class="underline hover:no-underline" href="mailto:contact@pixiesthatridepinkponyunicorns.com">contact@pixiesthatridepinkponyunicorns.com</a>
 	</ul>

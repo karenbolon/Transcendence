@@ -1,110 +1,85 @@
+<script lang="ts">
+	import { t } from 'svelte-i18n';
+</script>
+
+
 <div class="min-h-screen bg-pong-darker text-gray-100">
 	<div class="max-w-3xl mx-auto px-4 py-10">
-	<h1 class="text-3xl font-bold tracking-tight">Privacy Policy</h1>
+	<h1 class="text-3xl font-bold tracking-tight">{$t('legal.privacy.title')}</h1>
 	<p class="text-sm text-gray-400 mt-2">
-		<em>Last updated: 04/02/2026</em>
+		<em>{$t('legal.privacy.last_updated')}</em>
 	</p>
 
 	<hr class="my-8 border-white/10" />
-	<h2 class="text-xl font-semibold mt-8 mb-2">Who We Are</h2>
-	<p class="text-gray-200 leading-relaxed">
-		This website (“we”, “us”, “our”) provides an online Pong game (the “Service”). 
-		This application is operated by Pixies that Ride Pink Pony Unicorns (the “Team”), 
-		a student project created as part of an academic program at 42Berlin.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.who_we_are.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.who_we_are.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">What data do we collect</h2>
-	<p class="text-gray-200 leading-relaxed">
-		We collect only the data required to operate the game:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.data_collect.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.data_collect.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li><strong>Username</strong> - to identify players in the game</li>
-		<li><strong>Email address</strong> - used for account-related communication (e.g. account creation, password recovery)</li>
+		<li><strong>{$t('legal.privacy.data_collect.username_label')}</strong> — {$t('legal.privacy.data_collect.username_desc')}</li>
+		<li><strong>{$t('legal.privacy.data_collect.email_label')}</strong> — {$t('legal.privacy.data_collect.email_desc')}</li>
 	</ul>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">We do not collect</h2>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.data_not_collect.title')}</h2>
 	<p class="text-gray-200 leading-relaxed"><strong></strong></p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Real names</li>
-		<li>Payment information</li>
-		<li>Location data</li>
-		<li>Sensitive personal data</li>
+		<li>{$t('legal.privacy.data_not_collect.real_names')}</li>
+		<li>{$t('legal.privacy.data_not_collect.payment')}</li>
+		<li>{$t('legal.privacy.data_not_collect.location')}</li>
+		<li>{$t('legal.privacy.data_not_collect.sensitive')}</li>
 	</ul>
 	<div class="my-8 h-px bg-white/5"></div>
 
- 	<h2 class="text-xl font-semibold mt-8 mb-2">Why we collect this data (Legal Basis)</h2>
-	<p class="text-gray-200 leading-relaxed">
-		Under the General Data Protection Regulation (GDPR), we must have a legal reason to process your data.  We rely on:
-	</p>
+ 	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.legal_basis.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.legal_basis.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<strong>Contractual necessity (Art. 6(1)(b) GDPR):</strong>
+		<strong>{$t('legal.privacy.legal_basis.contractual_title')}</strong>
 			<ul class="list-disc pl-6 mt-1 space-y-1">
-				<li>Your username and email are required to create and maintain a game account.</li>
+				<li>{$t('legal.privacy.legal_basis.contractual_item')}</li>
 			</ul>
-		<strong>Legitimate interests (Art. 6(1)(f) GDPR):</strong>
+		<strong>{$t('legal.privacy.legal_basis.legit_title')}</strong>
 			<ul class="list-disc pl-6 mt-1 space-y-1">
-				<li>To ensure the security, stability, and proper functioning of the Service.</li>
+				<li>{$t('legal.privacy.legal_basis.legit_item')}</li>
 			</ul>
 	</ul>
 	<div class="my-8 h-px bg-white/5"></div>		
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">How We Use Your Data</h2>
-	<p class="text-gray-200 leading-relaxed">
-		We process this data to:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.use_data.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.use_data.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
-		<li>Create and manage your game account</li>
-		<li>Identify you in the game (username)</li>
-		<li>Allow users to participate in the game</li>
-		<li>Communicate with you about your account (email)</li>
-		<li>Maintain the security and proper functioning of the application</li>
+		<li>{$t('legal.privacy.use_data.items.account')}</li>
+		<li>{$t('legal.privacy.use_data.items.identify')}</li>
+		<li>{$t('legal.privacy.use_data.items.participate')}</li>
+		<li>{$t('legal.privacy.use_data.items.communicate')}</li>
+		<li>{$t('legal.privacy.use_data.items.security')}</li>
 	</ul>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Data Sharing</h2>
-	<p class="text-gray-200 leading-relaxed">
-		We do not sell or use personal data for advertising. Data is only processed by 
-		technical service providers required to run the application.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.sharing.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.sharing.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Data Retention</h2>
-	<p class="text-gray-200 leading-relaxed">
-		Personal data is stored only for as long as the user account remains active.
-		Users may request deletion of their account at any time.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.retention.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.retention.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Your Rights</h2>
-	<p class="text-gray-200 leading-relaxed">
-		You have the right to access, correct, 
-		or request deletion of your personal data in accordance with GDPR.
-		You also have the right to lodge a complaint with a supervisory authority.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.rights.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.rights.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Cookies</h2>
-	<p class="text-gray-200 leading-relaxed">
-		This website uses essential cookies that are required for core functionality, 
-		such as user authentication and maintaining active sessions.  
-		We do not use tracking cookies, advertising cookies, or third-party analytics cookies. 
-		If this changes, this policy will be updated accordingly.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.cookies.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.cookies.body')}</p>
 	<div class="my-8 h-px bg-white/5"></div>
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Changes to This Policy</h2>
-	<p class="text-gray-200 leading-relaxed">
-		We may update this Privacy Policy from time to time.  
-		Any changes will be posted on this page with an updated “Last updated” date.
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.changes.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.changes.body')}</p>
 	<hr class="my-8 border-white/10" />
 
-	<h2 class="text-xl font-semibold mt-8 mb-2">Contact</h2>
-	<p class="text-gray-200 leading-relaxed">
-		For privacy-related requests, contact us at:
-	</p>
+	<h2 class="text-xl font-semibold mt-8 mb-2">{$t('legal.privacy.contact.title')}</h2>
+	<p class="text-gray-200 leading-relaxed">{$t('legal.privacy.contact.intro')}</p>
 	<ul class="list-disc pl-6 mt-2 space-y-1 text-gray-200">
 		<a class="underline hover:no-underline" href="mailto:contact@pixiesthatridepinkponyunicorns.com">contact@pixiesthatridepinkponyunicorns.com</a>
 	</ul>

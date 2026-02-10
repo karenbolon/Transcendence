@@ -1,0 +1,277 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "login": "Anmelden",
+    "logout": "Abmelden"
+  },
+  "game": {
+    "start": "Spiel starten",
+    "pause": "Pause",
+    "winner": "Gewinner: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "E-Mail",
+      "confirm_password": "Passwort bestätigen"
+    },
+    "login": {
+      "title": "Anmelden",
+      "subtitle": "Willkommen zurück! Bereit zu spielen?",
+      "submit": "Anmelden",
+      "remember_me": "Angemeldet bleiben",
+      "forgot_password": "Passwort vergessen?",
+      "no_account": "Noch kein Konto?",
+      "signup_link": "Registrieren",
+      "continue_with": "Oder fortfahren mit",
+      "oauth_42": "🔗 42 Intra",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Benutzername",
+      "password": "Passwort"
+    },
+    "register": {
+      "title": "Registrieren",
+      "subtitle": "Tritt dem Spiel bei und leg los!",
+      "success": "Konto erstellt! Weiterleitung...",
+      "submit": "Registrieren",
+      "submitting": "Registrierung läuft...",
+      "have_account": "Bereits ein Konto?",
+      "login_link": "Anmelden",
+      "or_signup_with": "Oder registrieren mit",
+      "oauth_42_coming": "🔗 42 Intra (Demnächst verfügbar)",
+      "oauth_coming": "👤 OAuth (Demnächst verfügbar)",
+      "accept_terms_prefix": "Ich stimme den",
+      "terms_link": "Nutzungsbedingungen",
+      "and": "und der",
+      "privacy_link": "Datenschutzerklärung",
+      "privacy_note": "Wir verwenden deine E-Mail-Adresse und deinen Benutzernamen zur Erstellung und Sicherung deines Kontos. Es werden keine Tracking- oder Analyse-Cookies verwendet.",
+      "password_hint": "Mindestens 8 Zeichen mit Groß-, Kleinbuchstaben und einer Zahl"
+    },
+    "placeholders": {
+      "username": "Benutzername eingeben",
+      "password": "Passwort eingeben",
+      "register_username": "Benutzernamen wählen",
+      "register_email": "deine.email@beispiel.de",
+      "register_password": "Passwort erstellen",
+      "register_confirm_password": "Passwort erneut eingeben"
+    },
+    "errors": {
+      "username_required": "Bitte Benutzernamen eingeben",
+      "password_required": "Bitte Passwort eingeben",
+      "login_failed": "Anmeldung fehlgeschlagen",
+      "email_required": "Bitte E-Mail-Adresse eingeben",
+      "passwords_no_match": "Passwörter stimmen nicht überein",
+      "terms_required": "Du musst den Nutzungsbedingungen zustimmen"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "last_updated": "Zuletzt aktualisiert: 04.02.2026",
+      "who_we_are": {
+        "title": "Wer wir sind",
+        "body": "Diese Website („wir“, „uns“, „unser“) bietet ein Online-Pong-Spiel (den „Dienst“). Diese Anwendung wird von Pixies that Ride Pink Pony Unicorns (dem „Team“) betrieben, einem studentischen Projekt im Rahmen eines akademischen Programms an der 42Berlin."
+      },
+      "data_collect": {
+        "title": "Welche Daten erfassen wir",
+        "intro": "Wir erfassen nur die Daten, die für den Betrieb des Spiels erforderlich sind:",
+        "username_label": "Benutzername",
+        "username_desc": "zur Identifikation der Spieler im Spiel",
+        "email_label": "E-Mail-Adresse",
+        "email_desc": "zur kontobezogenen Kommunikation (z. B. Kontoerstellung, Passwort-Wiederherstellung)"
+      },
+      "data_not_collect": {
+        "title": "Wir erfassen nicht",
+        "real_names": "Echte Namen",
+        "payment": "Zahlungsinformationen",
+        "location": "Standortdaten",
+        "sensitive": "Sensible personenbezogene Daten"
+      },
+      "legal_basis": {
+        "title": "Warum wir diese Daten erfassen (Rechtsgrundlage)",
+        "intro": "Gemäß der Datenschutz-Grundverordnung (DSGVO) benötigen wir eine Rechtsgrundlage für die Verarbeitung Ihrer Daten. Wir stützen uns auf:",
+        "contractual_title": "Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO):",
+        "contractual_item": "Ihr Benutzername und Ihre E-Mail-Adresse sind erforderlich, um ein Spielkonto zu erstellen und zu verwalten.",
+        "legit_title": "Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):",
+        "legit_item": "Zur Gewährleistung der Sicherheit, Stabilität und ordnungsgemäßen Funktion des Dienstes."
+      },
+      "use_data": {
+        "title": "Wie wir Ihre Daten verwenden",
+        "intro": "Wir verarbeiten diese Daten, um:",
+        "items": {
+          "account": "Ihr Spielkonto zu erstellen und zu verwalten",
+          "identify": "Sie im Spiel zu identifizieren (Benutzername)",
+          "participate": "Die Teilnahme am Spiel zu ermöglichen",
+          "communicate": "Mit Ihnen über Ihr Konto zu kommunizieren (E-Mail)",
+          "security": "Die Sicherheit und den ordnungsgemäßen Betrieb der Anwendung zu gewährleisten"
+        }
+      },
+      "sharing": {
+        "title": "Datenweitergabe",
+        "body": "Wir verkaufen keine personenbezogenen Daten und verwenden sie nicht für Werbung. Daten werden ausschließlich von technischen Dienstleistern verarbeitet, die für den Betrieb der Anwendung erforderlich sind."
+      },
+      "retention": {
+        "title": "Speicherdauer",
+        "body": "Personenbezogene Daten werden nur so lange gespeichert, wie das Benutzerkonto aktiv ist. Nutzer können jederzeit die Löschung ihres Kontos beantragen."
+      },
+      "rights": {
+        "title": "Ihre Rechte",
+        "body": "Sie haben das Recht auf Auskunft, Berichtigung oder Löschung Ihrer personenbezogenen Daten gemäß DSGVO. Außerdem haben Sie das Recht, sich bei einer Aufsichtsbehörde zu beschweren."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "Diese Website verwendet ausschließlich notwendige Cookies, die für grundlegende Funktionen wie Benutzerauthentifizierung und aktive Sitzungen erforderlich sind. Wir verwenden keine Tracking-, Werbe- oder Analyse-Cookies. Änderungen werden in dieser Richtlinie aktualisiert."
+      },
+      "changes": {
+        "title": "Änderungen dieser Richtlinie",
+        "body": "Wir können diese Datenschutzerklärung gelegentlich aktualisieren. Änderungen werden auf dieser Seite mit einem aktualisierten Datum veröffentlicht."
+      },
+      "contact": {
+        "title": "Kontakt",
+        "intro": "Bei datenschutzbezogenen Anfragen kontaktieren Sie uns unter:"
+      }
+    },
+    "terms": {
+      "title": "Nutzungsbedingungen",
+      "last_updated": "Zuletzt aktualisiert: 04.02.2026",
+
+      "introduction": {
+        "title": "Einleitung",
+        "body": "Willkommen bei ft_transcendence („der Dienst“), einer webbasierten Multiplayer-Anwendung, die im Rahmen des 42-Curriculums entwickelt wurde. Durch den Zugriff auf oder die Nutzung des Dienstes erklären Sie sich mit diesen Nutzungsbedingungen („Bedingungen“) einverstanden. Wenn Sie diesen Bedingungen nicht zustimmen, dürfen Sie den Dienst nicht nutzen."
+      },
+
+      "description": {
+        "title": "Beschreibung des Dienstes",
+        "intro": "Der Dienst wird ausschließlich zu Bildungs- und Demonstrationszwecken bereitgestellt und ist eine Online-Plattform, die es Nutzern ermöglicht:",
+        "items": {
+          "account": "Ein Konto mit E-Mail-Adresse und Benutzername zu erstellen",
+          "login": "Sich sicher anzumelden",
+          "interact": "Mit anderen Nutzern zu interagieren",
+          "play": "Online-Spiele (z. B. Pong) zu spielen",
+          "realtime": "An Echtzeitfunktionen wie Matches, Turnieren oder Chat teilzunehmen"
+        }
+      },
+
+      "eligibility": {
+        "title": "Teilnahmeberechtigung",
+        "intro": "Sie müssen:",
+        "items": {
+          "age": "Mindestens 13 Jahre alt sein, um den Dienst zu nutzen",
+          "accurate": "Korrekte und vollständige Registrierungsinformationen angeben",
+          "security": "Die Sicherheit Ihrer Zugangsdaten gewährleisten"
+        },
+        "note": "Sie sind für alle Aktivitäten verantwortlich, die über Ihr Konto erfolgen."
+      },
+
+      "accounts": {
+        "title": "Benutzerkonten",
+        "intro": "Bei der Erstellung eines Kontos verpflichten Sie sich:",
+        "items": {
+          "accurate": "Aktuelle und korrekte Informationen bereitzustellen",
+          "impersonate": "Sich nicht als eine andere Person oder Organisation auszugeben",
+          "share": "Ihre Zugangsdaten nicht mit anderen zu teilen"
+        },
+        "note": "Wir behalten uns das Recht vor, Konten zu sperren oder zu löschen, die gegen diese Bedingungen verstoßen."
+      },
+
+      "acceptable_use": {
+        "title": "Zulässige Nutzung",
+        "intro": "Sie verpflichten sich, den Dienst nicht zu nutzen, um:",
+        "items": {
+          "illegal": "Illegale Zwecke zu verfolgen",
+          "harass": "Andere Nutzer zu belästigen, zu bedrohen oder zu schädigen",
+          "malicious": "Schadcode hochzuladen oder die Systemsicherheit zu gefährden",
+          "exploit": "Fehler, Cheats oder unbeabsichtigte Spielmechaniken auszunutzen",
+          "unauthorized": "Unbefugten Zugriff auf Konten, Server oder Daten zu versuchen"
+        },
+        "note": "Verstöße können zur Sperrung oder Kündigung des Kontos führen."
+      },
+
+      "ugc": {
+        "title": "Nutzergenerierte Inhalte",
+        "intro": "Sie sind für alle von Ihnen eingereichten Inhalte verantwortlich, einschließlich:",
+        "items": {
+          "usernames": "Benutzernamen",
+          "profile": "Profilinformationen",
+          "chat": "Chat-Nachrichten",
+          "ingame": "In-Game-Interaktionen"
+        },
+        "prohibited_intro": "Sie verpflichten sich, keine Inhalte einzureichen, die:",
+        "prohibited": {
+          "items": {
+            "offensive": "Beleidigend, hasserfüllt oder diskriminierend sind",
+            "illegal": "Illegal sind oder Rechte Dritter verletzen",
+            "misleading": "Irreführend sind oder andere Nutzer imitieren"
+          }
+        },
+        "note": "Wir behalten uns das Recht vor, Inhalte zu entfernen, die gegen diese Bedingungen verstoßen."
+      },
+
+      "privacy": {
+        "title": "Datenschutz",
+        "intro": "Die Nutzung des Dienstes unterliegt ebenfalls unserer Datenschutzerklärung, die erläutert:",
+        "items": {
+          "collect": "Welche personenbezogenen Daten wir erheben",
+          "used": "Wie diese verwendet werden",
+          "rights": "Ihre Rechte gemäß DSGVO"
+        },
+        "note": "Bitte lesen Sie die Datenschutzerklärung sorgfältig."
+      },
+
+      "availability": {
+        "title": "Verfügbarkeit und Änderungen",
+        "intro": "Der Dienst wird „wie besehen“ und „wie verfügbar“ bereitgestellt. Wir garantieren keine:",
+        "items": {
+          "continuous": "Ständige Verfügbarkeit",
+          "error_free": "Fehlerfreie Nutzung",
+          "preservation": "Erhaltung von Daten oder Spielstatistiken"
+        },
+        "note": "Da es sich um ein Bildungsprojekt handelt, können Funktionen jederzeit geändert, zurückgesetzt oder entfernt werden."
+      },
+
+      "termination": {
+        "title": "Beendigung",
+        "intro": "Wir können Ihren Zugriff auf den Dienst sperren oder beenden:",
+        "items": {
+          "violate": "Bei Verstoß gegen diese Bedingungen",
+          "security": "Aus Sicherheits- oder Wartungsgründen",
+          "discontinued": "Wenn das Projekt eingestellt wird"
+        },
+        "note": "Sie können die Nutzung des Dienstes jederzeit beenden."
+      },
+
+      "ip": {
+        "title": "Geistiges Eigentum",
+        "intro": "Der gesamte Code, das Design und die Inhalte von ft_transcendence:",
+        "items": {
+          "owned": "Gehören den Projektbeteiligten",
+          "educational": "Dienen ausschließlich Bildungszwecken",
+          "commercial": "Dürfen nicht kommerziell weiterverwendet werden"
+        },
+        "note": "Nutzergenerierte Inhalte bleiben Eigentum der jeweiligen Nutzer."
+      },
+
+      "liability": {
+        "title": "Haftungsbeschränkung",
+        "intro": "Soweit gesetzlich zulässig:",
+        "items": {
+          "loss": "Haften wir nicht für Datenverlust, Ausfälle oder Spielprobleme",
+          "behaviour": "Sind wir nicht verantwortlich für das Verhalten von Nutzern",
+          "warranties": "Wird der Dienst ohne jegliche Gewährleistung bereitgestellt"
+        },
+        "note": "Die Nutzung des Dienstes erfolgt auf eigenes Risiko."
+      },
+
+      "law": {
+        "title": "Anwendbares Recht",
+        "body": "Diese Bedingungen unterliegen dem Recht der Europäischen Union einschließlich der anwendbaren DSGVO-Bestimmungen."
+      },
+
+      "contact": {
+        "title": "Kontakt",
+        "intro": "Bei Fragen zu diesen Bedingungen oder zum Dienst kontaktieren Sie bitte:"
+      }
+    }    
+  }
+}

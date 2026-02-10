@@ -1,0 +1,277 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "login": "Connexion",
+    "logout": "Déconnexion"
+  },
+  "game": {
+    "start": "Démarrer le jeu",
+    "pause": "Pause",
+    "winner": "Gagnant : {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "E-mail",
+      "confirm_password": "Confirmer le mot de passe"
+    },
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Bon retour ! Prêt à jouer ?",
+      "submit": "Se connecter",
+      "remember_me": "Se souvenir de moi",
+      "forgot_password": "Mot de passe oublié ?",
+      "no_account": "Pas encore de compte ?",
+      "signup_link": "S'inscrire",
+      "continue_with": "Ou continuer avec",
+      "oauth_42": "🔗 42 Intra",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe"
+    },
+    "register": {
+      "title": "Inscription",
+      "subtitle": "Rejoins le jeu et commence à jouer !",
+      "success": "Compte créé ! Redirection...",
+      "submit": "S'inscrire",
+      "submitting": "Inscription en cours...",
+      "have_account": "Déjà un compte ?",
+      "login_link": "Se connecter",
+      "or_signup_with": "Ou s'inscrire avec",
+      "oauth_42_coming": "🔗 42 Intra (Bientôt disponible)",
+      "oauth_coming": "👤 OAuth (Bientôt disponible)",
+      "accept_terms_prefix": "J'accepte les",
+      "terms_link": "Conditions d'utilisation",
+      "and": "et la",
+      "privacy_link": "Politique de confidentialité",
+      "privacy_note": "Nous utilisons votre e-mail et votre nom d'utilisateur pour créer et sécuriser votre compte. Aucun cookie de suivi ou d'analyse n'est utilisé.",
+      "password_hint": "Au moins 8 caractères avec majuscules, minuscules et un chiffre"
+    },
+    "placeholders": {
+      "username": "Entrez votre nom d'utilisateur",
+      "password": "Entrez votre mot de passe",
+      "register_username": "Choisissez un nom d'utilisateur",
+      "register_email": "votre.email@exemple.com",
+      "register_password": "Créer un mot de passe",
+      "register_confirm_password": "Confirmez le mot de passe"
+    },
+    "errors": {
+      "username_required": "Veuillez entrer votre nom d'utilisateur",
+      "password_required": "Veuillez entrer votre mot de passe",
+      "login_failed": "Échec de la connexion",
+      "email_required": "Veuillez entrer une adresse e-mail",
+      "passwords_no_match": "Les mots de passe ne correspondent pas",
+      "terms_required": "Vous devez accepter les conditions générales"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "last_updated": "Dernière mise à jour : 04/02/2026",
+      "who_we_are": {
+        "title": "Qui sommes-nous",
+        "body": "Ce site web (« nous ») propose un jeu de Pong en ligne (le « Service »). Cette application est exploitée par Pixies that Ride Pink Pony Unicorns (l’« Équipe »), un projet étudiant réalisé dans le cadre d’un programme académique à 42Berlin."
+      },
+      "data_collect": {
+        "title": "Quelles données collectons-nous",
+        "intro": "Nous collectons uniquement les données nécessaires au fonctionnement du jeu :",
+        "username_label": "Nom d’utilisateur",
+        "username_desc": "pour identifier les joueurs dans le jeu",
+        "email_label": "Adresse e-mail",
+        "email_desc": "utilisée pour les communications liées au compte (par exemple création de compte, récupération de mot de passe)"
+      },
+      "data_not_collect": {
+        "title": "Nous ne collectons pas",
+        "real_names": "Noms réels",
+        "payment": "Informations de paiement",
+        "location": "Données de localisation",
+        "sensitive": "Données personnelles sensibles"
+      },
+      "legal_basis": {
+        "title": "Pourquoi nous collectons ces données (Base légale)",
+        "intro": "Conformément au Règlement Général sur la Protection des Données (RGPD), nous devons disposer d’une base légale pour traiter vos données. Nous nous appuyons sur :",
+        "contractual_title": "Nécessité contractuelle (Art. 6(1)(b) RGPD) :",
+        "contractual_item": "Votre nom d’utilisateur et votre adresse e-mail sont nécessaires pour créer et maintenir un compte de jeu.",
+        "legit_title": "Intérêts légitimes (Art. 6(1)(f) RGPD) :",
+        "legit_item": "Afin d’assurer la sécurité, la stabilité et le bon fonctionnement du Service."
+      },
+      "use_data": {
+        "title": "Comment nous utilisons vos données",
+        "intro": "Nous traitons ces données afin de :",
+        "items": {
+          "account": "Créer et gérer votre compte de jeu",
+          "identify": "Vous identifier dans le jeu (nom d’utilisateur)",
+          "participate": "Permettre la participation au jeu",
+          "communicate": "Communiquer avec vous concernant votre compte (e-mail)",
+          "security": "Maintenir la sécurité et le bon fonctionnement de l’application"
+        }
+      },
+      "sharing": {
+        "title": "Partage des données",
+        "body": "Nous ne vendons pas et n’utilisons pas les données personnelles à des fins publicitaires. Les données sont uniquement traitées par des prestataires techniques nécessaires au fonctionnement de l’application."
+      },
+      "retention": {
+        "title": "Conservation des données",
+        "body": "Les données personnelles sont conservées uniquement tant que le compte utilisateur est actif. Les utilisateurs peuvent demander la suppression de leur compte à tout moment."
+      },
+      "rights": {
+        "title": "Vos droits",
+        "body": "Vous avez le droit d’accéder à vos données personnelles, de les corriger ou d’en demander la suppression conformément au RGPD. Vous avez également le droit de déposer une plainte auprès d’une autorité de contrôle."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "Ce site utilise uniquement des cookies essentiels nécessaires aux fonctionnalités de base telles que l’authentification des utilisateurs et le maintien des sessions actives. Nous n’utilisons pas de cookies de suivi, publicitaires ou analytiques."
+      },
+      "changes": {
+        "title": "Modifications de cette politique",
+        "body": "Nous pouvons mettre à jour cette Politique de confidentialité de temps à autre. Toute modification sera publiée sur cette page avec une date de mise à jour révisée."
+      },
+      "contact": {
+        "title": "Contact",
+        "intro": "Pour toute demande relative à la confidentialité, contactez-nous à :"
+      }
+    },
+    "terms": {
+      "title": "Conditions d’utilisation",
+      "last_updated": "Dernière mise à jour : 04/02/2026",
+
+      "introduction": {
+        "title": "Introduction",
+        "body": "Bienvenue sur ft_transcendence (« le Service »), une application multijoueur web développée במסגרת du cursus 42. En accédant au Service ou en l’utilisant, vous acceptez ces Conditions d’utilisation (« Conditions »). Si vous n’acceptez pas ces Conditions, vous ne devez pas utiliser le Service."
+      },
+
+      "description": {
+        "title": "Description du Service",
+        "intro": "Le Service est fourni uniquement à des fins éducatives et de démonstration et permet aux utilisateurs de :",
+        "items": {
+          "account": "Créer un compte avec une adresse e-mail et un nom d’utilisateur",
+          "login": "Se connecter de manière sécurisée",
+          "interact": "Interagir avec d’autres utilisateurs",
+          "play": "Jouer à des jeux en ligne (par ex. Pong)",
+          "realtime": "Participer à des fonctionnalités en temps réel telles que matchs, tournois ou chat"
+        }
+      },
+
+      "eligibility": {
+        "title": "Éligibilité",
+        "intro": "Vous devez :",
+        "items": {
+          "age": "Avoir au moins 13 ans pour utiliser le Service",
+          "accurate": "Fournir des informations d’inscription exactes et complètes",
+          "security": "Assurer la sécurité de vos identifiants"
+        },
+        "note": "Vous êtes responsable de toute activité effectuée via votre compte."
+      },
+
+      "accounts": {
+        "title": "Comptes Utilisateur",
+        "intro": "Lors de la création d’un compte, vous acceptez de :",
+        "items": {
+          "accurate": "Fournir des informations exactes et à jour",
+          "impersonate": "Ne pas usurper l’identité d’autrui",
+          "share": "Ne pas partager vos identifiants"
+        },
+        "note": "Nous nous réservons le droit de suspendre ou supprimer les comptes en violation de ces Conditions."
+      },
+
+      "acceptable_use": {
+        "title": "Utilisation Acceptable",
+        "intro": "Vous vous engagez à ne pas :",
+        "items": {
+          "illegal": "Utiliser le Service à des fins illégales",
+          "harass": "Harceler ou nuire à d’autres utilisateurs",
+          "malicious": "Téléverser des codes malveillants",
+          "exploit": "Exploiter des bugs ou mécaniques involontaires",
+          "unauthorized": "Tenter des accès non autorisés"
+        },
+        "note": "Toute violation peut entraîner la suspension ou la résiliation du compte."
+      },
+
+      "ugc": {
+        "title": "Contenu Généré par l’Utilisateur",
+        "intro": "Vous êtes responsable de tout contenu soumis, y compris :",
+        "items": {
+          "usernames": "Noms d’utilisateur",
+          "profile": "Informations de profil",
+          "chat": "Messages de chat",
+          "ingame": "Interactions en jeu"
+        },
+        "prohibited_intro": "Vous acceptez de ne pas soumettre de contenu :",
+        "prohibited": {
+          "items": {
+            "offensive": "Offensant, haineux ou discriminatoire",
+            "illegal": "Illégal ou portant atteinte aux droits d’autrui",
+            "misleading": "Trompeur ou usurpant l’identité d’un autre utilisateur"
+          }
+        },
+        "note": "Nous nous réservons le droit de supprimer tout contenu enfreignant ces Conditions."
+      },
+
+      "privacy": {
+        "title": "Protection des Données et Confidentialité",
+        "intro": "L’utilisation du Service est également régie par notre Politique de Confidentialité, qui explique :",
+        "items": {
+          "collect": "Les données personnelles collectées",
+          "used": "La manière dont elles sont utilisées",
+          "rights": "Vos droits en vertu du RGPD"
+        },
+        "note": "Veuillez consulter attentivement la Politique de Confidentialité."
+      },
+
+      "availability": {
+        "title": "Disponibilité et Modifications",
+        "intro": "Le Service est fourni « tel quel » et « selon disponibilité ». Nous ne garantissons pas :",
+        "items": {
+          "continuous": "Une disponibilité continue",
+          "error_free": "Un fonctionnement sans erreur",
+          "preservation": "La conservation des données ou statistiques"
+        },
+        "note": "En tant que projet éducatif, les fonctionnalités peuvent être modifiées ou supprimées."
+      },
+
+      "termination": {
+        "title": "Résiliation",
+        "intro": "Nous pouvons suspendre ou résilier votre accès :",
+        "items": {
+          "violate": "En cas de violation des Conditions",
+          "security": "Pour des raisons de sécurité ou de maintenance",
+          "discontinued": "Si le projet est arrêté"
+        },
+        "note": "Vous pouvez cesser d’utiliser le Service à tout moment."
+      },
+
+      "ip": {
+        "title": "Propriété Intellectuelle",
+        "intro": "Tout le code, le design et le contenu de ft_transcendence :",
+        "items": {
+          "owned": "Appartiennent aux contributeurs du projet",
+          "educational": "Sont fournis à des fins éducatives",
+          "commercial": "Ne peuvent pas être réutilisés à des fins commerciales"
+        },
+        "note": "Le contenu généré par l’utilisateur reste la propriété de son créateur."
+      },
+
+      "liability": {
+        "title": "Limitation de Responsabilité",
+        "intro": "Dans les limites autorisées par la loi :",
+        "items": {
+          "loss": "Nous ne sommes pas responsables des pertes de données ou interruptions",
+          "behaviour": "Nous ne sommes pas responsables du comportement des utilisateurs",
+          "warranties": "Le Service est fourni sans garantie"
+        },
+        "note": "L’utilisation du Service se fait à vos propres risques."
+      },
+
+      "law": {
+        "title": "Droit Applicable",
+        "body": "Ces Conditions sont régies par le droit de l’Union européenne, y compris les dispositions applicables du RGPD."
+      },
+
+      "contact": {
+        "title": "Contact",
+        "intro": "Pour toute question concernant ces Conditions ou le Service, veuillez contacter :"
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "oauth_accounts" ALTER COLUMN "user_id" SET DATA TYPE integer;

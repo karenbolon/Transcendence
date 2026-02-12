@@ -220,7 +220,7 @@ All generated content was reviewed, understood, and adapted by the team.
 ---
 
 # Notes
-Compatible with latest Chrome
-No console errors or warnings
-Privacy Policy & Terms of Service are included and accessible in the app
-Built with teamwork, curiosity, and a lot of late-night debugging and coffee...so much coffee 🏓
+- Compatible with latest Chrome
+- No console errors or warnings
+- Privacy Policy & Terms of Service are included and accessible in the app
+- Built with teamwork, curiosity, and a lot of late-night debugging and coffee...so much coffee 🏓

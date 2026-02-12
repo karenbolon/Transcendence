@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
+	import Logout from '$lib/component/Logout.svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -18,11 +18,7 @@
 			<a href="/profile" class="btn-login inline-block">My Profile</a>
 		</div>
 
-		<form method="POST" action="/logout" use:enhance>
-			<button type="submit" class="btn-signup">
-				Logout
-			</button>
-		</form>
+		<Logout class="btn-signup" />
 
 		<!-- {#if $user}
 			<img src={$user.avatar} alt="avatar" class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-pink-500" />

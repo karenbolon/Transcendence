@@ -21,7 +21,10 @@ export const lucia = new Lucia(adapter, {
 		return {
 			username: attributes.username,
 			email: attributes.email,
-			name: attributes.name
+			name: attributes.name,
+			avatar_url: attributes.avatar_url,
+			is_online: attributes.is_online,
+			created_at: attributes.created_at
 			// displayName: attributes.displayName,
 			// avatar: attributes.avatar,
 			// emailVerified: attributes.emailVerified
@@ -41,6 +44,9 @@ interface DatabaseUser {
 	username: string;
 	email: string;
 	name: string;
+	avatar_url: string | null;
+	is_online: boolean | null;
+	created_at: Date;
 }
 
 // export type SessionValidationResult = Awaited<ReturnType<typeof lucia.validateSession>>;

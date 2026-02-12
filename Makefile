@@ -204,27 +204,12 @@ test: test-setup
 	@npx vitest
 	@echo "$(CHECK) Tests complete!"
 
-# Setup test environment (start DB and push schema)
-test-setup:
-	@echo "$(DATABASE) Starting test database..."
-	@npm run db:start:d
-	@echo "$(CHECK) Waiting for database to be ready..."
-	@sleep 3
-	@echo "$(DATABASE) Pushing schema to test database..."
-	@npm run db:push:test
-	@echo "$(CHECK) Test environment ready!"
-
-# Run tests only (assumes DB is already running)
-test-run:
-	@echo "$(TEST) Running tests..."
-	@npx vitest
-
 # ================================================================================
 # Clean
 # ================================================================================
 
 # Clean build artifacts and node_modules
-clean:
+clean:docker-clean
 	@echo "$(CLEAN) $(PEACH)Cleaning project...$(NC)"
 	rm -rf build/
 	rm -rf .svelte-kit/
@@ -232,7 +217,7 @@ clean:
 	@echo "$(CHECK) $(MINT)Clean complete!$(NC)"
 
 ## Full clean: build artifacts + node_modules + Docker volumes
-fclean: docker-clean
+fclean: clean
 	@echo "$(CLEAN) $(PEACH)Deep cleaning everything...$(NC)"
 	@rm -rf build/
 	@rm -rf .svelte-kit/

@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { games } from '$lib/server/db/schema';
+import { games, users } from '$lib/server/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 const matchResultSchema = z.object({
@@ -65,13 +66,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const data = result.data;
-	const player1Name = locals.user.username;
+	const user = locals.user;
+	const userId = Number(user.id);
+	const player1Name = user.username;
 	let winnerName: string;
 	let winnerId: number | null;
 
 	if (data.winner === 'player1') {
 		winnerName = player1Name;
-		winnerId = locals.user.id;
+		winnerId = userId;
 	} else {
 		// Player 2 won
 		winnerName = data.player2Name;
@@ -79,29 +82,51 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	// ── SAVE TO DATABASE ───────────────────────────────────────
+	// Use a transaction so the game insert and user stats update
+	// either both succeed or both roll back.
 	try {
-		const [match] = await db.insert(games).values({
-			type: 'pong',
-			status: 'finished',
-			game_mode: data.gameMode,
+		const finishedAt = new Date();
+		const durationMs = (data.durationSeconds ?? 0) * 1000;
+		const startedAt = new Date(finishedAt.getTime() - durationMs);
 
-			player1_id: locals.user.id,
-			player2_id: null,              // null for local/computer games
-			player2_name: data.player2Name,
+		const [match] = await db.transaction(async (tx) => {
+			// 1. Insert the game record
+			const inserted = await tx.insert(games).values({
+				type: 'pong',
+				status: 'finished',
+				game_mode: data.gameMode,
 
-			player1_score: data.player1Score,
-			player2_score: data.player2Score,
+				player1_id: userId,
+				player2_id: null,
+				player2_name: data.player2Name,
 
-			winner_id: winnerId,
-			winner_name: winnerName,
+				player1_score: data.player1Score,
+				player2_score: data.player2Score,
 
-			winner_score: data.winScore,
-			speed_preset: data.speedPreset,
+				winner_id: winnerId,
+				winner_name: winnerName,
 
-			duration_seconds: data.durationSeconds ?? null,
-			started_at: new Date(),        // We'll improve this with actual timing later
-			finished_at: new Date(),
-		}).returning();
+				winner_score: data.winScore,
+				speed_preset: data.speedPreset,
+
+				duration_seconds: data.durationSeconds ?? null,
+				started_at: startedAt,
+				finished_at: finishedAt,
+			}).returning();
+
+			// 2. Update the user's stats (games_played, wins, losses)
+			const userWon = data.winner === 'player1';
+			await tx.update(users)
+				.set({
+					games_played: sql`${users.games_played} + 1`,
+					wins:         userWon ? sql`${users.wins} + 1`   : users.wins,
+					losses:       userWon ? users.losses             : sql`${users.losses} + 1`,
+					updated_at:   finishedAt,
+				})
+				.where(eq(users.id, userId));
+
+			return inserted;
+		});
 
 		return json({
 			success: true,

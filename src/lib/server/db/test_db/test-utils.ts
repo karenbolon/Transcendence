@@ -129,6 +129,7 @@ export async function createTestGame(
 		player2_score: number;
 		status: 'waiting' | 'active' | 'finished';
 		winner_id: number | null;
+		winner_name: string;
 	}> = {}
 ) {
 	const [game] = await db
@@ -140,7 +141,8 @@ export async function createTestGame(
 			player1_score: options.player1_score ?? 0,
 			player2_score: options.player2_score ?? 0,
 			status: options.status ?? 'waiting',
-			winner_id: options.winner_id ?? null
+			winner_id: options.winner_id ?? null,
+			winner_name: options.winner_name ?? ''
 		})
 		.returning();
 

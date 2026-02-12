@@ -7,6 +7,7 @@
 	let gameMode = $state<GameMode>('local');
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>('normal');
+	let player2Name = $state('');
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -44,7 +45,7 @@
 		saveStatus = 'saving';
 
 		// Determine Player 2's display name
-		const player2Name = gameMode === 'computer' ? 'Computer' : 'Guest';
+		const p2DisplayName = gameMode === 'computer' ? 'Computer' : (player2Name.trim() || 'Guest');
 
 		try {
 			const response = await fetch('/api/matches', {
@@ -52,7 +53,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					gameMode,
-					player2Name,
+					player2Name: p2DisplayName,
 					player1Score: result.score1,
 					player2Score: result.score2,
 					winner: result.winner,
@@ -90,9 +91,11 @@
 			{gameMode}
 			{winScore}
 			{speedPreset}
+			{player2Name}
 			onGameModeChange={(v) => gameMode = v}
 			onWinScoreChange={(v) => winScore = v}
 			onSpeedChange={(v) => speedPreset = v}
+			onPlayer2NameChange={(v) => player2Name = v}
 		/>
 	{/if}
 

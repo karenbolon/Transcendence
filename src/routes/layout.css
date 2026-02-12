@@ -21,6 +21,16 @@ body {
 	padding: 0;
 }
 
+.web {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+.web > main {
+	flex: 1;
+}
+
 /* ==================================================================== */
 /*                        header                                        */
 /* ==================================================================== */
@@ -322,6 +332,7 @@ footer {
 	background-color: #1a1f2e;
 	border-top: 1px solid rgba(255, 255, 255, 0.06);
 	padding: 2.5rem 1.5rem 1.5rem;
+	margin-top: 2rem;
 }
 
 .footer-content {
@@ -407,6 +418,7 @@ input.form-fill {
 
 input[type="checkbox"] {
 	@apply w-5 h-5 rounded-md;
+	/* appearance: none; */
 	accent-color: var(--accent);
 	background-color: var(--bg);
 	border: 1px solid var(--accent-muted);
@@ -414,6 +426,7 @@ input[type="checkbox"] {
 	margin-bottom: 0.5rem;
 	cursor: pointer;
 }
+
 .input:focus {
 	--tw-ring-color: var(--bg);
 }

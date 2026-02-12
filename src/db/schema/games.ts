@@ -15,7 +15,7 @@ export const games = pgTable('games', {
 	player1_score: integer('player1_score').default(0),
 	player2_score: integer('player2_score').default(0),
 	winner_id: integer('winner_id').references(() => users.id, { onDelete: 'restrict' }),
-	winner_name: varchar('winner_name', { length: 100 }).notNull(),
+	winner_name: varchar('winner_name', { length: 100 }).notNull().default(''),
 	winner_score: integer('winner_score').notNull().default(5),
 	speed_preset: varchar('speed_preset', { length: 20 }).notNull().default('normal'),
 	duration_seconds: integer('duration_seconds'),

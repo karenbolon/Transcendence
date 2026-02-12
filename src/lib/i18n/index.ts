@@ -10,6 +10,7 @@ register('en', () => import('./en.json'));
 register('de', () => import('./de.json'));
 register('es', () => import('./es.json'));
 register('fr', () => import('./fr.json'));
+register('pt', () => import('./pt.json'));
 
 export function normaliseLocale(input?: string | null): SupportedLocale {
 	if (!input)

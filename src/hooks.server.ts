@@ -2,7 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import * as auth from '$lib/server/auth';
 
-const SUPPORTED = new Set(['en', 'de', 'es', 'fr']);
+const SUPPORTED = new Set(['en', 'de', 'es', 'fr', 'pt']);
 
 const handleLocale: Handle = async ({ event, resolve }) => {
 	//1) cookie wins (user selection)

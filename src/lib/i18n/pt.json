@@ -1,0 +1,136 @@
+{
+  "nav": {
+    "home": "Início",
+    "login": "Iniciar sessão",
+    "logout": "Terminar sessão"
+  },
+  "game": {
+    "start": "Iniciar jogo",
+    "pause": "Pausar",
+    "winner": "Vencedor: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "Email",
+      "confirm_password": "Confirmar palavra-passe"
+    },
+    "login": {
+      "title": "Iniciar sessão",
+      "subtitle": "Bem-vindo de volta! Pronto para jogar?",
+      "submit": "Iniciar sessão",
+      "remember_me": "Lembrar-me",
+      "forgot_password": "Esqueceu-se da palavra-passe?",
+      "no_account": "Não tem conta?",
+      "signup_link": "Registar",
+      "continue_with": "Ou continuar com",
+      "oauth_42": "🔗 42 Intra hi",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Nome de utilizador",
+      "password": "Palavra-passe"
+    },
+    "register": {
+      "title": "Criar conta",
+      "subtitle": "Junte-se ao jogo e comece a jogar!",
+      "success": "Conta criada! A redirecionar...",
+      "submit": "Criar conta",
+      "submitting": "A criar conta...",
+      "have_account": "Já tem conta?",
+      "login_link": "Iniciar sessão",
+      "or_signup_with": "Ou registar com",
+      "oauth_42_coming": "🔗 42 Intra (Brevemente)",
+      "oauth_coming": "👤 OAuth (Brevemente)",
+      "accept_terms_prefix": "Concordo com os",
+      "terms_link": "Termos de Serviço",
+      "and": "e",
+      "privacy_link": "Política de Privacidade",
+      "privacy_note": "Utilizamos o seu email e nome de utilizador para criar e proteger a sua conta. Não utilizamos cookies de rastreamento nem de análise.",
+      "password_hint": "Deve ter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas e números"
+    },
+    "placeholders": {
+      "username": "Introduza o seu nome de utilizador",
+      "password": "Introduza a sua palavra-passe",
+      "register_username": "Escolha um nome de utilizador",
+      "register_email": "seu.email@exemplo.com",
+      "register_password": "Crie uma palavra-passe",
+      "register_confirm_password": "Reintroduza a sua palavra-passe"
+    },
+    "errors": {
+      "username_required": "Por favor, introduza o seu nome de utilizador",
+      "password_required": "Por favor, introduza a sua palavra-passe",
+      "login_failed": "Falha no início de sessão",
+      "email_required": "Por favor, introduza um email",
+      "passwords_no_match": "As palavras-passe não coincidem",
+      "terms_required": "Deve aceitar os termos e condições"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de Privacidade",
+      "last_updated": "Última atualização: 04/02/2026",
+      "who_we_are": {
+        "title": "Quem Somos",
+        "body": "Este website (“nós”, “nos”, “nosso”) disponibiliza um jogo de Pong online (o “Serviço”). Esta aplicação é operada por Pixies that Ride Pink Pony Unicorns (a “Equipa”), um projeto estudantil criado no âmbito de um programa académico na 42Berlin."
+      },
+      "data_collect": {
+        "title": "Que Dados Recolhemos",
+        "intro": "Recolhemos apenas os dados necessários para o funcionamento do jogo:",
+        "username_label": "Nome de utilizador",
+        "username_desc": "para identificar jogadores no jogo",
+        "email_label": "Endereço de email",
+        "email_desc": "utilizado para comunicação relacionada com a conta (ex.: criação de conta, recuperação de palavra-passe)"
+      },
+      "data_not_collect": {
+        "title": "Não Recolhemos",
+        "real_names": "Nomes reais",
+        "payment": "Informações de pagamento",
+        "location": "Dados de localização",
+        "sensitive": "Dados pessoais sensíveis"
+      },
+      "legal_basis": {
+        "title": "Porque Recolhemos Estes Dados (Base Legal)",
+        "intro": "Ao abrigo do Regulamento Geral sobre a Proteção de Dados (RGPD), devemos ter uma base legal para tratar os seus dados. Baseamo-nos em:",
+        "contractual_title": "Necessidade contratual (Art. 6(1)(b) RGPD):",
+        "contractual_item": "O seu nome de utilizador e email são necessários para criar e manter uma conta no jogo.",
+        "legit_title": "Interesse legítimo (Art. 6(1)(f) RGPD):",
+        "legit_item": "Para garantir a segurança, estabilidade e bom funcionamento do Serviço."
+      },
+      "use_data": {
+        "title": "Como Utilizamos os Seus Dados",
+        "intro": "Tratamos estes dados para:",
+        "items": {
+          "account": "Criar e gerir a sua conta de jogo",
+          "identify": "Identificá-lo no jogo (nome de utilizador)",
+          "participate": "Permitir a participação dos utilizadores no jogo",
+          "communicate": "Comunicar consigo sobre a sua conta (email)",
+          "security": "Manter a segurança e o correto funcionamento da aplicação"
+        }
+      },
+      "sharing": {
+        "title": "Partilha de Dados",
+        "body": "Não vendemos nem utilizamos dados pessoais para publicidade. Os dados são apenas tratados por prestadores de serviços técnicos necessários para o funcionamento da aplicação."
+      },
+      "retention": {
+        "title": "Conservação dos Dados",
+        "body": "Os dados pessoais são conservados apenas enquanto a conta do utilizador estiver ativa. Os utilizadores podem solicitar a eliminação da sua conta a qualquer momento."
+      },
+      "rights": {
+        "title": "Os Seus Direitos",
+        "body": "Tem o direito de aceder, retificar ou solicitar a eliminação dos seus dados pessoais em conformidade com o RGPD. Tem também o direito de apresentar reclamação junto de uma autoridade de controlo."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "Este website utiliza cookies essenciais necessários para o funcionamento básico, como autenticação do utilizador e manutenção de sessões ativas. Não utilizamos cookies de rastreamento, publicidade ou análise de terceiros. Caso isso venha a mudar, esta política será atualizada em conformidade."
+      },
+      "changes": {
+        "title": "Alterações a Esta Política",
+        "body": "Podemos atualizar esta Política de Privacidade periodicamente. Quaisquer alterações serão publicadas nesta página com uma data de “Última atualização” revista."
+      },
+      "contact": {
+        "title": "Contacto",
+        "intro": "Para questões relacionadas com privacidade, contacte-nos através de:"
+      }
+    }
+  }
+}

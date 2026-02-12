@@ -6,6 +6,7 @@
 		{ code: 'de', label: 'Deutsch' },
 		{ code: 'es', label: 'Español' },
 		{ code: 'fr', label: 'Français' },
+		{ code: 'pt', label: 'Português' },
 	] as const;
 
 	type Lang = (typeof options)[number]['code'];

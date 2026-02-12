@@ -1,0 +1,277 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión"
+  },
+  "game": {
+    "start": "Iniciar juego",
+    "pause": "Pausa",
+    "winner": "Ganador: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "Correo electrónico",
+      "confirm_password": "Confirmar contraseña"
+    },
+    "login": {
+      "title": "Iniciar sesión",
+      "subtitle": "¡Bienvenido de nuevo! ¿Listo para jugar?",
+      "submit": "Iniciar sesión",
+      "remember_me": "Recordarme",
+      "forgot_password": "¿Olvidaste tu contraseña?",
+      "no_account": "¿No tienes una cuenta?",
+      "signup_link": "Regístrate",
+      "continue_with": "O continuar con",
+      "oauth_42": "🔗 42 Intra",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Nombre de usuario",
+      "password": "Contraseña"
+    },
+    "register": {
+      "title": "Registrarse",
+      "subtitle": "¡Únete al juego y empieza a jugar!",
+      "success": "¡Cuenta creada! Redirigiendo...",
+      "submit": "Registrarse",
+      "submitting": "Registrando...",
+      "have_account": "¿Ya tienes una cuenta?",
+      "login_link": "Iniciar sesión",
+      "or_signup_with": "O regístrate con",
+      "oauth_42_coming": "🔗 42 Intra (Próximamente)",
+      "oauth_coming": "👤 OAuth (Próximamente)",
+      "accept_terms_prefix": "Acepto los",
+      "terms_link": "Términos del servicio",
+      "and": "y la",
+      "privacy_link": "Política de privacidad",
+      "privacy_note": "Usamos tu correo electrónico y nombre de usuario para crear y proteger tu cuenta. No se utilizan cookies de seguimiento ni análisis.",
+      "password_hint": "Debe tener al menos 8 caracteres con mayúsculas, minúsculas y un número"
+    },
+    "placeholders": {
+      "username": "Introduce tu nombre de usuario",
+      "password": "Introduce tu contraseña",
+      "register_username": "Elige un nombre de usuario",
+      "register_email": "tu.correo@ejemplo.com",
+      "register_password": "Crea una contraseña",
+      "register_confirm_password": "Vuelve a introducir la contraseña"
+    },
+    "errors": {
+      "username_required": "Por favor, introduce tu nombre de usuario",
+      "password_required": "Por favor, introduce tu contraseña",
+      "login_failed": "Error al iniciar sesión",
+      "email_required": "Por favor, introduce un correo electrónico",
+      "passwords_no_match": "Las contraseñas no coinciden",
+      "terms_required": "Debes aceptar los términos y condiciones"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de privacidad",
+      "last_updated": "Última actualización: 04/02/2026",
+      "who_we_are": {
+        "title": "Quiénes somos",
+        "body": "Este sitio web («nosotros») ofrece un juego de Pong en línea (el «Servicio»). Esta aplicación es operada por Pixies that Ride Pink Pony Unicorns (el «Equipo»), un proyecto estudiantil creado como parte de un programa académico en 42Berlin."
+      },
+      "data_collect": {
+        "title": "Qué datos recopilamos",
+        "intro": "Recopilamos únicamente los datos necesarios para el funcionamiento del juego:",
+        "username_label": "Nombre de usuario",
+        "username_desc": "para identificar a los jugadores en el juego",
+        "email_label": "Dirección de correo electrónico",
+        "email_desc": "utilizada para comunicaciones relacionadas con la cuenta (por ejemplo, creación de cuenta, recuperación de contraseña)"
+      },
+      "data_not_collect": {
+        "title": "No recopilamos",
+        "real_names": "Nombres reales",
+        "payment": "Información de pago",
+        "location": "Datos de ubicación",
+        "sensitive": "Datos personales sensibles"
+      },
+      "legal_basis": {
+        "title": "Por qué recopilamos estos datos (Base legal)",
+        "intro": "De acuerdo con el Reglamento General de Protección de Datos (RGPD), necesitamos una base legal para procesar tus datos. Nos basamos en:",
+        "contractual_title": "Necesidad contractual (Art. 6(1)(b) RGPD):",
+        "contractual_item": "Tu nombre de usuario y correo electrónico son necesarios para crear y mantener una cuenta de juego.",
+        "legit_title": "Intereses legítimos (Art. 6(1)(f) RGPD):",
+        "legit_item": "Para garantizar la seguridad, estabilidad y correcto funcionamiento del Servicio."
+      },
+      "use_data": {
+        "title": "Cómo utilizamos tus datos",
+        "intro": "Procesamos estos datos para:",
+        "items": {
+          "account": "Crear y gestionar tu cuenta de juego",
+          "identify": "Identificarte en el juego (nombre de usuario)",
+          "participate": "Permitir la participación en el juego",
+          "communicate": "Comunicarnos contigo sobre tu cuenta (correo electrónico)",
+          "security": "Mantener la seguridad y el correcto funcionamiento de la aplicación"
+        }
+      },
+      "sharing": {
+        "title": "Compartición de datos",
+        "body": "No vendemos ni utilizamos datos personales con fines publicitarios. Los datos solo son procesados por proveedores técnicos necesarios para operar la aplicación."
+      },
+      "retention": {
+        "title": "Conservación de datos",
+        "body": "Los datos personales se almacenan únicamente mientras la cuenta del usuario esté activa. Los usuarios pueden solicitar la eliminación de su cuenta en cualquier momento."
+      },
+      "rights": {
+        "title": "Tus derechos",
+        "body": "Tienes derecho a acceder, corregir o solicitar la eliminación de tus datos personales conforme al RGPD. También tienes derecho a presentar una reclamación ante una autoridad de control."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "Este sitio web utiliza únicamente cookies esenciales necesarias para funciones básicas como la autenticación de usuarios y el mantenimiento de sesiones activas. No utilizamos cookies de seguimiento, publicidad ni analítica."
+      },
+      "changes": {
+        "title": "Cambios en esta política",
+        "body": "Podemos actualizar esta Política de Privacidad periódicamente. Cualquier cambio se publicará en esta página con una fecha de actualización revisada."
+      },
+      "contact": {
+        "title": "Contacto",
+        "intro": "Para solicitudes relacionadas con la privacidad, contáctanos en:"
+      }
+    },
+    "terms": {
+      "title": "Términos del Servicio",
+      "last_updated": "Última actualización: 04/02/2026",
+
+      "introduction": {
+        "title": "Introducción",
+        "body": "Bienvenido a ft_transcendence («el Servicio»), una aplicación multijugador basada en la web desarrollada como parte del currículo de 42. Al acceder o utilizar el Servicio, usted acepta estos Términos del Servicio («Términos»). Si no está de acuerdo con ellos, no debe utilizar el Servicio."
+      },
+
+      "description": {
+        "title": "Descripción del Servicio",
+        "intro": "El Servicio se proporciona únicamente con fines educativos y de demostración, y permite a los usuarios:",
+        "items": {
+          "account": "Crear una cuenta con correo electrónico y nombre de usuario",
+          "login": "Iniciar sesión de forma segura",
+          "interact": "Interactuar con otros usuarios",
+          "play": "Jugar juegos en línea (por ejemplo, Pong)",
+          "realtime": "Participar en funciones en tiempo real como partidas, torneos o chat"
+        }
+      },
+
+      "eligibility": {
+        "title": "Elegibilidad",
+        "intro": "Debe:",
+        "items": {
+          "age": "Tener al menos 13 años para utilizar el Servicio",
+          "accurate": "Proporcionar información de registro precisa y completa",
+          "security": "Mantener la seguridad de sus credenciales"
+        },
+        "note": "Usted es responsable de toda la actividad que ocurra en su cuenta."
+      },
+
+      "accounts": {
+        "title": "Cuentas de Usuario",
+        "intro": "Al crear una cuenta, usted acepta:",
+        "items": {
+          "accurate": "Proporcionar información precisa y actualizada",
+          "impersonate": "No suplantar a otra persona o entidad",
+          "share": "No compartir sus credenciales de acceso"
+        },
+        "note": "Nos reservamos el derecho de suspender o eliminar cuentas que infrinjan estos Términos."
+      },
+
+      "acceptable_use": {
+        "title": "Uso Aceptable",
+        "intro": "Usted se compromete a no:",
+        "items": {
+          "illegal": "Utilizar el Servicio con fines ilegales",
+          "harass": "Acosar, abusar o dañar a otros usuarios",
+          "malicious": "Subir código malicioso o comprometer la seguridad",
+          "exploit": "Explotar errores o mecánicas no intencionadas",
+          "unauthorized": "Intentar accesos no autorizados"
+        },
+        "note": "El incumplimiento puede resultar en suspensión o terminación de la cuenta."
+      },
+
+      "ugc": {
+        "title": "Contenido Generado por el Usuario",
+        "intro": "Usted es responsable del contenido que envíe, incluyendo:",
+        "items": {
+          "usernames": "Nombres de usuario",
+          "profile": "Información de perfil",
+          "chat": "Mensajes de chat",
+          "ingame": "Interacciones dentro del juego"
+        },
+        "prohibited_intro": "Usted acepta no enviar contenido que sea:",
+        "prohibited": {
+          "items": {
+            "offensive": "Ofensivo, discriminatorio u odioso",
+            "illegal": "Ilegal o que infrinja derechos de terceros",
+            "misleading": "Engañoso o que suplante a otros"
+          }
+        },
+        "note": "Nos reservamos el derecho de eliminar contenido que infrinja estos Términos."
+      },
+
+      "privacy": {
+        "title": "Privacidad y Protección de Datos",
+        "intro": "El uso del Servicio también se rige por nuestra Política de Privacidad, que explica:",
+        "items": {
+          "collect": "Qué datos personales recopilamos",
+          "used": "Cómo se utilizan",
+          "rights": "Sus derechos según el RGPD"
+        },
+        "note": "Revise la Política de Privacidad cuidadosamente."
+      },
+
+      "availability": {
+        "title": "Disponibilidad y Cambios",
+        "intro": "El Servicio se proporciona «tal cual» y «según disponibilidad». No garantizamos:",
+        "items": {
+          "continuous": "Disponibilidad continua",
+          "error_free": "Funcionamiento sin errores",
+          "preservation": "Conservación de datos o estadísticas"
+        },
+        "note": "Al ser un proyecto educativo, las funciones pueden cambiar o eliminarse."
+      },
+
+      "termination": {
+        "title": "Terminación",
+        "intro": "Podemos suspender o terminar su acceso:",
+        "items": {
+          "violate": "Si infringe estos Términos",
+          "security": "Por razones de seguridad o mantenimiento",
+          "discontinued": "Si el proyecto se interrumpe"
+        },
+        "note": "Puede dejar de usar el Servicio en cualquier momento."
+      },
+
+      "ip": {
+        "title": "Propiedad Intelectual",
+        "intro": "Todo el código, diseño y contenido de ft_transcendence:",
+        "items": {
+          "owned": "Pertenece a los colaboradores del proyecto",
+          "educational": "Se proporciona con fines educativos",
+          "commercial": "No puede reutilizarse comercialmente"
+        },
+        "note": "El contenido generado por el usuario sigue siendo propiedad del creador."
+      },
+
+      "liability": {
+        "title": "Limitación de Responsabilidad",
+        "intro": "En la máxima medida permitida por la ley:",
+        "items": {
+          "loss": "No somos responsables por pérdida de datos o interrupciones",
+          "behaviour": "No somos responsables del comportamiento de los usuarios",
+          "warranties": "El Servicio se proporciona sin garantías"
+        },
+        "note": "El uso del Servicio es bajo su propio riesgo."
+      },
+
+      "law": {
+        "title": "Ley Aplicable",
+        "body": "Estos Términos se rigen por las leyes de la Unión Europea, incluidas las disposiciones aplicables del RGPD."
+      },
+
+      "contact": {
+        "title": "Contacto",
+        "intro": "Para consultas sobre estos Términos o el Servicio, contáctenos en:"
+      }
+    }
+  }
+}

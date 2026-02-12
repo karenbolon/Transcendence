@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
+	import { t } from 'svelte-i18n';
 
 	// Get form data from server
 	export let form: ActionData;
@@ -55,8 +56,8 @@
 	<div class="card ">
 
 	<div class="text-center">
-		<h1 class="game-title text-4xl mb-2">Sign Up</h1>
-		<p >Join the game and start playing!</p>
+		<h1 class="game-title text-4xl mb-2">{$t('auth.register.title')}</h1>
+		<p >{$t('auth.register.subtitle')}</p>
 	</div>
 
 	<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
@@ -77,65 +78,59 @@
 		<!-- Success Message -->
 		{#if form?.success}
 			<div class="bg-green-500/10 border border-green-500 text-green-500 px-4 py-2 rounded-lg text-sm">
-				Account created! Redirecting...
+				{$t('auth.register.success')}
 			</div>
 		{/if}
 
 
 		<div class="form-group">
-			<label for="username">Username</label>
-			<input class="form-r"
+			<label for="username">{$t('auth.fields.username')}</label>
+			<input   class="form-r"
 				type="text"
 				id="username"
 				name="username"
-				placeholder="Choose a username"
-				required
-			/>
+				placeholder={$t('auth.placeholders.register_username')}
+				required/>
 			{#if form?.errors?.username}
 				<p class="text-red-500 text-sm mt-1">{form.errors.username}</p>
 			{/if}
 		</div>
 
 		<div class="form-group">
-			<label for="email">Email</label>
+			<label for="email">{$t('auth.common.email')}</label>
 			<input class="form-r"
 				type="email"
 				id="email"
 				name="email"
-				placeholder="your.email@example.com"
-				required
-			/>
+				placeholder={$t('auth.placeholders.register_email')}
+				required/>
 			{#if form?.errors?.email}
 				<p class="text-red-500 text-sm mt-1">{form.errors.email}</p>
 			{/if}
 		</div>
 
 		<div class="form-group">
-			<label for="password">Password</label>
-			<input class="form-r"
-				type="password"
-				id="password"
-				name="password"
-				placeholder="Create a password"
-				required
-			/>
+			<label for="password">{$t('auth.fields.password')}</label>
+			<input class="form-r" 
+				type="password" 
+				id="password" 
+				name="password" 
+				placeholder={$t('auth.placeholders.register_password')} 
+				required />
 			{#if form?.errors?.password}
 				<p class="text-red-500 text-sm mt-1">{form.errors.password}</p>
 			{/if}
-			<p class="text-xs text-gray-400 mt-1">
-				Must be 8+ characters with uppercase, lowercase, and number
-			</p>
+			<p class="text-xs text-gray-400 mt-1">{$t('auth.register.password_hint')}</p>
 		</div>
 
 		<div class="form-group">
-			<label for="confirmPassword">Confirm Password</label>
-			<input class="form-r"
-				type="password"
-				id="confirmPassword"
-				name="confirmPassword"
-				placeholder="Re-enter your password"
-				required
-			/>
+			<label for="confirmPassword">{$t('auth.common.confirm_password')}</label>
+			<input class="form-r" 
+				type="password" 
+				id="confirmPassword" 
+				name="confirmPassword" 
+				placeholder={$t('auth.placeholders.register_confirm_password')} 
+				required />
 			{#if form?.errors?.confirmPassword}
 				<p class="text-red-500 text-sm mt-1">{form.errors.confirmPassword}</p>
 			{/if}
@@ -144,33 +139,32 @@
 		<div >
 			<label >
 				<input type="checkbox" name="acceptTerms" required />
-				I agree to the <a href="legal/terms" class="link" target="_blank">Terms of Service</a> and
-				<a href="legal/privacy" class="link" target="_blank">Privacy Policy</a>
+				{$t('auth.register.accept_terms_prefix')}
+				<a href="/terms" class="link" target="_blank">{$t('auth.register.terms_link')}</a>
+				{$t('auth.register.and')}
+				<a href="/privacy" class="link" target="_blank">{$t('auth.register.privacy_link')}</a>
 			</label>
-			<p class="text-[0.65rem] text-gray-400">
-				We use your email and username to create and secure your accounts. 
-				No tracking or analytics cookies are used.
-			</p>
+			<p class="text-[0.65rem] text-gray-400">{$t('auth.register.privacy_note')}</p>
 		</div>
 
 		<button class="sign w-full py-3" type="submit" disabled={loading}>
 			{#if loading}
-				Signing up...
+				{$t('auth.register.submitting')}
 			{:else}
-				Sign Up
+				{$t('auth.register.submit')}
 			{/if}
 		</button>
 	</form>
 
 		<div class="text-center text-sm text-gray-400">
-			Already have an account?
-			<a href="/login" class="link">Login</a>
+			{$t('auth.register.have_account')}
+			<a href="/login" class="link">{$t('auth.register.login_link')}</a>
 		</div>
 
 		<!-- OAuth Section (Future) -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
-				<span class="px-2 bg-pong-darker text-gray-400">Or sign up with</span>
+				<span class="px-2 bg-pong-darker text-gray-400">{$t('auth.register.or_signup_with')}</span>
 			</div>
 		</div>
 
@@ -178,12 +172,12 @@
 			<button
 				type="button"
 				class="login py-2 text-sm" disabled>
-				🔗 42 Intra (Coming Soon)
+				{$t('auth.register.oauth_42_coming')}
 			</button>
 			<button
 			type="button"
 			class="login py-2 text-sm" disabled>
-				👤 OAuth (Coming Soon)
+				{$t('auth.register.oauth_coming')}
 			</button>
 		</div>
 	</div>

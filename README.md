@@ -46,6 +46,8 @@ SvelteKit provides:
 - Secure authentication & input validation
 - **Drizzle ORM** provides type-safe database access and schema management.
 - **Lucia** is used for authentication, offering a secure and framework-agnostic auth solution that integrates cleanly with SvelteKit.
+- Internationalization (i18n). The application supports multiple languages using svelte-i18n.
+All user-facing text is externalized into translation files and can be switched at runtime via the UI.
 
 ### Database
 - **PostgreSQL**
@@ -140,11 +142,11 @@ Ports:
 ---
 
 # Team Information
-Name		Role(s)	Responsibilities
-jadyar		Product Owner	Vision, feature prioritization, validation
-keramos-	Project Manager	Planning, coordination, deadlines
-fdunkel		Technical Lead	Architecture, stack decisions, reviews
-kbolon		Developer	Feature implementation, testing
+### Name								Role(s)				Responsibilities ###
+kbolon								Product Owner		Vision, feature prioritization, validation
+keramos-, kbolon					Project Manager		Planning, coordination, deadlines
+keramos-, fdunkel, jadyar			Technical Lead		Architecture, stack decisions, reviews
+keramos-, kbolon, jadyar, fdunkel	Developer			Feature implementation, testing
 
 ---
 

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import logo from '$lib/assets/favicon.ico';
+	import LanguageSwitcher from '$lib/component/LanguageSwitcher.svelte';
+	import { locale } from 'svelte-i18n';
 
 </script>
 
@@ -9,7 +11,10 @@
 				<img src={logo} alt="logo" />
 				<strong>PONG</strong>
 		</div>
-		<div class="corner-r">
+		<div class="corner-r flex items-center gap-4">
+			<!-- Language switcher -->
+			 <LanguageSwitcher />
+			 
 			<!--  -->
 				<button class="login">
 					<a href="/login">Login</a>

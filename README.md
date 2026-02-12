@@ -215,7 +215,7 @@ All generated content was reviewed, understood, and adapted by the team.
 # Resources
 - [SvelteKit Documentation](https://svelte.dev/docs/kit/introduction)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Docker & Docker Compose Docs](https://docs.docker.com/)))
+- [Docker & Docker Compose Docs](https://docs.docker.com/)
 - [WebSocket specifications](https://datatracker.ietf.org/doc/html/rfc6455)
 
 ---

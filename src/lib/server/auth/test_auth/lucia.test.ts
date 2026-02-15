@@ -10,8 +10,8 @@ import { eq } from 'drizzle-orm';
 // 🧹 Clean database helper (inline for auth tests)
 // ══════════════════════════════════════════════════════════════════════════════
 async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
+	await db.delete(sessions).execute().catch(() => { });
+	await db.delete(users).execute().catch(() => { });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ describe('Lucia Auth Setup', () => {
 
 		expect(session).toBeDefined();
 		expect(session.id).toBeDefined();
-		expect(session.userId).toBe(user.id);
+		expect(session.userId).toBe(String(user.id));
 		expect(session.expiresAt).toBeInstanceOf(Date);
 
 		console.log('✅ Session created:', {

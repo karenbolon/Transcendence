@@ -24,10 +24,8 @@ export const lucia = new Lucia(adapter, {
 			name: attributes.name,
 			avatar_url: attributes.avatar_url,
 			is_online: attributes.is_online,
-			created_at: attributes.created_at
-			// displayName: attributes.displayName,
-			// avatar: attributes.avatar,
-			// emailVerified: attributes.emailVerified
+			created_at: attributes.created_at,
+			is_deleted: attributes.is_deleted
 		};
 	}
 });
@@ -47,6 +45,7 @@ interface DatabaseUser {
 	avatar_url: string | null;
 	is_online: boolean | null;
 	created_at: Date;
+	is_deleted: boolean | null;
 }
 
 // export type SessionValidationResult = Awaited<ReturnType<typeof lucia.validateSession>>;

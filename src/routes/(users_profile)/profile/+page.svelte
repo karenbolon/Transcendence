@@ -1,8 +1,14 @@
 <script lang="ts">
-	import Logout from '$lib/component/Logout.svelte';
-import type { PageData } from './$types';
+	import Logout from "$lib/component/Logout.svelte";
+	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();
+
+	// ── DELETE MODAL STATE ──────────────────────────────────────
+	let showDeleteModal = $state(false);
+	let deletePassword = $state("");
+	let deleteError = $state("");
+	let isDeleting = $state(false);
 
 	// ── HELPER FUNCTIONS ───────────────────────────────────────
 
@@ -15,17 +21,20 @@ import type { PageData } from './$types';
 		const diffHours = Math.floor(diffMs / 3600000);
 		const diffDays = Math.floor(diffMs / 86400000);
 
-		if (diffMins < 1) return 'Just now';
+		if (diffMins < 1) return "Just now";
 		if (diffMins < 60) return `${diffMins}m ago`;
 		if (diffHours < 24) return `${diffHours}h ago`;
 		if (diffDays < 7) return `${diffDays}d ago`;
 
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		return d.toLocaleDateString("en-US", {
+			month: "short",
+			day: "numeric",
+		});
 	}
 
 	// Format duration (seconds → "1m 23s")
 	function formatDuration(seconds: number | null): string {
-		if (!seconds) return '—';
+		if (!seconds) return "—";
 		const m = Math.floor(seconds / 60);
 		const s = seconds % 60;
 		return m > 0 ? `${m}m ${s}s` : `${s}s`;
@@ -34,42 +43,55 @@ import type { PageData } from './$types';
 	// Format game mode for display
 	function formatMode(mode: string): string {
 		switch (mode) {
-			case 'local': return 'Local Player';
-			case 'computer': return 'vs Computer';
-			case 'remote': return 'Online';
-			default: return mode;
+			case "local":
+				return "Local Player";
+			case "computer":
+				return "vs Computer";
+			case "remote":
+				return "Online";
+			default:
+				return mode;
 		}
 	}
 
 	// Speed preset emoji
 	function speedEmoji(preset: string): string {
 		switch (preset) {
-			case 'chill': return '🐢';
-			case 'normal': return '🏓';
-			case 'fast': return '🔥';
-			default: return '';
+			case "chill":
+				return "🐢";
+			case "normal":
+				return "🏓";
+			case "fast":
+				return "🔥";
+			default:
+				return "";
 		}
 	}
 
 	// Format join date
 	function formatJoinDate(date: Date | string): string {
-		return new Date(date).toLocaleDateString('en-US', {
-			month: 'long',
-			year: 'numeric',
-			day: 'numeric',
+		return new Date(date).toLocaleDateString("en-US", {
+			month: "long",
+			year: "numeric",
+			day: "numeric",
 		});
 	}
 </script>
 
 <div class="profile-page max-w-4xl mx-auto px-4 py-8">
-
 	<section class="user-info">
 		<div class="avatar relative">
 			<div class="avatar-circle">
 				{#if data.user.avatarUrl}
-					<img src={data.user.avatarUrl} alt="Avatar" class="avatar-img" />
+					<img
+						src={data.user.avatarUrl}
+						alt="Avatar"
+						class="avatar-img"
+					/>
 				{:else}
-					<span class="avatar-initial">{data.user.username[0].toUpperCase()}</span>
+					<span class="avatar-initial"
+						>{data.user.username[0].toUpperCase()}</span
+					>
 				{/if}
 			</div>
 			{#if data.user.isOnline === false}
@@ -81,19 +103,23 @@ import type { PageData } from './$types';
 		<div class="user-details">
 			<h1 class="username">{data.user.username}</h1>
 			<p class="email">{data.user.email}</p>
-			<p class="join-date">Member since {formatJoinDate(data.user.createdAt)}</p>
+			<p class="join-date">
+				Member since {formatJoinDate(data.user.createdAt)}
+			</p>
 		</div>
 	</section>
 	<section class="user-actions">
 		<a href="/profile/edit" class="action-btn">Edit Profile</a>
 		<a href="/settings" class="action-btn">Settings</a>
 		<Logout class="action-btn" />
-		<button class="action-btn action-btn--danger">Delete Account</button>
+		<button
+			class="action-btn action-btn--danger"
+			onclick={() => (showDeleteModal = true)}>Delete Account</button
+		>
 	</section>
 
 	<!-- User Information, bio, etc -->
-	<section class="user-information">
-	</section>
+	<section class="user-information"></section>
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     STATS CARDS
@@ -136,41 +162,162 @@ import type { PageData } from './$types';
 			<div class="empty-state">
 				<h3>No matches yet!</h3>
 				<p>Play your first game to see your match history here.</p>
-				<a href="/play" class="play-link">🎮 Play Now your first game →</a>
+				<a href="/play" class="play-link"
+					>🎮 Play Now your first game →</a
+				>
 			</div>
 		{:else}
 			<div class="matches-list">
 				{#each data.matches as match}
-					<div class="match-row" class:won={match.won} class:lost={!match.won}>
+					<div
+						class="match-row"
+						class:won={match.won}
+						class:lost={!match.won}
+					>
 						<!-- Result indicator -->
 						<span class="match-result">
-							{match.won ? '✅' : '❌'}
+							{match.won ? "✅" : "❌"}
 						</span>
 
 						<!-- Score -->
 						<span class="match-score">
 							<span class="user-score">{match.userScore}</span>
 							<span class="score-divider">–</span>
-							<span class="opponent-score">{match.opponentScore}</span>
+							<span class="opponent-score"
+								>{match.opponentScore}</span
+							>
 						</span>
 
 						<!-- Opponent -->
 						<span class="match-opponent">{match.opponentName}</span>
 
 						<!-- Mode + Speed -->
-						<span class="match-mode">{formatMode(match.gameMode)}</span>
-						<span class="match-speed">{speedEmoji(match.speedPreset)}</span>
+						<span class="match-mode"
+							>{formatMode(match.gameMode)}</span
+						>
+						<span class="match-speed"
+							>{speedEmoji(match.speedPreset)}</span
+						>
 
 						<!-- Duration -->
-						<span class="match-duration">{formatDuration(match.durationSeconds)}</span>
+						<span class="match-duration"
+							>{formatDuration(match.durationSeconds)}</span
+						>
 
 						<!-- When -->
-						<span class="match-time">{formatDate(match.playedAt)}</span>
+						<span class="match-time"
+							>{formatDate(match.playedAt)}</span
+						>
 					</div>
 				{/each}
 			</div>
 		{/if}
 	</section>
+
+	<!-- ═══════════════════════════════════════════════════════════
+	     DELETE ACCOUNT CONFIRMATION MODAL
+	═══════════════════════════════════════════════════════════ -->
+	{#if showDeleteModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="modal-backdrop"
+			onclick={() => {
+				if (!isDeleting) showDeleteModal = false;
+			}}
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="modal" onclick={(e) => e.stopPropagation()}>
+				<h2 class="modal-title">⚠️ Delete Account</h2>
+				<p class="modal-desc">
+					This action is <strong>permanent</strong>. Your account,
+					profile, and stats will be removed. Your match history will
+					be preserved for other players.
+				</p>
+
+				<form
+					method="POST"
+					action="/account/delete"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						deleteError = "";
+
+						if (!deletePassword.trim()) {
+							deleteError = "Password is required.";
+							return;
+						}
+
+						isDeleting = true;
+						try {
+							const formData = new FormData();
+							formData.set("password", deletePassword);
+
+							const res = await fetch("/account/delete", {
+								method: "POST",
+								body: formData,
+							});
+
+							if (res.redirected) {
+								window.location.href = res.url;
+								return;
+							}
+
+							if (!res.ok) {
+								const result = await res.json();
+								deleteError =
+									result?.data?.error ??
+									"Failed to delete account.";
+							} else {
+								window.location.href = "/";
+							}
+						} catch {
+							deleteError =
+								"Something went wrong. Please try again.";
+						} finally {
+							isDeleting = false;
+						}
+					}}
+				>
+					<label class="modal-label" for="delete-password"
+						>Enter your password to confirm:</label
+					>
+					<input
+						id="delete-password"
+						type="password"
+						name="password"
+						class="modal-input"
+						placeholder="Your password"
+						bind:value={deletePassword}
+						disabled={isDeleting}
+						autocomplete="current-password"
+					/>
+
+					{#if deleteError}
+						<p class="modal-error">{deleteError}</p>
+					{/if}
+
+					<div class="modal-actions">
+						<button
+							type="button"
+							class="modal-btn modal-btn--cancel"
+							onclick={() => (showDeleteModal = false)}
+							disabled={isDeleting}
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							class="modal-btn modal-btn--delete"
+							disabled={isDeleting}
+						>
+							{isDeleting ? "Deleting..." : "Delete My Account"}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -260,7 +407,9 @@ import type { PageData } from './$types';
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		background: rgba(255, 255, 255, 0.05);
 		color: #d1d5db;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.user-actions :global(.action-btn:hover) {
@@ -451,6 +600,142 @@ import type { PageData } from './$types';
 		.match-speed,
 		.match-duration {
 			display: none;
+		}
+	}
+
+	/* ═════════════════════════════════════════════════
+	   DELETE ACCOUNT MODAL
+	   ═════════════════════════════════════════════════ */
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.7);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		animation: fadeIn 0.15s ease;
+	}
+
+	.modal {
+		background: #1f2937;
+		border: 1px solid rgba(248, 113, 113, 0.2);
+		border-radius: 1rem;
+		padding: 2rem;
+		max-width: 420px;
+		width: 90%;
+		animation: scaleIn 0.15s ease;
+	}
+
+	.modal-title {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: #f87171;
+		margin: 0 0 0.75rem 0;
+	}
+
+	.modal-desc {
+		color: #9ca3af;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		margin: 0 0 1.25rem 0;
+	}
+
+	.modal-label {
+		display: block;
+		color: #d1d5db;
+		font-size: 0.85rem;
+		font-weight: 500;
+		margin-bottom: 0.5rem;
+	}
+
+	.modal-input {
+		width: 100%;
+		padding: 0.65rem 0.75rem;
+		border-radius: 0.5rem;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.05);
+		color: #f3f4f6;
+		font-size: 0.9rem;
+		outline: none;
+		box-sizing: border-box;
+		transition: border-color 0.15s;
+	}
+
+	.modal-input:focus {
+		border-color: rgba(248, 113, 113, 0.5);
+	}
+
+	.modal-input:disabled {
+		opacity: 0.5;
+	}
+
+	.modal-error {
+		color: #f87171;
+		font-size: 0.8rem;
+		margin: 0.5rem 0 0 0;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 0.75rem;
+		margin-top: 1.5rem;
+	}
+
+	.modal-btn {
+		flex: 1;
+		padding: 0.6rem 1rem;
+		border-radius: 0.5rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		border: none;
+		transition:
+			background 0.15s,
+			opacity 0.15s;
+	}
+
+	.modal-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.modal-btn--cancel {
+		background: rgba(255, 255, 255, 0.08);
+		color: #d1d5db;
+	}
+
+	.modal-btn--cancel:hover:not(:disabled) {
+		background: rgba(255, 255, 255, 0.12);
+	}
+
+	.modal-btn--delete {
+		background: #dc2626;
+		color: white;
+	}
+
+	.modal-btn--delete:hover:not(:disabled) {
+		background: #b91c1c;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes scaleIn {
+		from {
+			transform: scale(0.95);
+			opacity: 0;
+		}
+		to {
+			transform: scale(1);
+			opacity: 1;
 		}
 	}
 </style>

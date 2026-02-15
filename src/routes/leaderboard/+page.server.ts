@@ -49,6 +49,7 @@ export const load: PageServerLoad = async () => {
 			END AS win_rate
 		FROM users u
 		INNER JOIN games g ON g.player1_id = u.id AND g.status = 'finished'
+		WHERE u.is_deleted = false
 		GROUP BY u.id, u.username, u.avatar_url
 		HAVING COUNT(g.id) > 0
 		ORDER BY wins DESC, win_rate DESC, total_games DESC

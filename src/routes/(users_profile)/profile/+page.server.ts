@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { games, users } from '$lib/server/db/schema';
-import { eq, or, desc, sql } from 'drizzle-orm';
+import { eq, or, desc, sql, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// ── AUTH GUARD ──────────────────────────────────────────────
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const [user] = await db
 		.select()
 		.from(users)
-		.where(eq(users.id, userId));
+		.where(and(eq(users.id, userId), eq(users.is_deleted, false)));
 
 	if (!user) {
 		throw redirect(302, '/login');

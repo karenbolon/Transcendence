@@ -1,13 +1,18 @@
 <script lang="ts">
-	import PongGame from '$lib/component/pong/PongGame.svelte';
-	import PongSettings from '$lib/component/pong/PongSettings.svelte';
-	import PongControls from '$lib/component/pong/PongControls.svelte';
-	import { SPEED_CONFIGS, type SpeedPreset, type GameMode, type GameSettings } from '$lib/component/pong/gameEngine';
+	import PongGame from "$lib/component/pong/PongGame.svelte";
+	import PongSettings from "$lib/component/pong/PongSettings.svelte";
+	import PongControls from "$lib/component/pong/PongControls.svelte";
+	import {
+		SPEED_CONFIGS,
+		type SpeedPreset,
+		type GameMode,
+		type GameSettings,
+	} from "$lib/component/pong/gameEngine";
 
-	let gameMode = $state<GameMode>('local');
+	let gameMode = $state<GameMode>("local");
 	let winScore = $state(5);
-	let speedPreset = $state<SpeedPreset>('normal');
-	let player2Name = $state('');
+	let speedPreset = $state<SpeedPreset>("normal");
+	let player2Name = $state("");
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -20,7 +25,7 @@
 	let pongGame: PongGame;
 
 	// Track game phase for showing/hiding UI elements
-	let gamePhase = $state('menu');
+	let gamePhase = $state("menu");
 
 	// Update phase by polling (simple approach)
 	$effect(() => {
@@ -34,23 +39,26 @@
 		return () => clearInterval(interval);
 	});
 
-	let saveStatus = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
+	let saveStatus = $state<"idle" | "saving" | "saved" | "error">("idle");
 
 	async function handleGameOver(result: {
 		score1: number;
 		score2: number;
-		winner: 'player1' | 'player2';
+		winner: "player1" | "player2";
 		durationSeconds: number;
 	}) {
-		saveStatus = 'saving';
+		saveStatus = "saving";
 
 		// Determine Player 2's display name
-		const p2DisplayName = gameMode === 'computer' ? 'Computer' : (player2Name.trim() || 'Guest');
+		const p2DisplayName =
+			gameMode === "computer"
+				? "Computer"
+				: player2Name.trim() || "Guest";
 
 		try {
-			const response = await fetch('/api/matches', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+			const response = await fetch("/matches", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					gameMode,
 					player2Name: p2DisplayName,
@@ -64,21 +72,23 @@
 			});
 
 			if (response.ok) {
-				saveStatus = 'saved';
+				saveStatus = "saved";
 			} else {
 				// Not logged in or validation error — still fine, game works
 				const data = await response.json();
-				console.warn('Match not saved:', data.error);
-				saveStatus = 'error';
+				console.warn("Match not saved:", data.error);
+				saveStatus = "error";
 			}
 		} catch (err) {
 			// Network error — game still works, just not saved
-			console.warn('Could not save match:', err);
-			saveStatus = 'error';
+			console.warn("Could not save match:", err);
+			saveStatus = "error";
 		}
 
 		// Reset status after a few seconds
-		setTimeout(() => { saveStatus = 'idle'; }, 3000);
+		setTimeout(() => {
+			saveStatus = "idle";
+		}, 3000);
 	}
 </script>
 
@@ -86,16 +96,16 @@
 	<h1 class="game-title">PONG</h1>
 
 	<!-- Settings — only visible during menu -->
-	{#if gamePhase === 'menu'}
+	{#if gamePhase === "menu"}
 		<PongSettings
 			{gameMode}
 			{winScore}
 			{speedPreset}
 			{player2Name}
-			onGameModeChange={(v) => gameMode = v}
-			onWinScoreChange={(v) => winScore = v}
-			onSpeedChange={(v) => speedPreset = v}
-			onPlayer2NameChange={(v) => player2Name = v}
+			onGameModeChange={(v) => (gameMode = v)}
+			onWinScoreChange={(v) => (winScore = v)}
+			onSpeedChange={(v) => (speedPreset = v)}
+			onPlayer2NameChange={(v) => (player2Name = v)}
 		/>
 	{/if}
 
@@ -104,21 +114,23 @@
 
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
-		{#if gamePhase === 'menu'}
+		{#if gamePhase === "menu"}
 			<span class="status-text">Press SPACE to start</span>
-		{:else if gamePhase === 'countdown'}
+		{:else if gamePhase === "countdown"}
 			<span class="status-text">Get ready...</span>
-		{:else if gamePhase === 'playing'}
+		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
-		{:else if gamePhase === 'gameover'}
+		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
 				<span class="status-text">Press SPACE to play again</span>
-				{#if saveStatus === 'saving'}
+				{#if saveStatus === "saving"}
 					<span class="save-indicator saving">Saving match...</span>
-				{:else if saveStatus === 'saved'}
+				{:else if saveStatus === "saved"}
 					<span class="save-indicator saved">✓ Match saved</span>
-				{:else if saveStatus === 'error'}
-					<span class="save-indicator error">Match not saved (not logged in?)</span>
+				{:else if saveStatus === "error"}
+					<span class="save-indicator error"
+						>Match not saved (not logged in?)</span
+					>
 				{/if}
 			</div>
 		{/if}

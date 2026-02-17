@@ -2,6 +2,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { generateAuthorizationUrl, generateState } from '$lib/server/auth/oauth';
+import { dev } from '$app/environment';
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	// Generate CSRF protection state
@@ -11,7 +12,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	cookies.set('oauth_state', state, {
 		path: '/',
 		httpOnly: true,
-		secure: false, // TODO: Set to true in production with HTTPS
+		secure: !dev, // ✅ Secure in production
 		sameSite: 'lax',
 		maxAge: 60 * 10 // 10 minutes
 	});

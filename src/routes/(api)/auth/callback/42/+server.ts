@@ -2,6 +2,7 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { exchangeCodeForToken, fetchUserInfo } from '$lib/server/auth/oauth';
+import { encryptToken } from '$lib/server/auth/token-encryption';
 import { db } from '$lib/server/db';
 import { users, oauthAccounts } from '$lib/server/db/schema';
 import { lucia } from '$lib/server/auth/lucia';
@@ -30,18 +31,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		// Step 1: Exchange code for access token
 		const tokenData = await exchangeCodeForToken('42', code);
 		
-		// TODO: CRITICAL SECURITY ISSUE - Tokens stored as plain text!
-		// Before storing tokenData.access_token and tokenData.refresh_token in the database,
-		// they MUST be encrypted using AES-256-GCM.
-		// 
-		// Required implementation:
-		//   import { encryptToken } from '$lib/server/auth/token-encryption';
-		//   const encryptedAccessToken = await encryptToken(tokenData.access_token);
-		//   const encryptedRefreshToken = tokenData.refresh_token 
-		//     ? await encryptToken(tokenData.refresh_token) 
-		//     : null;
-		//
-		// Then use encrypted tokens in all db.insert() calls below.
+		// Step 1.5: Encrypt tokens before storing in database
+		const encryptedAccessToken = await encryptToken(tokenData.access_token);
+		const encryptedRefreshToken = tokenData.refresh_token 
+			? await encryptToken(tokenData.refresh_token)
+			: null;
 		
 		// Step 2: Fetch user information from 42 Intra
 		const oauthUser = await fetchUserInfo('42', tokenData.access_token);
@@ -68,13 +62,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			// User has logged in with 42 before
 			userId = existingOAuthAccount.userId;
 
-			// TODO: These tokens are stored UNENCRYPTED - security risk!
 			// Update the OAuth tokens
 			await db
 				.update(oauthAccounts)
 				.set({
-					accessToken: tokenData.access_token, // TODO: Should be encrypted!
-					refreshToken: tokenData.refresh_token || null, // TODO: Should be encrypted!
+					accessToken: encryptedAccessToken,
+					refreshToken: encryptedRefreshToken,
 					expiresAt: tokenData.expires_in
 						? new Date(Date.now() + tokenData.expires_in * 1000)
 						: null,
@@ -98,13 +91,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				// Link 42 account to existing user
 				userId = existingUser.id;
 
-				// TODO: Tokens stored UNENCRYPTED!
 				await db.insert(oauthAccounts).values({
 					provider: '42',
 					providerUserId: oauthUser.id,
 					userId,
-					accessToken: tokenData.access_token, // TODO: Encrypt this!
-					refreshToken: tokenData.refresh_token || null, // TODO: Encrypt this!
+					accessToken: encryptedAccessToken,
+					refreshToken: encryptedRefreshToken,
 					expiresAt: tokenData.expires_in
 						? new Date(Date.now() + tokenData.expires_in * 1000)
 						: null
@@ -142,14 +134,13 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 				userId = newUser.id;
 
-				// TODO: Tokens stored UNENCRYPTED!
 				// Link OAuth account
 				await db.insert(oauthAccounts).values({
 					provider: '42',
 					providerUserId: oauthUser.id,
 					userId,
-					accessToken: tokenData.access_token, // TODO: Encrypt this!
-					refreshToken: tokenData.refresh_token || null, // TODO: Encrypt this!
+					accessToken: encryptedAccessToken,
+					refreshToken: encryptedRefreshToken,
 					expiresAt: tokenData.expires_in
 						? new Date(Date.now() + tokenData.expires_in * 1000)
 						: null

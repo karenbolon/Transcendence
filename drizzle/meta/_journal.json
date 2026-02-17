@@ -5,22 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1770804778342,
-      "tag": "0000_living_slapstick",
+      "when": 1739721600000,
+      "tag": "0000_base_schema",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1770805080659,
-      "tag": "0001_special_skrulls",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1770805124167,
-      "tag": "0002_fearless_avengers",
+      "when": 1739721601000,
+      "tag": "0001_add_oauth",
       "breakpoints": true
     }
   ]

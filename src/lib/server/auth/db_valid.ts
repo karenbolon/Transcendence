@@ -1,7 +1,7 @@
 // src/lib/server/auth/db-validation.ts
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 🔍 Database Uniqueness Checks
@@ -16,7 +16,7 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
 	const existing = await db
 		.select({ id: users.id })
 		.from(users)
-		.where(eq(users.username, username))
+		.where(and(eq(users.username, username), eq(users.is_deleted, false)))
 		.limit(1);
 
 	return existing.length > 0;
@@ -31,7 +31,7 @@ export async function isEmailTaken(email: string): Promise<boolean> {
 	const existing = await db
 		.select({ id: users.id })
 		.from(users)
-		.where(eq(users.email, email))
+		.where(and(eq(users.email, email), eq(users.is_deleted, false)))
 		.limit(1);
 
 	return existing.length > 0;

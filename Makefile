@@ -36,6 +36,7 @@ COMPOSE := docker compose -f $(COMPOSE_FILE)
 # DB container
 DB_CONTAINER		= ft_db
 DB_TEST_CONTAINER	= test_db
+DB_USER             = root
 
 # ================================================================================
 # SETUP & INSTALLATION
@@ -142,6 +143,11 @@ db-studio:
 	@echo "$(DATABASE) $(PURPLE)Opening Drizzle Studio...$(NC)"
 	@npm run db:studio
 
+## Seed the database with sample data
+db-seed:
+	@echo "$(DATABASE) $(PURPLE)Seeding database...$(NC)"
+	@npm run db:seed:test
+
 ## Open Drizzle Studio for test DB
 db-studio-test:
 	@echo "$(DATABASE) $(PURPLE)Opening Drizzle Studio (test)...$(NC)"
@@ -190,8 +196,10 @@ test-setup: docker-up db-test-ready db-push-test
 
 ## Run tests only (assumes DB is already running with schema)
 test-run:
-	@echo "$(TEST) $(LILAC)Running tests...$(NC)"
-	@npx vitest
+	@echo "$(TEST) $(LILAC)Running tests on test database (port 5433)...$(NC)"
+	@DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test \
+	 DB_URL=postgres://root:mysecretpassword@localhost:5433/db_test \
+	 npx vitest --run
 	@echo "$(CHECK) $(MINT)Tests complete!$(NC)"
 
 # ================================================================================
@@ -200,31 +208,18 @@ test-run:
 
 # Run full test suite (start DB, push schema, run tests)
 test: test-setup
-	@echo "$(TEST) Running tests..."
-	@npx vitest
+	@echo "$(TEST) Running tests on test database (port 5433)..."
+	@DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test \
+	 DB_URL=postgres://root:mysecretpassword@localhost:5433/db_test \
+	 npx vitest --run
 	@echo "$(CHECK) Tests complete!"
-
-# Setup test environment (start DB and push schema)
-test-setup:
-	@echo "$(DATABASE) Starting test database..."
-	@npm run db:start:d
-	@echo "$(CHECK) Waiting for database to be ready..."
-	@sleep 3
-	@echo "$(DATABASE) Pushing schema to test database..."
-	@npm run db:push:test
-	@echo "$(CHECK) Test environment ready!"
-
-# Run tests only (assumes DB is already running)
-test-run:
-	@echo "$(TEST) Running tests..."
-	@npx vitest
 
 # ================================================================================
 # Clean
 # ================================================================================
 
 # Clean build artifacts and node_modules
-clean:
+clean:docker-clean
 	@echo "$(CLEAN) $(PEACH)Cleaning project...$(NC)"
 	rm -rf build/
 	rm -rf .svelte-kit/
@@ -232,7 +227,7 @@ clean:
 	@echo "$(CHECK) $(MINT)Clean complete!$(NC)"
 
 ## Full clean: build artifacts + node_modules + Docker volumes
-fclean: docker-clean
+fclean: clean
 	@echo "$(CLEAN) $(PEACH)Deep cleaning everything...$(NC)"
 	@rm -rf build/
 	@rm -rf .svelte-kit/

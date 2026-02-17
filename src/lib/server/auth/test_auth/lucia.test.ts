@@ -10,8 +10,8 @@ import { eq } from 'drizzle-orm';
 // 🧹 Clean database helper (inline for auth tests)
 // ══════════════════════════════════════════════════════════════════════════════
 async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
+	await db.delete(sessions).execute().catch(() => { });
+	await db.delete(users).execute().catch(() => { });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -52,11 +52,11 @@ describe('Lucia Auth Setup', () => {
 		const user = await createTestUser();
 
 		// Create a session using lucia
-		const session = await lucia.createSession(user.id, {});
+		const session = await lucia.createSession(String(user.id), {});
 
 		expect(session).toBeDefined();
 		expect(session.id).toBeDefined();
-		expect(session.userId).toBe(user.id);
+		expect(session.userId).toBe(String(user.id));
 		expect(session.expiresAt).toBeInstanceOf(Date);
 
 		console.log('✅ Session created:', {
@@ -69,7 +69,7 @@ describe('Lucia Auth Setup', () => {
 	it('should validate the session', async () => {
 		// Create fresh user and session for this test
 		const user = await createTestUser();
-		const session = await lucia.createSession(user.id, {});
+		const session = await lucia.createSession(String(user.id), {});
 
 		// Validate the session we just created
 		const result = await lucia.validateSession(session.id);
@@ -90,7 +90,7 @@ describe('Lucia Auth Setup', () => {
 	it('should have correct user attributes', async () => {
 		// Create fresh user and session for this test
 		const user = await createTestUser();
-		const session = await lucia.createSession(user.id, {});
+		const session = await lucia.createSession(String(user.id), {});
 
 		const result = await lucia.validateSession(session.id);
 
@@ -114,7 +114,7 @@ describe('Lucia Auth Setup', () => {
 	it('should invalidate the session', async () => {
 		// Create fresh user and session for this test
 		const user = await createTestUser();
-		const session = await lucia.createSession(user.id, {});
+		const session = await lucia.createSession(String(user.id), {});
 
 		// Invalidate (delete) the session
 		await lucia.invalidateSession(session.id);
@@ -132,8 +132,8 @@ describe('Lucia Auth Setup', () => {
 		const user = await createTestUser();
 
 		// Create multiple sessions
-		const session1 = await lucia.createSession(user.id, {});
-		const session2 = await lucia.createSession(user.id, {});
+		const session1 = await lucia.createSession(String(user.id), {});
+		const session2 = await lucia.createSession(String(user.id), {});
 
 		// Both should be valid
 		const result1 = await lucia.validateSession(session1.id);
@@ -155,7 +155,7 @@ describe('Lucia Auth Setup', () => {
 
 	it('should cascade delete sessions when user is deleted', async () => {
 		const user = await createTestUser();
-		const session = await lucia.createSession(user.id, {});
+		const session = await lucia.createSession(String(user.id), {});
 
 		// Verify session exists
 		const beforeDelete = await lucia.validateSession(session.id);

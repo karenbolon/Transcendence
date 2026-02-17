@@ -154,6 +154,12 @@ async function seed() {
 					: createdUsers[game.p2].id
 				: null;
 
+		const winnerName = winnerId
+			? game.s1 > game.s2
+				? createdUsers[game.p1].username
+				: createdUsers[game.p2].username
+			: '';
+
 		await db.insert(games).values({
 			type: 'pong',
 			player1_id: createdUsers[game.p1].id,
@@ -161,14 +167,15 @@ async function seed() {
 			player1_score: game.s1,
 			player2_score: game.s2,
 			status: game.status,
-			winner_id: winnerId
+			winner_id: winnerId,
+			winner_name: winnerName
 		});
 
 		const p1Name = createdUsers[game.p1].username;
 		const p2Name = createdUsers[game.p2].username;
 		const statusEmoji =
 			game.status === 'finished' ? '🏆' : game.status === 'active' ? '🎮' : '⏳';
-		const winnerName = winnerId
+		const winnerLabel = winnerId
 			? game.s1 > game.s2
 				? p1Name
 				: p2Name
@@ -176,7 +183,7 @@ async function seed() {
 				? 'TIE'
 				: '-';
 
-		console.log(`   ${statusEmoji} ${p1Name} vs ${p2Name}: ${game.s1}-${game.s2} (${winnerName})`);
+		console.log(`   ${statusEmoji} ${p1Name} vs ${p2Name}: ${game.s1}-${game.s2} (${winnerLabel})`);
 	}
 
 	// ════════════════════════════════════════════════════════════════════════

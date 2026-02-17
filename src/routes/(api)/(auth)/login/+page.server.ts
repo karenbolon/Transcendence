@@ -33,7 +33,7 @@ export const actions: Actions = {
 			.where(eq(users.username, username))
 			.limit(1);
 
-		if (!user) {
+		if (!user || user.is_deleted) {
 			return fail(400, {
 				error: 'Invalid username or password',
 				username

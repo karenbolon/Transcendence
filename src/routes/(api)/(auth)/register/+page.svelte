@@ -160,7 +160,7 @@
 		</div>
 
 		<div >
-			<label class="items-start gap-2 cursor-pointer">
+			<label class="items-start gap-2">
 				<input type="checkbox" name="acceptTerms" required class="mt-1" />
 				I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a> and
 				<a href="/privacy" class="link" target="_blank">Privacy Policy</a>

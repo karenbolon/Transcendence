@@ -6,8 +6,9 @@ import { tournaments, tournamentParticipants } from './tournaments';
 import { analytics } from './analytics';
 import { sessions } from './sessions';
 import { friendships } from './friendships';
+import { oauthAccounts } from './oauth-accounts';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, oauthAccounts };
 
 export const usersRelations = relations(users, ({ many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),
@@ -20,7 +21,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	tournamentsCreated: many(tournaments, { relationName: 'createdTournaments' }),
 	tournamentEntries: many(tournamentParticipants, { relationName: 'userTournaments' }),
 	tournamentsWon: many(tournaments, { relationName: 'wonTournaments' }),
-	analyticsEvents: many(analytics, { relationName: 'userAnalytics' })
+	analyticsEvents: many(analytics, { relationName: 'userAnalytics' }),
+	oauthAccounts: many(oauthAccounts, { relationName: 'userOAuthAccounts' })
 }));
 
 export const gamesRelations = relations(games, ({ one, many }) => ({
@@ -121,6 +123,14 @@ export const analyticsRelations = relations(analytics, ({ one }) => ({
 	})
 }));
 
+export const oauthAccountsRelations = relations(oauthAccounts, ({ one }) => ({
+	user: one(users, {
+		fields: [oauthAccounts.userId],
+		references: [users.id],
+		relationName: 'userOAuthAccounts'
+	})
+}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -141,3 +151,6 @@ export type NewAnalytics = typeof analytics.$inferInsert;
 
 export type TournamentParticipant = typeof tournamentParticipants.$inferSelect;
 export type NewTournamentParticipant = typeof tournamentParticipants.$inferInsert;
+
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;

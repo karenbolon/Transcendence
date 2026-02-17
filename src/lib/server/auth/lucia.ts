@@ -22,9 +22,6 @@ export const lucia = new Lucia(adapter, {
 			username: attributes.username,
 			email: attributes.email,
 			name: attributes.name
-			// displayName: attributes.displayName,
-			// avatar: attributes.avatar,
-			// emailVerified: attributes.emailVerified
 		};
 	}
 });

@@ -6,7 +6,7 @@ export const users = pgTable('users', {
 	username: varchar('username', { length: 50 }).notNull().unique(),
 	name: varchar('name', { length: 100 }).notNull(),
 	email: varchar('email', { length: 255 }).notNull().unique(),
-	password_hash: varchar('password_hash', { length: 255 }).notNull(), // Required [cite: 185]
+	password_hash: varchar('password_hash', { length: 255 }), // Nullable for OAuth-only users
 	avatar_url: varchar('avatar_url', { length: 255 }), // Required [cite: 296]
 	bio: text('bio'),
 	is_online: boolean('is_online').default(false),

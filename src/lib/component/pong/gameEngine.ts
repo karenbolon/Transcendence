@@ -56,8 +56,8 @@ export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
 	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
-	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast:   { ballSpeed: 400, maxBallSpeed: 800 },
+	normal: { ballSpeed: 500, maxBallSpeed: 600 },
+	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
 export const CANVAS_WIDTH = 800;
@@ -65,11 +65,11 @@ export const CANVAS_HEIGHT = 500;
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_OFFSET = 30;
-export const PADDLE_SPEED = 400;
+export const PADDLE_SPEED = 500;
 export const BALL_RADIUS = 8;
-export const BALL_SPEED_INCREMENT = 20;
-export const MAX_BOUNCE_ANGLE = 0.75;
-export const SCORE_PAUSE_DURATION = 0.8;
+export const BALL_SPEED_INCREMENT = 30;
+export const MAX_BOUNCE_ANGLE = 0.89;
+export const SCORE_PAUSE_DURATION = 0.9;
 
 export function createGameState(): GameState {
 	return {
@@ -331,34 +331,58 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
+/**
+ * Fuzzy Logic AI Controller for Computer Paddle
+ * 
+ * Implements prediction-based targeting with smooth movement:
+ * 1. Fuzzification: Predict ball trajectory including wall bounces
+ * 2. Inference: Determine target position based on ball approach state
+ * 3. Defuzzification: Apply dead zone tolerance for smooth movement
+ */
 export function computeComputerInput(state: GameState): InputState {
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
-	const deadZone = 20;
-
-	const ballApproaching = state.ballVX > 0;
-
-	let moveUp = false;
-	let moveDown = false;
-
-	if (ballApproaching) {
-		// Ball coming toward us → track it
-		if (state.ballY < paddleCenter - deadZone) {
-			moveUp = true;
-		} else if (state.ballY > paddleCenter + deadZone) {
-			moveDown = true;
+	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
+	
+	let targetY: number;
+	
+	// Rule 1: Ball approaching → Use predictive tracking
+	if (state.ballVX > 0) {
+		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+		const distanceToPaddle = paddleX - state.ballX;
+		const timeToReach = distanceToPaddle / state.ballVX;
+		
+		// Predict future ball position
+		let predictedY = state.ballY + (state.ballVY * timeToReach);
+		
+		// Simulate wall bounces iteratively (fuzzy trajectory prediction)
+		while (predictedY < 0 || predictedY > CANVAS_HEIGHT) {
+			if (predictedY < 0) {
+				predictedY = -predictedY;
+			}
+			if (predictedY > CANVAS_HEIGHT) {
+				predictedY = 2 * CANVAS_HEIGHT - predictedY;
+			}
 		}
-	} else {
-		// Ball moving away → drift toward center
-		const canvasCenter = CANVAS_HEIGHT / 2;
-		if (paddleCenter < canvasCenter - 30) {
-			moveDown = true;
-		} else if (paddleCenter > canvasCenter + 30) {
-			moveUp = true;
-		}
+		
+		targetY = predictedY;
+	} 
+	// Rule 2: Ball moving away → Return to center (defensive positioning)
+	else {
+		targetY = CANVAS_HEIGHT / 2;
 	}
+	
+	// Defuzzification: Constrain target to valid paddle bounds
+	targetY = Math.max(
+		PADDLE_HEIGHT / 2,
+		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2, targetY)
+	);
+	
+	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
+	const moveUp = targetY < paddleCenter - deadZone;
+	const moveDown = targetY > paddleCenter + deadZone;
 
 	return {
-		paddle1Up: false,    // Computer doesn't control paddle 1
+		paddle1Up: false,
 		paddle1Down: false,
 		paddle2Up: moveUp,
 		paddle2Down: moveDown,

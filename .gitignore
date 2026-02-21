@@ -56,3 +56,8 @@ cache/
 .nvmrc
 .nvp*
 RULES.md
+.agent/rules/first-principles-explanation.md
+
+.agent/workflows/init-feature-docs.md
+.agent/workflows/add-feature-docs.md
+.agent/rules/first-principles-explanation.md

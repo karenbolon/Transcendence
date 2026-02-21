@@ -6,8 +6,11 @@ import { tournaments, tournamentParticipants } from './tournaments';
 import { analytics } from './analytics';
 import { sessions } from './sessions';
 import { friendships } from './friendships';
+import { achievements } from './achievements';
+import { player_progression } from './player_progression';
+import { achievement_definitions } from './achievement_definitions';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions };
 
 export const usersRelations = relations(users, ({ many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),
@@ -86,6 +89,31 @@ export const tournamentParticipantsRelations = relations(tournamentParticipants,
 		references: [users.id],
 		relationName: 'userTournaments'
 	}),
+}));
+
+export const achievementsRelations = relations(achievements, ({ one }) => ({
+	user: one(users, {
+		fields: [achievements.user_id],
+		references: [users.id],
+		relationName: 'userAchievements'
+	}),
+	definition: one(achievement_definitions, {
+		fields: [achievements.achievement_id],
+		references: [achievement_definitions.id],
+		relationName: 'achievementDefinition'
+	})
+}));
+
+export const achievement_definitionsRelations = relations(achievement_definitions, ({ many }) => ({
+	unlockedBy: many(achievements, { relationName: 'achievementDefinition' })
+}));
+
+export const player_progressionRelations = relations(player_progression, ({ one }) => ({
+	user: one(users, {
+		fields: [player_progression.user_id],
+		references: [users.id],
+		relationName: 'player_progression'
+	})
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({

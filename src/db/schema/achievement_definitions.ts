@@ -5,5 +5,7 @@ export const achievement_definitions = pgTable('achievement_definitions', {
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description').notNull(),
     tier: varchar('tier', { length: 20 }).notNull(), // bronze, silver, gold
+    category: varchar('category', { length: 50 }).notNull().default('general'), // shutout, streak, veteran, scorer, comeback, rally
+    icon: varchar('icon', { length: 10 }).notNull().default('🏆'),
     created_at: timestamp('created_at').notNull().defaultNow(),
 });

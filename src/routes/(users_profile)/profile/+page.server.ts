@@ -1,8 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { games, users } from '$lib/server/db/schema';
-import { eq, or, desc, sql, and } from 'drizzle-orm';
+import { games, users, player_progression, achievements, achievement_definitions } from '$lib/server/db/schema';
+import { eq, or, desc, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// ── AUTH GUARD ──────────────────────────────────────────────
@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/login');
 	}
 
-	const userId = locals.user.id;
+	const userId = Number(locals.user.id);
 
 	const [user] = await db
 		.select()
@@ -22,11 +22,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// ── FETCH MATCH HISTORY ────────────────────────────────────
-	// Get the user's recent matches (newest first, limit 50)
-	//
-	// We query games where the user is player1.
-	// (In local/computer mode, the logged-in user is always player1.
-	//  For remote play later, we'd also check player2_id.)
 	const matches = await db
 		.select()
 		.from(games)
@@ -40,11 +35,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.limit(50);
 
 	// ── CALCULATE STATS ────────────────────────────────────────
-	// Count wins, losses, and total from the matches we fetched.
-	//
-	// WHY calculate in JS instead of SQL?
-	//   For 50 matches, JS is fast enough and easier to read.
-	//   If you had thousands of matches, you'd use SQL aggregates.
 	let wins = 0;
 	let losses = 0;
 
@@ -60,7 +50,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
 
 	// ── FORMAT MATCHES FOR THE FRONTEND ────────────────────────
-	// Transform database rows into a cleaner shape for display
 	const formattedMatches = matches
 		.filter(m => m.status === 'finished')
 		.map((match) => {
@@ -70,12 +59,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			return {
 				id: match.id,
 				won,
-				// Show scores from the user's perspective
 				userScore: isPlayer1 ? match.player1_score : match.player2_score,
 				opponentScore: isPlayer1 ? match.player2_score : match.player1_score,
-				// Opponent info
 				opponentName: isPlayer1 ? match.player2_name : 'You were Player 2',
-				// Match details
 				gameMode: match.game_mode,
 				speedPreset: match.speed_preset,
 				winScore: match.winner_score,
@@ -83,6 +69,28 @@ export const load: PageServerLoad = async ({ locals }) => {
 				playedAt: match.finished_at ?? match.created_at,
 			};
 		});
+
+	// ── FETCH PROGRESSION ──────────────────────────────────────
+	const [progression] = await db
+		.select()
+		.from(player_progression)
+		.where(eq(player_progression.user_id, userId));
+
+	// ── FETCH ACHIEVEMENTS (with definitions) ──────────────────
+	const userAchievements = await db
+		.select({
+			id: achievement_definitions.id,
+			name: achievement_definitions.name,
+			description: achievement_definitions.description,
+			tier: achievement_definitions.tier,
+			category: achievement_definitions.category,
+			icon: achievement_definitions.icon,
+			unlockedAt: achievements.unlocked_at,
+		})
+		.from(achievements)
+		.innerJoin(achievement_definitions, eq(achievements.achievement_id, achievement_definitions.id))
+		.where(eq(achievements.user_id, userId))
+		.orderBy(desc(achievements.unlocked_at));
 
 	// ── RETURN DATA ────────────────────────────────────────────
 	return {
@@ -101,5 +109,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 			losses,
 			winRate,
 		},
+		progression: progression
+			? {
+				level: progression.current_level,
+				currentXp: progression.current_xp,
+				xpToNextLevel: progression.xp_to_next_level,
+				totalXp: progression.total_xp,
+				currentWinStreak: progression.current_win_streak,
+				bestWinStreak: progression.best_win_streak,
+			}
+			: null,
+		achievements: userAchievements.map(a => ({
+			...a,
+			unlockedAt: a.unlockedAt?.toISOString() ?? null,
+		})),
 	};
 };

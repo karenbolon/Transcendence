@@ -12,7 +12,7 @@ import { achievement_definitions } from './achievement_definitions';
 
 export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions };
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),
 	gamesAsPlayer2: many(games, { relationName: 'player2' }),
 	gamesWon: many(games, { relationName: 'winner' }),
@@ -23,7 +23,13 @@ export const usersRelations = relations(users, ({ many }) => ({
 	tournamentsCreated: many(tournaments, { relationName: 'createdTournaments' }),
 	tournamentEntries: many(tournamentParticipants, { relationName: 'userTournaments' }),
 	tournamentsWon: many(tournaments, { relationName: 'wonTournaments' }),
-	analyticsEvents: many(analytics, { relationName: 'userAnalytics' })
+	analyticsEvents: many(analytics, { relationName: 'userAnalytics' }),
+	achievements: many(achievements, { relationName: 'userAchievements' }),
+	progression: one(player_progression, {
+		fields: [users.id],
+		references: [player_progression.user_id],
+		relationName: 'player_progression'
+	}),
 }));
 
 export const gamesRelations = relations(games, ({ one, many }) => ({
@@ -169,3 +175,12 @@ export type NewAnalytics = typeof analytics.$inferInsert;
 
 export type TournamentParticipant = typeof tournamentParticipants.$inferSelect;
 export type NewTournamentParticipant = typeof tournamentParticipants.$inferInsert;
+
+export type Achievement = typeof achievements.$inferSelect;
+export type NewAchievement = typeof achievements.$inferInsert;
+
+export type PlayerProgression = typeof player_progression.$inferSelect;
+export type NewPlayerProgression = typeof player_progression.$inferInsert;
+
+export type AchievementDefinition = typeof achievement_definitions.$inferSelect;
+export type NewAchievementDefinition = typeof achievement_definitions.$inferInsert;

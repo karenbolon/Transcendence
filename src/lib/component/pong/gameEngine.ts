@@ -33,6 +33,11 @@ export interface GameState {
 	scorePause: number;
 	scoreFlash: 'left' | 'right' | null;
 	scoreFlashTimer: number;
+
+	// Progression tracking
+	ballReturns: number;     // total paddle hits this match
+	maxDeficit: number;      // biggest point deficit player 1 faced
+	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
 }
 
 export interface InputState {
@@ -55,9 +60,9 @@ export type GameMode = 'local' | 'computer';
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
-	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
+	chill: { ballSpeed: 200, maxBallSpeed: 400 },
 	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast:   { ballSpeed: 400, maxBallSpeed: 800 },
+	fast: { ballSpeed: 400, maxBallSpeed: 800 },
 };
 
 export const CANVAS_WIDTH = 800;
@@ -90,6 +95,9 @@ export function createGameState(): GameState {
 		scorePause: 0,
 		scoreFlash: null,
 		scoreFlashTimer: 0,
+		ballReturns: 0,
+		maxDeficit: 0,
+		reachedDeuce: false,
 	};
 }
 
@@ -129,6 +137,9 @@ export function returnToMenu(state: GameState): void {
 	state.scoreFlash = null;
 	state.scoreFlashTimer = 0;
 	state.scorePause = 0;
+	state.ballReturns = 0;
+	state.maxDeficit = 0;
+	state.reachedDeuce = false;
 	resetPositions(state);
 }
 
@@ -181,7 +192,7 @@ export function update(
 function updateCountdown(state: GameState, dt: number, input: InputState): void {
 	state.countdownTimer -= dt;
 
-	if (state.countdownTimer > 3)      state.countdownDisplay = '3';
+	if (state.countdownTimer > 3) state.countdownDisplay = '3';
 	else if (state.countdownTimer > 2) state.countdownDisplay = '2';
 	else if (state.countdownTimer > 1) state.countdownDisplay = '1';
 	else if (state.countdownTimer > 0) state.countdownDisplay = 'GO!';
@@ -236,9 +247,9 @@ function updatePlaying(
 }
 
 function movePaddles(state: GameState, dt: number, input: InputState): void {
-	if (input.paddle1Up)   state.paddle1Y -= PADDLE_SPEED * dt;
+	if (input.paddle1Up) state.paddle1Y -= PADDLE_SPEED * dt;
 	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up)   state.paddle2Y -= PADDLE_SPEED * dt;
+	if (input.paddle2Up) state.paddle2Y -= PADDLE_SPEED * dt;
 	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
 
 	// Clamp to canvas bounds
@@ -255,6 +266,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
 		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
 	) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle1Y, 1, settings);
 	}
 
@@ -267,6 +279,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
 		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
 	) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle2Y, -1, settings);
 	}
 }
@@ -307,6 +320,15 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
 
+		// Track max deficit for player 1
+		const deficit = state.score2 - state.score1;
+		if (deficit > state.maxDeficit) state.maxDeficit = deficit;
+
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
+
 		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
 		if (state.score2 >= settings.winScore) {
 			endGame(state, scorer);
@@ -321,6 +343,11 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.score1++;
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
+
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
 
 		if (state.score1 >= settings.winScore) {
 			endGame(state, 'Player 1');

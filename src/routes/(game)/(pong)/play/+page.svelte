@@ -99,15 +99,10 @@
 				saveStatus = "saved";
 				const data = await response.json();
 
-				// Show level-up modal if there's a level change or new achievements
+				// Show progression modal after every match
 				if (data.progression) {
 					progressionResult = data.progression;
-					if (
-						data.progression.newLevel > data.progression.oldLevel ||
-						data.progression.newAchievements.length > 0
-					) {
-						showLevelUpModal = true;
-					}
+					showLevelUpModal = true;
 				}
 			} else {
 				// Not logged in or validation error — still fine, game works
@@ -185,6 +180,8 @@
 		bonuses={progressionResult.bonuses}
 		oldLevel={progressionResult.oldLevel}
 		newLevel={progressionResult.newLevel}
+		currentXp={progressionResult.currentXp}
+		xpForNextLevel={progressionResult.xpForNextLevel}
 		newAchievements={progressionResult.newAchievements}
 		onClose={() => {
 			showLevelUpModal = false;

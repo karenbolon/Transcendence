@@ -5,7 +5,7 @@
  * This is the single entry point called by the match-saving API.
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, inArray } from 'drizzle-orm';
 import { player_progression, achievements, achievement_definitions, users } from '$lib/server/db/schema';
 import { calculateMatchXp, getLevelForXp, type MatchResult, type XpBreakdown } from './xp';
 import { evaluateAchievements, type ProgressionStats } from './achievements';
@@ -195,7 +195,7 @@ export async function processMatchProgression(
         const defs = await tx
             .select()
             .from(achievement_definitions)
-            .where(sql`${achievement_definitions.id} = ANY(${newAchievementIds})`);
+            .where(inArray(achievement_definitions.id, newAchievementIds));
 
         newAchievementDetails = defs.map(d => ({
             id: d.id,
@@ -215,3 +215,4 @@ export async function processMatchProgression(
         newAchievements: newAchievementDetails,
     };
 }
+

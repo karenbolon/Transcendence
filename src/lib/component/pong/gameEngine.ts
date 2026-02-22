@@ -62,7 +62,7 @@ export type SpeedPreset = 'chill' | 'normal' | 'fast';
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
 	chill: { ballSpeed: 200, maxBallSpeed: 400 },
 	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast: { ballSpeed: 400, maxBallSpeed: 800 },
+	fast: { ballSpeed: 650, maxBallSpeed: 1000 },
 };
 
 export const CANVAS_WIDTH = 800;

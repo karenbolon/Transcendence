@@ -1,11 +1,14 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import XpBar from "./XpBar.svelte";
 
     type Props = {
         xpEarned: number;
         bonuses: { name: string; amount: number }[];
         oldLevel: number;
         newLevel: number;
+        currentXp: number;
+        xpForNextLevel: number;
         newAchievements: {
             id: string;
             name: string;
@@ -20,6 +23,8 @@
         bonuses,
         oldLevel,
         newLevel,
+        currentXp,
+        xpForNextLevel,
         newAchievements,
         onClose,
     }: Props = $props();
@@ -104,6 +109,15 @@
                 <span>Total</span>
                 <span class="xp-total-amount">+{xpEarned} XP</span>
             </div>
+        </div>
+
+        <!-- XP Progress Bar -->
+        <div class="xp-progress-section">
+            <XpBar
+                {currentXp}
+                xpToNextLevel={xpForNextLevel}
+                level={newLevel}
+            />
         </div>
 
         <!-- New Achievements -->
@@ -260,6 +274,10 @@
     }
 
     /* Achievements */
+    .xp-progress-section {
+        margin-bottom: 1rem;
+    }
+
     .achievements-section {
         margin-bottom: 1rem;
     }

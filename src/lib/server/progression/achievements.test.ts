@@ -60,18 +60,18 @@ describe('Achievement Evaluation Logic (achievements.ts)', () => {
         };
 
         const unlocked = evaluateAchievements(stats, new Set());
-        expect(unlocked).toContain('veteran_bronze');
-        expect(unlocked).toContain('scorer_bronze');
+        expect(unlocked).toContain('matches_10');
+        expect(unlocked).toContain('points_bronze');
         expect(unlocked).toContain('rally_bronze');
     });
 
-    it('should unlock the "Legend" veteran achievement at 200 games', () => {
+    it('should unlock the "Elite Veteran" achievement at 250 games', () => {
         const stats: ProgressionStats = {
             ...defaultStats,
-            games_played: 200
+            games_played: 250
         };
 
         const unlocked = evaluateAchievements(stats, new Set());
-        expect(unlocked).toContain('veteran_gold');
+        expect(unlocked).toContain('matches_v_250');
     });
 });

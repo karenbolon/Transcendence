@@ -11,8 +11,8 @@ describe('Progression Orchestrator Integration (index.ts)', () => {
 
         // Seed basic achievements needed for test
         await db.insert(achievement_definitions).values([
-            { id: 'shutout_bronze', name: 'Shutout Bronze', description: 'Win with 0 points against you', tier: 'bronze' },
-            { id: 'streak_bronze', name: 'Streak Bronze', description: 'Win 3 games in a row', tier: 'bronze' }
+            { id: 'shutout_bronze', name: 'Shutout Bronze', description: 'Win with 0 points against you', tier: 'bronze', category: 'shutout', icon: '🛡️' },
+            { id: 'streak_bronze', name: 'Streak Bronze', description: 'Win 3 games in a row', tier: 'bronze', category: 'streak', icon: '🔥' }
         ]);
     });
 

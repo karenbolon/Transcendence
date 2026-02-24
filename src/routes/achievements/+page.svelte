@@ -15,10 +15,12 @@
     );
 
     const categoryLabels: Record<string, string> = {
+        origins: "🌀 Origins",
+        progression: "📈 Advancement",
         shutout: "🛡️ Shutout",
         streak: "🔥 Streaks",
-        veteran: "🎮 Veteran",
         scorer: "🎯 Scorer",
+        veteran: "🎮 Veteran",
         comeback: "💪 Comeback",
         rally: "🏓 Rally",
     };

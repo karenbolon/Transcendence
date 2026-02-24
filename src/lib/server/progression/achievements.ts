@@ -35,15 +35,19 @@ const ACHIEVEMENT_CONDITIONS: AchievementCondition[] = [
     { id: 'streak_silver', field: 'best_win_streak', threshold: 7 },
     { id: 'streak_gold', field: 'best_win_streak', threshold: 15 },
 
-    // Veteran achievements
-    { id: 'veteran_bronze', field: 'games_played', threshold: 10 },
-    { id: 'veteran_silver', field: 'games_played', threshold: 50 },
-    { id: 'veteran_gold', field: 'games_played', threshold: 200 },
+    // Origins (Low match counts)
+    { id: 'matches_10', field: 'games_played', threshold: 10 },
+    { id: 'matches_50', field: 'games_played', threshold: 50 },
+
+    // Veteran achievements (High match counts)
+    { id: 'matches_v_100', field: 'games_played', threshold: 100 },
+    { id: 'matches_v_250', field: 'games_played', threshold: 250 },
+    { id: 'matches_v_500', field: 'games_played', threshold: 500 },
 
     // Scorer achievements
-    { id: 'scorer_bronze', field: 'total_points_scored', threshold: 50 },
-    { id: 'scorer_silver', field: 'total_points_scored', threshold: 250 },
-    { id: 'scorer_gold', field: 'total_points_scored', threshold: 1000 },
+    { id: 'points_bronze', field: 'total_points_scored', threshold: 50 },
+    { id: 'points_silver', field: 'total_points_scored', threshold: 250 },
+    { id: 'points_gold', field: 'total_points_scored', threshold: 1000 },
 
     // Comeback achievements
     { id: 'comeback_bronze', field: 'comeback_wins', threshold: 1 },

@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '../index';
-import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, player_progression, achievements, achievement_definitions } from '../schema';
 import type { User } from '../schema';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -28,14 +28,17 @@ export async function cleanDatabase() {
 	// 7. Tournaments depend on Users
 	// 8. Users have no dependencies
 
-	await db.delete(analytics).execute().catch(() => {});
-	await db.delete(messages).execute().catch(() => {});
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(friendships).execute().catch(() => {});
-	await db.delete(games).execute().catch(() => {});
-	await db.delete(tournamentParticipants).execute().catch(() => {});
-	await db.delete(tournaments).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
+	await db.delete(analytics).execute().catch(() => { });
+	await db.delete(messages).execute().catch(() => { });
+	await db.delete(sessions).execute().catch(() => { });
+	await db.delete(friendships).execute().catch(() => { });
+	await db.delete(games).execute().catch(() => { });
+	await db.delete(achievements).execute().catch(() => { });
+	await db.delete(player_progression).execute().catch(() => { });
+	await db.delete(tournamentParticipants).execute().catch(() => { });
+	await db.delete(tournaments).execute().catch(() => { });
+	await db.delete(achievement_definitions).execute().catch(() => { });
+	await db.delete(users).execute().catch(() => { });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -248,7 +251,7 @@ export async function createTestTournament(
 	return tournament;
 }
 
- // Add new helper
+// Add new helper
 export async function addTournamentParticipant(
 	tournamentId: number,
 	userId: number,
@@ -259,15 +262,15 @@ export async function addTournamentParticipant(
 	}> = {}
 ) {
 	const [participant] = await db
-			.insert(tournamentParticipants)
-			.values({
-					tournament_id: tournamentId,
-					user_id: userId,
-					seed: options.seed ?? null,
-					placement: options.placement ?? null,
-					status: options.status ?? 'registered'
-			})
-			.returning();
+		.insert(tournamentParticipants)
+		.values({
+			tournament_id: tournamentId,
+			user_id: userId,
+			seed: options.seed ?? null,
+			placement: options.placement ?? null,
+			status: options.status ?? 'registered'
+		})
+		.returning();
 
 	return participant;
 }

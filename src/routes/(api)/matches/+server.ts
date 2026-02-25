@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { games, users } from '$lib/server/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { processMatchProgression } from '$lib/server/progression';
 
 const matchResultSchema = z.object({
 	// Game mode: how the game was played
@@ -30,6 +31,11 @@ const matchResultSchema = z.object({
 
 	// Duration in seconds (optional, might not be tracked yet)
 	durationSeconds: z.number().int().min(0).optional(),
+
+	// Progression stats from the game engine
+	ballReturns: z.number().int().min(0).max(10000).optional().default(0),
+	maxDeficit: z.number().int().min(0).max(100).optional().default(0),
+	reachedDeuce: z.boolean().optional().default(false),
 }).refine(
 	// At least one score must equal winScore (someone won!)
 	(data) => data.player1Score === data.winScore || data.player2Score === data.winScore,
@@ -82,16 +88,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	// ── SAVE TO DATABASE ───────────────────────────────────────
-	// Use a transaction so the game insert and user stats update
-	// either both succeed or both roll back.
+	// Use a transaction so the game insert, user stats update,
+	// and progression update either all succeed or all roll back.
 	try {
 		const finishedAt = new Date();
 		const durationMs = (data.durationSeconds ?? 0) * 1000;
 		const startedAt = new Date(finishedAt.getTime() - durationMs);
 
-		const [match] = await db.transaction(async (tx) => {
+		const txResult = await db.transaction(async (tx) => {
 			// 1. Insert the game record
-			const inserted = await tx.insert(games).values({
+			const [match] = await tx.insert(games).values({
 				type: 'pong',
 				status: 'finished',
 				game_mode: data.gameMode,
@@ -119,19 +125,32 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			await tx.update(users)
 				.set({
 					games_played: sql`${users.games_played} + 1`,
-					wins:         userWon ? sql`${users.wins} + 1`   : users.wins,
-					losses:       userWon ? users.losses             : sql`${users.losses} + 1`,
-					updated_at:   finishedAt,
+					wins: userWon ? sql`${users.wins} + 1` : users.wins,
+					losses: userWon ? users.losses : sql`${users.losses} + 1`,
+					updated_at: finishedAt,
 				})
 				.where(eq(users.id, userId));
 
-			return inserted;
+			// 3. Process progression (XP, levels, achievements)
+			const progression = await processMatchProgression(tx, userId, {
+				won: userWon,
+				player1Score: data.player1Score,
+				player2Score: data.player2Score,
+				winScore: data.winScore,
+				speedPreset: data.speedPreset,
+				ballReturns: data.ballReturns,
+				maxDeficit: data.maxDeficit,
+				reachedDeuce: data.reachedDeuce,
+			});
+
+			return { match, progression };
 		});
 
 		return json({
 			success: true,
-			matchId: match.id,
-			message: `Match saved! ${winnerName} wins ${data.player1Score}-${data.player2Score}`
+			matchId: txResult.match.id,
+			message: `Match saved! ${winnerName} wins ${data.player1Score}-${data.player2Score}`,
+			progression: txResult.progression,
 		}, { status: 201 });
 
 	} catch (err) {

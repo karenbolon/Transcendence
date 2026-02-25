@@ -1,5 +1,8 @@
 <script lang="ts">
 	import Logout from "$lib/component/Logout.svelte";
+	import XpBar from "$lib/component/progression/XpBar.svelte";
+	import LevelBadge from "$lib/component/progression/LevelBadge.svelte";
+	import AchievementCard from "$lib/component/progression/AchievementCard.svelte";
 	import type { PageData } from "./$types";
 
 	let { data }: { data: PageData } = $props();
@@ -147,9 +150,52 @@
 		</div> -->
 	</section>
 
+	<!-- Progression Section -->
+	{#if data.progression}
+		<section class="progression-section">
+			<div class="progression-header">
+				<LevelBadge level={data.progression.level} size="lg" />
+			</div>
+			<XpBar
+				currentXp={data.progression.currentXp}
+				xpToNextLevel={data.progression.xpToNextLevel}
+				level={data.progression.level}
+			/>
+			<div class="progression-stats">
+				<span class="mini-stat"
+					>🔥 Streak: {data.progression.currentWinStreak}</span
+				>
+				<span class="mini-stat"
+					>⭐ Best: {data.progression.bestWinStreak}</span
+				>
+			</div>
+		</section>
+	{/if}
+
 	<!-- Achievements -->
 	<section class="user-achievements">
-		<h2 class="section-title">Achievements</h2>
+		<div class="section-header">
+			<h2 class="section-title">Achievements</h2>
+			<a href="/achievements" class="view-all-link">View all →</a>
+		</div>
+		{#if data.achievements && data.achievements.length > 0}
+			<div class="achievements-grid">
+				{#each data.achievements.slice(0, 6) as ach}
+					<AchievementCard
+						id={ach.id}
+						name={ach.name}
+						description={ach.description}
+						tier={ach.tier}
+						icon={ach.icon}
+						unlockedAt={ach.unlockedAt}
+					/>
+				{/each}
+			</div>
+		{:else}
+			<p class="empty-achievements">
+				No achievements yet. Play matches to unlock them!
+			</p>
+		{/if}
 	</section>
 
 	<!-- ═══════════════════════════════════════════════════════════
@@ -601,6 +647,72 @@
 		.match-duration {
 			display: none;
 		}
+	}
+
+	/* ═════════════════════════════════════════════════
+	   PROGRESSION SECTION
+	   ═════════════════════════════════════════════════ */
+	.progression-section {
+		padding: 1rem;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.progression-header {
+		display: flex;
+		justify-content: center;
+	}
+
+	.progression-stats {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+	}
+
+	.mini-stat {
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	/* ═════════════════════════════════════════════════
+	   ACHIEVEMENTS SECTION
+	   ═════════════════════════════════════════════════ */
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.section-header .section-title {
+		margin: 0;
+	}
+
+	.view-all-link {
+		font-size: 0.8rem;
+		color: #ff6b9d;
+		text-decoration: none;
+	}
+
+	.view-all-link:hover {
+		text-decoration: underline;
+	}
+
+	.achievements-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.empty-achievements {
+		color: #6b7280;
+		font-size: 0.85rem;
+		text-align: center;
+		padding: 1rem;
 	}
 
 	/* ═════════════════════════════════════════════════

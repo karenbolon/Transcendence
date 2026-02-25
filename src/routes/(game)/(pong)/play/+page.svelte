@@ -2,6 +2,7 @@
 	import PongGame from "$lib/component/pong/PongGame.svelte";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
+	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
 	import {
 		SPEED_CONFIGS,
 		type SpeedPreset,
@@ -41,11 +42,31 @@
 
 	let saveStatus = $state<"idle" | "saving" | "saved" | "error">("idle");
 
+	// Progression state for level-up modal
+	let showLevelUpModal = $state(false);
+	let progressionResult = $state<{
+		xpEarned: number;
+		bonuses: { name: string; amount: number }[];
+		oldLevel: number;
+		newLevel: number;
+		currentXp: number;
+		xpForNextLevel: number;
+		newAchievements: {
+			id: string;
+			name: string;
+			description: string;
+			tier: string;
+		}[];
+	} | null>(null);
+
 	async function handleGameOver(result: {
 		score1: number;
 		score2: number;
 		winner: "player1" | "player2";
 		durationSeconds: number;
+		ballReturns: number;
+		maxDeficit: number;
+		reachedDeuce: boolean;
 	}) {
 		saveStatus = "saving";
 
@@ -68,11 +89,21 @@
 					winScore,
 					speedPreset,
 					durationSeconds: result.durationSeconds,
+					ballReturns: result.ballReturns,
+					maxDeficit: result.maxDeficit,
+					reachedDeuce: result.reachedDeuce,
 				}),
 			});
 
 			if (response.ok) {
 				saveStatus = "saved";
+				const data = await response.json();
+
+				// Show progression modal after every match
+				if (data.progression) {
+					progressionResult = data.progression;
+					showLevelUpModal = true;
+				}
 			} else {
 				// Not logged in or validation error — still fine, game works
 				const data = await response.json();
@@ -127,6 +158,11 @@
 					<span class="save-indicator saving">Saving match...</span>
 				{:else if saveStatus === "saved"}
 					<span class="save-indicator saved">✓ Match saved</span>
+					{#if progressionResult}
+						<span class="xp-indicator"
+							>+{progressionResult.xpEarned} XP</span
+						>
+					{/if}
 				{:else if saveStatus === "error"}
 					<span class="save-indicator error"
 						>Match not saved (not logged in?)</span
@@ -136,6 +172,23 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Level-Up / Achievement Modal -->
+{#if showLevelUpModal && progressionResult}
+	<LevelUpModal
+		xpEarned={progressionResult.xpEarned}
+		bonuses={progressionResult.bonuses}
+		oldLevel={progressionResult.oldLevel}
+		newLevel={progressionResult.newLevel}
+		currentXp={progressionResult.currentXp}
+		xpForNextLevel={progressionResult.xpForNextLevel}
+		newAchievements={progressionResult.newAchievements}
+		onClose={() => {
+			showLevelUpModal = false;
+			progressionResult = null;
+		}}
+	/>
+{/if}
 
 <style>
 	.game-container {
@@ -180,5 +233,23 @@
 	.save-indicator.error {
 		color: #9ca3af;
 		font-style: italic;
+	}
+
+	.xp-indicator {
+		color: #ff6b9d;
+		font-size: 0.85rem;
+		font-weight: 600;
+		animation: xpPop 0.3s ease-out;
+	}
+
+	@keyframes xpPop {
+		from {
+			transform: scale(0.5);
+			opacity: 0;
+		}
+		to {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 </style>

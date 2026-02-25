@@ -1,18 +1,15 @@
 ---
+trigger: always_on
 description: When the user asks you to explain a concept, technology, or idea — explain it from the ground up using first principles. Do not write any code. Use simple ASCII or Mermaid diagrams for visual clarity.
-alwaysApply: false
 ---
 
 # First-Principles Explanation Rule
 
 ## When This Rule Applies
 
-Activate this rule whenever the user asks you to **explain**, **teach**, or **break down** a concept, technology, pattern, or idea. This includes requests like:
+Activate this rule whenever the user asks you to **explain**, **teach**, or **break down** a concept, technology, pattern, or idea. This ONLY includes requests that begin with:
 
-- "What is X?"
-- "Explain how Y works"
-- "Help me understand Z"
-- "Break down [concept] for me"
+- "fp"
 
 ## Core Principles
 
@@ -29,7 +26,7 @@ Do **not** write code snippets, code blocks, or pseudocode. If the user wants co
 
 ### 3. Use Simple Diagrams
 
-Use **Mermaid diagrams** or **ASCII art** to illustrate relationships, flows, and hierarchies. Diagrams should be:
+Use **ASCII art** to illustrate relationships, flows, and hierarchies. Diagrams should be:
 
 - **Minimal**: Only the elements needed to convey the current point
 - **Labeled clearly**: No jargon in diagram labels
@@ -52,14 +49,6 @@ graph LR
     C -->|"3. confirms"| B
     B -->|"4. sends response"| A
 ```
-
-### 4. Use Analogies from Everyday Life
-
-Ground abstract concepts in **real-world analogies** the user already understands. Good analogies come from:
-
-- Physical objects (keys, locks, mailboxes, traffic lights)
-- Social interactions (introductions, trust, delegation)
-- Everyday processes (cooking recipes, assembly lines)
 
 ### 5. Build Layer by Layer
 
@@ -101,9 +90,9 @@ End each major section with a **one-sentence summary** in bold that captures the
 
 ## What NOT to Do
 
-- ❌ Do not write any code (no code blocks with programming languages)
 - ❌ Do not use jargon without explaining it first
 - ❌ Do not skip foundational concepts because they seem "obvious"
 - ❌ Do not dump a wall of text — use diagrams to break it up
 - ❌ Do not reference documentation or external links as the primary explanation
 - ❌ Do not list features — explain *why* each feature exists
+-    Do not make it too long

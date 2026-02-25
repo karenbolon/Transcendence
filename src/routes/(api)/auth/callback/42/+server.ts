@@ -157,6 +157,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			...sessionCookie.attributes
 		});
 
+		// Step 5: Mark user as online
+		await db
+			.update(users)
+			.set({ is_online: true })
+			.where(eq(users.id, userId));
+
 		// Redirect to dashboard
 		redirect(302, '/dashboard');
 	} catch (err) {

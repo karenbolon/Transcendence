@@ -69,14 +69,10 @@ export function generateAuthorizationUrl(provider: OAuthProvider, state: string)
 /**
  * Exchange authorization code for access token
  * 
- * TODO: SECURITY - Token encryption needed!
- * The returned access_token and refresh_token should be encrypted before storing in database.
- * Currently they are stored as PLAIN TEXT which is a security risk.
- * 
- * Recommended approach:
- *   import { encryptString } from '@oslojs/crypto/aes';
- *   const encryptedToken = await encryptString(access_token, process.env.TOKEN_ENCRYPTION_KEY);
- *   // Then store encryptedToken in database
+ * Note: The returned access_token and refresh_token are encrypted before
+ * storing in the database using AES-256-GCM encryption.
+ * See: src/lib/server/auth/token-encryption.ts
+ * Implementation: src/routes/(api)/auth/callback/{provider}/+server.ts
  */
 export async function exchangeCodeForToken(
 	provider: OAuthProvider,

@@ -384,9 +384,9 @@ psql -d pong_db -c "DELETE FROM oauth_accounts;"
 
 ## Additional Resources
 
-- **Full Documentation:** `OAUTH_TOKEN_ENCRYPTION_COMPLETE.md`
-- **Security Guide:** `OAUTH_SECURITY_TODO.md`
-- **OAuth Setup:** `OAUTH_SETUP_COMPLETE.md`
+- **Full Documentation:** `TOKEN_ENCRYPTION_IMPLEMENTATION.md`
+- **Security Implementation:** `SECURE_COOKIES_IMPLEMENTED.md`
+- **OAuth Reference:** `README_OAUTH.md`
 - **Test Suite:** `src/lib/server/auth/test_auth/token-encryption.test.ts`
 - **Implementation:** `src/lib/server/auth/token-encryption.ts`
 
@@ -400,7 +400,7 @@ psql -d pong_db -c "DELETE FROM oauth_accounts;"
 - Examine OAuth callback implementations
 
 **Security Concerns?**
-- Review `OAUTH_TOKEN_ENCRYPTION_COMPLETE.md`
+- Review `TOKEN_ENCRYPTION_IMPLEMENTATION.md`
 - Follow OWASP best practices
 - Consider security audit for production
 
@@ -408,4 +408,4 @@ psql -d pong_db -c "DELETE FROM oauth_accounts;"
 
 **Status:** ✅ Production Ready  
 **Tests:** 271/271 Passing  
-**Last Updated:** February 16, 2026
+**Last Updated:** January 2025

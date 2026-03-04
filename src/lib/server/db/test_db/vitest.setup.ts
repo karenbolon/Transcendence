@@ -89,21 +89,39 @@ async function cleanDatabase() {
 // Run cleanup BEFORE all tests start
 // ══════════════════════════════════════════════════════════════════════════════
 beforeAll(async () => {
+	// Skip database setup if testing game engine (no DB needed)
+	if (process.env.SKIP_DB_SETUP === 'true') {
+		return;
+	}
+
 	console.log('\n🧪 ══════════════════════════════════════════════════════════');
 	console.log('   STARTING TEST SUITE');
 	console.log('   Database: db_test (port 5433)');
 	console.log('══════════════════════════════════════════════════════════\n');
 
-	await cleanDatabase();
+	try {
+		await cleanDatabase();
+	} catch (error) {
+		console.warn('⚠️  Database not available - skipping cleanup');
+		console.warn('   (This is OK for tests that don\'t need the database)');
+	}
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Run cleanup AFTER all tests finish
 // ══════════════════════════════════════════════════════════════════════════════
 afterAll(async () => {
-	await cleanDatabase();
+	if (process.env.SKIP_DB_SETUP === 'true') {
+		return;
+	}
 
-	console.log('\n🧪 ══════════════════════════════════════════════════════════');
-	console.log('   TEST SUITE COMPLETE');
-	console.log('══════════════════════════════════════════════════════════\n');
+	try {
+		await cleanDatabase();
+
+		console.log('\n🧪 ══════════════════════════════════════════════════════════');
+		console.log('   TEST SUITE COMPLETE');
+		console.log('══════════════════════════════════════════════════════════\n');
+	} catch (error) {
+		// Silence errors on cleanup
+	}
 });

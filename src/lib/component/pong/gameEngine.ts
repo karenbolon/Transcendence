@@ -354,15 +354,21 @@ export function computeComputerInput(state: GameState): InputState {
 		// Predict future ball position
 		let predictedY = state.ballY + (state.ballVY * timeToReach);
 		
-		// Simulate wall bounces iteratively (fuzzy trajectory prediction)
-		while (predictedY < 0 || predictedY > CANVAS_HEIGHT) {
+		// Simulate wall bounces with safety limit (prevent infinite loops)
+		let bounces = 0;
+		const maxBounces = 10; // Safety limit
+		
+		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
 			if (predictedY < 0) {
-				predictedY = -predictedY;
-			}
-			if (predictedY > CANVAS_HEIGHT) {
+				predictedY = Math.abs(predictedY);
+			} else if (predictedY > CANVAS_HEIGHT) {
 				predictedY = 2 * CANVAS_HEIGHT - predictedY;
 			}
+			bounces++;
 		}
+		
+		// Clamp if still out of bounds (safety fallback)
+		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
 		
 		targetY = predictedY;
 	} 

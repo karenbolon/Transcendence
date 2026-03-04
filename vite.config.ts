@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
 
 	test: {
 		env: loadEnv('test', process.cwd(), ''),
-		setupFiles: ['src/lib/server/db/test_db/vitest.setup.ts'],
+		// Setup files are now conditional per project
 		fileParallelism: false,
 
 		expect: { requireAssertions: true },
@@ -38,8 +38,24 @@ export default defineConfig(({ mode }) => ({
 				test: {
 					name: 'server',
 					environment: 'node',
+					// Only setup database for tests that import from db
+					setupFiles: ['src/lib/server/db/test_db/vitest.setup.ts'],
 					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					exclude: [
+						'src/**/*.svelte.{test,spec}.{js,ts}',
+						'src/lib/component/**/*.{test,spec}.{js,ts}' // Game engine tests don't need DB
+					]
+				}
+			},
+			{
+				extends: './vite.config.ts',
+
+				test: {
+					name: 'component',
+					environment: 'node',
+					// No database setup for component tests
+					include: ['src/lib/component/**/*.{test,spec}.{js,ts}'],
+					exclude: []
 				}
 			}
 		]

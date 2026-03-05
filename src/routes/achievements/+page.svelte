@@ -4,8 +4,11 @@
 	import AchievementDetailModal from '$lib/component/progression/AchievementDetailModal.svelte';
 	import XpBar from '$lib/component/progression/XpBar.svelte';
 	import LevelBadge from '$lib/component/progression/LevelBadge.svelte';
+	import { CATEGORYLABELS, DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
 
 	let { data }: { data: PageData } = $props();
+
+	let progression = $derived(data.progression ?? DEFAULT_PROGRESSION);
 
 	let selectedCategory = $state<string | null>(null);
 	let selectedAchievement = $state<(typeof data.achievements)[number] | null>(
@@ -17,20 +20,6 @@
 			? data.achievements.filter((a) => a.category === selectedCategory)
 			: data.achievements,
 	);
-
-	const categoryLabels: Record<string, string> = {
-		onboarding: '⭐ Onboarding',
-		social: '🤝 Social',
-		origins: '🌀 Origins',
-		tournament: '🏟️ Tournament',
-		shutout: '🛡️ Shutout',
-		streak: '🔥 Streaks',
-		scorer: '🎯 Scorer',
-		veteran: '🎮 Veteran',
-		comeback: '💪 Comeback',
-		rally: '🏓 Rally',
-		secret: '🕵️ Secret',
-	};
 
 	let completionPercent = $derived(
 		data.totalCount > 0
@@ -74,17 +63,10 @@
 			</div>
 		</div>
 
-		<!-- {#if data.progression}
-			<XpBar
-				currentXp={data.progression.currentXp}
-				xpToNextLevel={data.progression.xpToNextLevel}
-				level={data.progression.level}
-			/>
-		{/if} -->
 		<XpBar
-			currentXp={data.progression?.currentXp ?? 0}
-			xpToNextLevel={data.progression?.xpToNextLevel ?? 100}
-			level={data.progression?.level ?? 1}
+			currentXp={progression.currentXp}
+			xpToNextLevel={progression.xpToNextLevel}
+			level={progression.level}
 		/>
 	</section>
 
@@ -103,7 +85,7 @@
 				class:active={selectedCategory === cat}
 				onclick={() => (selectedCategory = cat)}
 			>
-				{categoryLabels[cat] ?? cat}
+				{CATEGORYLABELS[cat] ?? cat}
 			</button>
 		{/each}
 	</nav>
@@ -155,6 +137,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+		margin: 2rem;
 	}
 
 	.header-top {

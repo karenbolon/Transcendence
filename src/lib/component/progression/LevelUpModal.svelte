@@ -1,20 +1,17 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import XpBar from "./XpBar.svelte";
+	import { TIER_EMOJIS, getMilestone } from '$lib/utils/format_progression';
+	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 
 	type Props = {
 		xpEarned: number;
-		bonuses: { name: string; amount: number }[];
+		bonuses: XpBonus[];
 		oldLevel: number;
 		newLevel: number;
 		currentXp: number;
 		xpForNextLevel: number;
-		newAchievements: {
-			id: string;
-			name: string;
-			description: string;
-			tier: string;
-		}[];
+		newAchievements: NewAchievement[];
 		onClose: () => void;
 	};
 
@@ -32,24 +29,7 @@
 	let isVisible = $state(false);
 	let didLevelUp = $derived(newLevel > oldLevel);
 
-	const tierEmojis: Record<string, string> = {
-		bronze: "🥉",
-		silver: "🥈",
-		gold: "🥇",
-	};
-
-	const MILESTONES: { minLevel: number; icon: string }[] = [
-		{ minLevel: 50, icon: "👑" },
-		{ minLevel: 30, icon: "🦄" },
-		{ minLevel: 20, icon: "💎" },
-		{ minLevel: 10, icon: "🔥" },
-		{ minLevel: 5, icon: "⚡" },
-		{ minLevel: 0, icon: "🌱" },
-	];
-
-	let newMilestoneIcon = $derived(
-		MILESTONES.find((m) => newLevel >= m.minLevel)?.icon ?? "🌱",
-	);
+	let newMilestoneIcon = $derived(getMilestone(newLevel).icon);
 
 	onMount(() => {
 		// Trigger entrance animation
@@ -127,7 +107,7 @@
 				{#each newAchievements as ach}
 					<div class="achievement-row">
 						<span class="achievement-tier"
-							>{tierEmojis[ach.tier] ?? "🏅"}</span
+							>{TIER_EMOJIS[ach.tier] ?? "🏅"}</span
 						>
 						<div class="achievement-info">
 							<span class="achievement-name">{ach.name}</span>

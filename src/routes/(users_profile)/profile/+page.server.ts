@@ -1,16 +1,16 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { games, users, player_progression, achievements, achievement_definitions } from '$lib/server/db/schema';
+import { games, users, player_progression } from '$lib/server/db/schema';
 import { eq, or, desc, and, inArray } from 'drizzle-orm';
+import { calcWinRate } from '$lib/utils/format_game';
+import { mapProgressionRow } from '$lib/utils/format_utils';
+import type { Tier } from '$lib/types/progression';
+import { requireAuth } from '$lib/server/auth/helpers';
+import { getUserAchievements } from '$lib/server/db/helpers_queries';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// ── AUTH GUARD ──────────────────────────────────────────────
-	if (!locals.user) {
-		throw redirect(302, '/login');
-	}
-
-	const userId = Number(locals.user.id);
+	const userId = requireAuth(locals);
 
 	const [user] = await db
 		.select()
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const wins = user.wins ?? 0;
 	const losses = user.losses ?? 0;
 	const totalGames = wins + losses;
-	const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+	const winRate = calcWinRate(wins, totalGames);
 
 	// ── FETCH MATCH HISTORY ────────────────────────────────────
 	const matches = await db
@@ -100,20 +100,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.where(eq(player_progression.user_id, userId));
 
 	// ── FETCH ACHIEVEMENTS (with definitions) ──────────────────
-	const userAchievements = await db
-		.select({
-			id: achievement_definitions.id,
-			name: achievement_definitions.name,
-			description: achievement_definitions.description,
-			tier: achievement_definitions.tier,
-			category: achievement_definitions.category,
-			icon: achievement_definitions.icon,
-			unlockedAt: achievements.unlocked_at,
-		})
-		.from(achievements)
-		.innerJoin(achievement_definitions, eq(achievements.achievement_id, achievement_definitions.id))
-		.where(eq(achievements.user_id, userId))
-		.orderBy(desc(achievements.unlocked_at));
+	const userAchievements = await getUserAchievements(userId);
 
 	// ── RETURN DATA ────────────────────────────────────────────
 	return {
@@ -124,8 +111,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			email: user.email,
 			avatarUrl: user.avatar_url ?? null,
 			bio: user.bio ?? null,
-			isOnline: user.is_online,
+			isOnline: user.is_online ?? false,
 			createdAt: user.created_at,
+			// createdAt: user.created_at ?? new Date(),
 		},
 		matches: formattedMatches,
 		stats: {
@@ -133,20 +121,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 			wins,
 			losses,
 			winRate,
+			currentStreak: progression?.current_win_streak ?? 0,
+			bestStreak: progression?.best_win_streak ?? 0,
 		},
 		progression: progression
 			? {
-				level: progression.current_level,
-				currentXp: progression.current_xp,
-				xpToNextLevel: progression.xp_to_next_level,
+				...mapProgressionRow(progression),
 				totalXp: progression.total_xp,
 				currentWinStreak: progression.current_win_streak,
 				bestWinStreak: progression.best_win_streak,
 			}
 			: null,
-		achievements: userAchievements.map(a => ({
-			...a,
-			unlockedAt: a.unlockedAt?.toISOString() ?? null,
+		achievements: userAchievements,
+		earnedBadges: userAchievements.map(a => ({
+			id: a.id,
+			name: a.name,
+			icon: a.icon,
+			tier: a.tier as Tier,
+			category: a.category,
+			unlockedAt: a.unlockedAt ?? '',
 		})),
 	};
 };

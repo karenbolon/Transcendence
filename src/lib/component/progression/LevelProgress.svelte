@@ -1,25 +1,15 @@
 <script lang="ts">
-	type Props = {
-		level: number;
-		size?: 'sm' | 'md' | 'lg';
-	};
+	import { getTierColor } from '$lib/utils/format_progression';
+	import type { LevelSizeProps } from '$lib/types/progression';
 
-	let { level, size = 'md' }: Props = $props();
-
-	// Color tiers based on level
-	let tierColor = $derived(() => {
-		if (level >= 50) return { from: '#ffd700', to: '#ff8c00', label: 'legendary' };
-		if (level >= 30) return { from: '#a855f7', to: '#7c3aed', label: 'epic' };
-		if (level >= 20) return { from: '#ff6b9d', to: '#e84393', label: 'gold' };
-		if (level >= 10) return { from: '#60a5fa', to: '#3b82f6', label: 'silver' };
-		return { from: '#4ade80', to: '#22c55e', label: 'bronze' };
-	});
+	let { level, size = "md" }: LevelSizeProps = $props();
+	let tierColor = $derived(getTierColor(level));
 </script>
 
 <div class="level-badge {size}" title="Level {level}">
 	<div
 		class="level-ring"
-		style="background: linear-gradient(135deg, {tierColor().from}, {tierColor().to});"
+		style="background: linear-gradient(135deg, {tierColor.from}, {tierColor.to});"
 	>
 		<div class="level-inner">
 			<span class="level-num">{level}</span>

@@ -1,15 +1,7 @@
 <script lang="ts">
-	type Achievement = {
-		id: string;
-		name: string;
-		description: string;
-		tier: string;
-		category: string;
-		icon: string;
-		unlockedAt: string | null;
-		progress?: [number, number] | null;
-		hint?: string | null;
-	};
+	import { formatJoinDate } from "$lib/utils/format_date";
+	import { XP_REWARDS, TIER_COLORS, RARITY_PERCENT, capitalize } from '$lib/utils/format_progression';
+	import type { Achievement } from '$lib/types/progression';
 
 	type Props = {
 		achievement: Achievement | null;
@@ -20,46 +12,12 @@
 
 	let earned = $derived(!!achievement?.unlockedAt);
 
-	const xpRewards: Record<string, number> = {
-		bronze: 50,
-		silver: 100,
-		gold: 200,
-		legendary: 500,
-	};
-
-	const rarityPercent: Record<string, string> = {
-		bronze: '72%',
-		silver: '38%',
-		gold: '15%',
-		legendary: '3%',
-	};
-
-	const tierColors: Record<string, string> = {
-		bronze: '#cd7f32',
-		silver: '#c0c0d2',
-		gold: '#ffd700',
-		legendary: '#a855f7',
-	};
-
-	let xp = $derived(xpRewards[achievement?.tier ?? 'bronze'] ?? 50);
-	let rarity = $derived(rarityPercent[achievement?.tier ?? 'bronze'] ?? '50%');
+	let xp = $derived(XP_REWARDS[achievement?.tier ?? 'bronze'] ?? 50);
+	let rarity = $derived(RARITY_PERCENT[achievement?.tier ?? 'bronze'] ?? '50%');
 	let tierColor = $derived(
-		tierColors[achievement?.tier ?? 'bronze'] ?? '#7a7a9e',
+		TIER_COLORS[achievement?.tier ?? 'bronze'] ?? '#7a7a9e',
 	);
-	let tierLabel = $derived(
-		achievement
-			? achievement.tier.charAt(0).toUpperCase() +
-				achievement.tier.slice(1)
-			: '',
-	);
-
-	function formatDate(iso: string): string {
-		return new Date(iso).toLocaleDateString('en-US', {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric',
-		});
-	}
+	let tierLabel = $derived(achievement ? capitalize(achievement.tier) : '');
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
@@ -127,7 +85,7 @@
 					<div class="modal-row">
 						<span class="row-label">Unlocked</span>
 						<span class="row-value date"
-							>{formatDate(achievement.unlockedAt)}</span
+							>{formatJoinDate(achievement.unlockedAt)}</span
 						>
 					</div>
 				{/if}

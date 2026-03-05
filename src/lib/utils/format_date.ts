@@ -13,7 +13,7 @@ export function formatDate(date: Date | string): string {
 	if (diffDays < 7) return `${diffDays}d ago`;
 
 	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+};
 
 /** Format seconds as "Xm Ys" */
 export function formatDuration(seconds: number | null): string {
@@ -21,7 +21,7 @@ export function formatDuration(seconds: number | null): string {
 	const m = Math.floor(seconds / 60);
 	const s = seconds % 60;
 	return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
+};
 
 /** Format a date as full date ("January 15, 2025") */
 export function formatJoinDate(date: Date | string): string {
@@ -30,4 +30,4 @@ export function formatJoinDate(date: Date | string): string {
 		year: 'numeric',
 		day: 'numeric',
 	});
-}
+};

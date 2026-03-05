@@ -1,11 +1,12 @@
 // src/lib/server/db/seed.ts — Development seed for main database
 // Usage: npm run db:seed
 import 'dotenv/config';
-import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, achievement_definitions, achievements } from './schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, achievement_definitions, achievements, player_progression } from './schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import { hash } from '@node-rs/argon2';
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Database connection
@@ -48,6 +49,7 @@ async function seed() {
 	await db.delete(messages).execute().catch(() => {});
 	await db.delete(sessions).execute().catch(() => {});
 	await db.delete(achievements).execute().catch(() => {});
+	await db.delete(player_progression).execute().catch(() => {});
 	await db.delete(friendships).execute();
 	await db.delete(games).execute();
 	await db.delete(tournamentParticipants).execute();
@@ -211,6 +213,31 @@ async function seed() {
 			}).where(eq(users.id, cu.id));
 			console.log(`  ${cu.username}: ${s.wins}W ${s.losses}L (${s.played} games)`);
 		}
+	}
+
+	// Step 6b: Seed player progression
+	console.log('\nSeeding player progression...');
+
+	const progressionData = [
+		{ userId: u(0).id, level: 5, totalXp: 850,  currentXp: 50,  xpToNext: 200, winStreak: 2, bestStreak: 3 },
+		{ userId: u(1).id, level: 4, totalXp: 620,  currentXp: 120, xpToNext: 200, winStreak: 1, bestStreak: 2 },
+		{ userId: u(2).id, level: 4, totalXp: 580,  currentXp: 80,  xpToNext: 200, winStreak: 2, bestStreak: 2 },
+		{ userId: u(3).id, level: 3, totalXp: 350,  currentXp: 50,  xpToNext: 150, winStreak: 0, bestStreak: 1 },
+		{ userId: u(4).id, level: 3, totalXp: 300,  currentXp: 0,   xpToNext: 150, winStreak: 1, bestStreak: 1 },
+	];
+
+	for (const p of progressionData) {
+		await db.insert(player_progression).values({
+			user_id: p.userId,
+			current_level: p.level,
+			total_xp: p.totalXp,
+			current_xp: p.currentXp,
+			xp_to_next_level: p.xpToNext,
+			current_win_streak: p.winStreak,
+			best_win_streak: p.bestStreak,
+		});
+		const username = createdUsers.find(cu => cu.id === p.userId)?.username;
+		console.log(`  ${username}: Level ${p.level}, ${p.totalXp} XP, streak ${p.winStreak}/${p.bestStreak}`);
 	}
 
 	// Step 7: Seed achievement definitions + user achievements

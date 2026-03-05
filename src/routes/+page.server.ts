@@ -2,7 +2,10 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { games, users, friendships, tournaments, tournamentParticipants, achievements, achievement_definitions } from '$lib/server/db/schema';
 import { eq, or, desc, and, count, inArray, gte } from 'drizzle-orm';
-import type { ActivityItem } from '$lib/types/dashboard';
+import type { ActivityItem, Tournament } from '$lib/types/dashboard';
+import { getFriendIds } from '$lib/server/db/helpers_queries';
+import { calcWinRate } from '$lib/utils/format_game';
+
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -62,9 +65,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isOnline: u.is_online,
 			wins: userWins[u.id]?.wins ?? 0,
 			totalGames: userWins[u.id]?.total ?? 0,
-			winRate: userWins[u.id]?.total > 0
-				? Math.round((userWins[u.id].wins / userWins[u.id].total) * 100)
-				: 0,
+			winRate: calcWinRate(userWins[u.id]?.wins ?? 0, userWins[u.id]?.total ?? 0),
 		}))
 		.filter((u) => u.totalGames > 0)
 		.sort((a, b) => b.wins - a.wins)
@@ -75,22 +76,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// ═══════════════════════════════════════════════════════
 	let friendIds: number[] = [];
 	try {
-		const friendRows = await db
-			.select()
-			.from(friendships)
-			.where(
-				and(
-					eq(friendships.status, 'accepted'),
-					or(
-						eq(friendships.user_id, userId),
-						eq(friendships.friend_id, userId)
-					)
-				)
-			);
-
-		friendIds = friendRows.map((f) =>
-			f.user_id === userId ? f.friend_id : f.user_id
-		);
+		friendIds = await getFriendIds(userId);
 	} catch {
 		friendIds = [];
 	}
@@ -107,9 +93,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isOnline: u.is_online,
 			wins: userWins[u.id]?.wins ?? 0,
 			totalGames: userWins[u.id]?.total ?? 0,
-			winRate: userWins[u.id]?.total > 0
-				? Math.round((userWins[u.id].wins / userWins[u.id].total) * 100)
-				: 0,
+			winRate: calcWinRate(userWins[u.id]?.wins ?? 0, userWins[u.id]?.total ?? 0),
 		}))
 		.sort((a, b) => b.wins - a.wins)
 		.slice(0, 3);
@@ -214,15 +198,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// ═══════════════════════════════════════════════════════
 	//  OPEN TOURNAMENTS
 	// ═══════════════════════════════════════════════════════
-		let openTournaments: Array<{
-		id: number;
-		name: string;
-		playerCount: number;
-		maxPlayers: number;
-		startsAt: Date | null;
-		format: string;
-		status: string;
-	}> = [];
+		let openTournaments: Tournament[] = [];
 
 	try {
 		const tournRows = await db
@@ -256,7 +232,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 	} catch {
 		// tournaments table might not be populated yet
 	}
-
 
 	return {
 		loggedIn: true as const,

@@ -3,14 +3,8 @@
 	import LevelProgress from './progression/LevelProgress.svelte';
 	import XpBar from './progression/XpBar.svelte';
 	import { formatJoinDate } from '$lib/utils/format_date';
-
-	type FriendshipStatus = 'accepted' | 'pending' | null;
-
-	type Progression = {
-		level: number;
-		currentXp: number;
-		xpToNextLevel: number;
-	};
+	import type { Progression, FriendshipStatus } from '$lib/types/progression';
+	import { DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
 
 	type Props = {
 		username: string;
@@ -50,13 +44,7 @@
 		onmessage,
 	}: Props = $props();
 
-	let level = $derived(progression?.level ?? 1);
-	let currentXp = $derived(progression?.currentXp ?? 0);
-	let xpToNextLevel = $derived(progression?.xpToNextLevel ?? 100);
-	let xpPercent = $derived(
-		xpToNextLevel > 0 ? Math.round((currentXp / xpToNextLevel) * 100) : 0,
-	);
-
+	let prog = $derived(progression ?? DEFAULT_PROGRESSION);
 </script>
 
 <div class="banner">
@@ -115,12 +103,12 @@
 	<!-- XP bar section -->
 	<div class="banner-xp">
 		<div class="xp-row">
-			<LevelProgress {level} size="md" />
+			<LevelProgress level={prog.level} size="md" />
 			<div class="xp-area">
 				<XpBar
-					{currentXp}
-					{xpToNextLevel}
-					{level}
+					currentXp={prog.currentXp}
+					xpToNextLevel={prog.xpToNextLevel}
+					level={prog.level}
 				/>
 			</div>
 		</div>

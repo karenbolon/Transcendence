@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { lucia } from '$lib/server/auth/lucia';
 import { verifyPassword } from '$lib/server/auth/password';
+import { requireAuth, clearSessionCookie } from '$lib/server/auth/helpers';
 import { eq } from 'drizzle-orm';
 
 export const actions: Actions = {
@@ -59,11 +60,7 @@ export const actions: Actions = {
 		await lucia.invalidateUserSessions(String(user.id));
 
 		// ── CLEAR COOKIE ───────────────────────────────────────────
-		const sessionCookie = lucia.createBlankSessionCookie();
-		cookies.set(sessionCookie.name, sessionCookie.value, {
-			path: '.',
-			...sessionCookie.attributes
-		});
+		clearSessionCookie(cookies);
 
 		redirect(302, '/');
 	}

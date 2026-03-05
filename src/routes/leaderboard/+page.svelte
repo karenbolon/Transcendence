@@ -7,15 +7,14 @@
 ═══════════════════════════════════════════════════════════════════════════ -->
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { RANK_MEDALS } from '$lib/utils/format_progression';
+	import { calcWinRate } from '$lib/utils/format_game';
 
 	let { data }: { data: PageData } = $props();
 
 	// Top 3 for the podium, rest for the table
-	const podium = data.rankings.slice(0, 3);
-	const rest = data.rankings.slice(3);
-
-	// Medal emojis for top 3
-	const medals = ['🥇', '🥈', '🥉'];
+	let podium = $derived(data.rankings.slice(0, 3));
+	let rest = $derived(data.rankings.slice(3));
 </script>
 
 <div class="leaderboard-page">
@@ -33,7 +32,7 @@
 			<section class="podium">
 				{#each podium as player, i}
 					<div class="podium-card rank-{i + 1}">
-						<span class="medal">{medals[i]}</span>
+						<span class="medal">{RANK_MEDALS[i]}</span>
 						<div class="podium-avatar">
 							{#if player.avatarUrl}
 								<img src={player.avatarUrl} alt="" class="podium-avatar-img" />
@@ -96,7 +95,7 @@
 				</div>
 				{#each podium as player}
 					<div class="table-row">
-						<span class="col-rank">{medals[player.rank - 1]}</span>
+						<span class="col-rank">{RANK_MEDALS[player.rank - 1]}</span>
 						<span class="col-player">
 							<span class="row-avatar">
 								{#if player.avatarUrl}

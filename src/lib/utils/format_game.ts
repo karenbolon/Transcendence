@@ -6,7 +6,7 @@ export function formatMode(mode: string): string {
 		case 'online': return 'Online';
 		default: return mode;
 	}
-}
+};
 
 /** Speed preset to emoji */
 export function speedEmoji(preset: string): string {
@@ -16,7 +16,7 @@ export function speedEmoji(preset: string): string {
 		case 'fast': return '🔥';
 		default: return '';
 	}
-}
+};
 
 /** Format tournament time */
 export function formatTournamentTime(date: Date | string | null): string {
@@ -35,7 +35,7 @@ export function formatTournamentTime(date: Date | string | null): string {
 		hour: 'numeric',
 		minute: '2-digit',
 	});
-}
+};
 
 /** Format tournament for display */
 export function formatTournamentFormat(format: string): string {
@@ -45,4 +45,8 @@ export function formatTournamentFormat(format: string): string {
 		case 'round_robin': return 'Round robin';
 		default: return format;
 	}
-}
+};
+
+export function calcWinRate(wins: number, total: number): number {
+	return total > 0 ? Math.round((wins / total) * 100) : 0;
+};

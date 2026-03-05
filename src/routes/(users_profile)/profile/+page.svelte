@@ -1,27 +1,27 @@
 <script lang="ts">
 	import EditProfileModal from "$lib/component/EditProfileModal.svelte";
 	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
-	import XpBar from "$lib/component/progression/XpBar.svelte";
 	import LevelBadge from "$lib/component/progression/LevelBadge.svelte";
 	import AchievementCard from "$lib/component/progression/AchievementCard.svelte";
 	import { formatDate, formatDuration } from "$lib/utils/format_date";
 	import { speedEmoji, formatMode } from "$lib/utils/format_game";
 	import type { PageData } from "./$types";
 	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
+	import type { ProfileEditData } from "$lib/types/utils";
 
 	let { data }: { data: PageData } = $props();
 
 	let showEditModal = $state(false);
 
-	// Reactive user data that updates after edit
-	let userName = $state(data.user.name);
-	let userBio = $state(data.user.bio);
-	let userAvatarUrl = $state(data.user.avatarUrl);
+	// Local override for edited profile data
+	let editOverride = $state<ProfileEditData | null>(null);
+
+	let userName = $derived(editOverride?.name ?? data.user.name);
+	let userBio = $derived(editOverride?.bio ?? data.user.bio);
+	let userAvatarUrl = $derived(editOverride?.avatarUrl ?? data.user.avatarUrl);
 
 	function handleEditSave(updated: { name: string; bio: string | null; avatarUrl: string | null }) {
-		userName = updated.name;
-		userBio = updated.bio;
-		userAvatarUrl = updated.avatarUrl;
+		editOverride = updated;
 	}
 
 	// SVG ring: circumference = 2 * PI * 20 ≈ 125.66
@@ -43,12 +43,12 @@
 		oneditprofile={() => showEditModal = true}
 	/>
 
-	<EditProfileModal
+	<!-- <EditProfileModal
 		open={showEditModal}
 		user={{ name: userName, bio: userBio, avatarUrl: userAvatarUrl }}
 		onclose={() => showEditModal = false}
 		onsave={handleEditSave}
-	/>
+	/> -->
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     STATS CARDS
@@ -87,7 +87,7 @@
 	<!-- ═══════════════════════════════════════════════════════════
 	     PROGRESSION and ACHIEVEMENTS
 	═══════════════════════════════════════════════════════════ -->
-	{#if data.progression}
+	<!-- {#if data.progression}
 		<section class="progression-section">
 			<div class="progression-header">
 				<LevelBadge level={data.progression.level} size="lg" />
@@ -106,41 +106,28 @@
 				>
 			</div>
 		</section>
-	{/if}
+	{/if} -->
 
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">
-			<h2 class="section-title">Achievements</h2>
-			<a href="/achievements" class="view-all-link">View all →</a>
+			<h2 class="section-title">Milestones and Achievements</h2>
+			<!-- <a href="/achievements" class="view-all-link">View all →</a> -->
 		</div>
-		{#if data.achievements && data.achievements.length > 0}
-			<div class="achievements-grid">
-				{#each data.achievements.slice(0, 6) as ach}
-					<AchievementCard
-						id={ach.id}
-						name={ach.name}
-						description={ach.description}
-						tier={ach.tier}
-						icon={ach.icon}
-						unlockedAt={ach.unlockedAt}
-					/>
-				{/each}
-			</div>
-		{:else}
-			<p class="empty-achievements">
-				No achievements yet. Play matches to unlock them!
-			</p>
-		{/if}
+			{#if data.achievements && data.achievements.length > 0}
+				<BadgeDisplay badges={data.achievements ?? []}
+					progression={data.progression}
+					currentStreak={data.stats.currentStreak}
+					bestStreak={data.stats.bestStreak}
+					totalGames={data.stats.totalGames}
+					wins={data.stats.wins}
+				/>
+			{:else}
+				<p class="empty-achievements">
+					No achievements yet. Play matches to unlock them!
+				</p>
+			{/if}
 	</section>
-
-	<BadgeDisplay badges={data.earnedBadges ?? []}
-		progression={data.progression}
-		currentStreak={data.stats.currentStreak}
-		bestStreak={data.stats.bestStreak}
-		totalGames={data.stats.totalGames}
-		wins={data.stats.wins}
-	/>
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     MATCH HISTORY
@@ -306,10 +293,10 @@
 	}
 	.section-title {
 		font-size: 1.1rem;
-		font-weight: 600;
+		font-weight: 900;
 		color: #d1d5db;
 		/* margin: 0 0 0.75rem 0; */
-		margin: 0;
+		margin: 1rem;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -356,6 +343,14 @@
 		font-size: 0.85rem;
 		border-left: 2px solid transparent;
 		transition: all 0.2s;
+	}
+
+	.match-row:nth-child(even) {
+		background: rgba(255, 255, 255, 0.02);
+	}
+
+	.match-row:nth-child(odd) {
+		background: rgba(255, 255, 255, 0.05);
 	}
 
 	.match-row:hover { background: rgba(255, 255, 255, 0.04); }
@@ -447,7 +442,7 @@
 	/* ═════════════════════════════════════════════════
 	   PROGRESSION SECTION
 	   ═════════════════════════════════════════════════ */
-	.progression-section {
+	/* .progression-section {
 		padding: 1rem;
 		background: rgba(255, 255, 255, 0.03);
 		border: 1px solid rgba(255, 255, 255, 0.06);
@@ -471,7 +466,7 @@
 	.mini-stat {
 		font-size: 0.75rem;
 		color: #6b7280;
-	}
+	} */
 
 	/* ═════════════════════════════════════════════════
 	   ACHIEVEMENTS SECTION
@@ -485,22 +480,6 @@
 
 	.section-header .section-title {
 		margin: 0;
-	}
-
-	.view-all-link {
-		font-size: 0.8rem;
-		color: #ff6b9d;
-		text-decoration: none;
-	}
-
-	.view-all-link:hover {
-		text-decoration: underline;
-	}
-
-	.achievements-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
 	}
 
 	.empty-achievements {

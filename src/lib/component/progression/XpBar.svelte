@@ -1,17 +1,10 @@
 <script lang="ts">
-	type Props = {
-		currentXp: number;
-		xpToNextLevel: number;
-		level: number;
-	};
+	import type { Progression } from '$lib/types/progression';
+	import { xpPercent } from "$lib/utils/format_progression";
 
-	let { currentXp, xpToNextLevel, level }: Props = $props();
+	let { currentXp, xpToNextLevel, level }: Progression = $props();
 
-	let percentage = $derived(
-		xpToNextLevel > 0
-			? Math.min(Math.round((currentXp / xpToNextLevel) * 100), 100)
-			: 0,
-	);
+	let percentage = $derived(xpPercent(currentXp, xpToNextLevel));
 </script>
 
 <div class="xp-bar-container">

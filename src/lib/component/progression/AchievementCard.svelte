@@ -1,15 +1,10 @@
 <script lang="ts">
-	type Props = {
-		id: string;
-		name: string;
-		description: string;
-		tier: string;
-		category: string;
-		icon: string;
-		unlockedAt: Date | string | null;
-		progress?: [number, number] | null;
-		hint?: string | null;
+	import { XP_REWARDS } from '$lib/utils/format_progression';
+	import type { Achievement } from '$lib/types/progression';
+
+	type Props = Achievement & {
 		onclick?: () => void;
+		size?: 'md' | 'lg';
 	};
 
 	let {
@@ -21,18 +16,12 @@
 		progress = null,
 		hint = null,
 		onclick,
+		size = 'lg',
 		// icon = "🏆",
 		// unlockedAt = null,
 	}: Props = $props();
 
 	let earned = $derived(!!unlockedAt);
-
-	const xpRewards: Record<string, number> = {
-		bronze: 50,
-		silver: 100,
-		gold: 200,
-		legendary: 500,
-	};
 
 	// const tierEmojis: Record<string, string> = {
 	// 	bronze: "🥉",
@@ -43,14 +32,7 @@
 	// let tierEmoji = $derived(tierEmojis[tier] ?? "🏅");
 	// let isUnlocked = $derived(!!unlockedAt);
 
-	// function formatDate(date: Date | string): string {
-	// 	return new Date(date).toLocaleDateString("en-US", {
-	// 		month: "short",
-	// 		day: "numeric",
-	// 		year: "numeric",
-	// 	});
-	// }
-	let xp = $derived(xpRewards[tier] ?? 50);
+	let xp = $derived(XP_REWARDS[tier] ?? 50);
 </script>
 
 <button
@@ -76,16 +58,17 @@
 	<!-- Info -->
 	<div class="card-info">
 		<span class="card-name">{earned ? name : '???'}</span>
-		<span class="card-desc"
-			>{earned ? description : 'Keep playing to unlock'}</span
-		>
+		<span class="card-desc">{earned ? description : 'Keep playing to unlock'}</span>
 	</div>
 
+	<!-- Footer — only on Large -->
 	<!-- Tier + XP -->
-	<div class="card-footer">
-		<span class="card-tier">{tier}</span>
-		<span class="card-xp">+{xp} XP</span>
-	</div>
+	{#if earned && size === 'lg'}
+		<div class="card-footer">
+			<span class="card-tier">{tier}</span>
+			<span class="card-xp">+{xp} XP</span>
+		</div>
+	{/if}
 </button>
 
 <style>
@@ -94,10 +77,10 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.4rem;
-		padding: 1rem 0.65rem 0.75rem;
+		gap: 0.75rem;
+		padding: 1rem 0.65rem 1.75rem;
 		border-radius: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
+		background: linear-gradient(135deg, rgba(22, 22, 58, 0.8), rgba(16, 16, 42, 0.9));
 		border: 1px solid transparent;
 		text-align: center;
 		transition: all 0.25s;

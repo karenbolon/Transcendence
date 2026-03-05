@@ -2,6 +2,7 @@
 	import { formatDate } from '$lib/utils/format_date';
 	import { formatTournamentTime, formatTournamentFormat } from '$lib/utils/format_game';
 	import type { DashboardProps } from '$lib/types/dashboard';
+	import {RANK_MEDALS } from '$lib/utils/format_progression';
 
 	let { user, globalLeaderboard, friendsLeaderboard, activityFeed, openTournaments }: DashboardProps = $props();
 
@@ -31,7 +32,7 @@
 				{#each globalLeaderboard as player, i}
 					<a href="/friends/[id]/{player.id}" class="podium-row rank-{i + 1}">
 						<span class="rank-medal">
-							{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+							{RANK_MEDALS[i]}
 						</span>
 						<div class="podium-avatar rank-{i + 1}">
 							{#if player.avatarUrl}
@@ -64,7 +65,7 @@
 				{#each friendsLeaderboard as player, i}
 					<a href="/friends/[id]/{player.id}" class="podium-row rank-{i + 1}">
 						<span class="rank-medal">
-							{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+							{RANK_MEDALS[i]}
 						</span>
 						<div class="podium-avatar rank-{i + 1}">
 							{#if player.avatarUrl}

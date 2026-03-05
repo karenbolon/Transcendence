@@ -3,13 +3,12 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { achievements, achievement_definitions, player_progression } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { mapProgressionRow } from '$lib/utils/format_utils';
+import type { Tier } from '$lib/types/progression';
+import { requireAuth } from '$lib/server/auth/helpers';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		throw redirect(302, '/login');
-	}
-
-	const userId = Number(locals.user.id);
+	const userId = requireAuth(locals);
 
 	// Fetch ALL achievement definitions
 	const allDefinitions = await db
@@ -32,7 +31,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		id: def.id,
 		name: def.name,
 		description: def.description,
-		tier: def.tier,
+		tier: def.tier as Tier,
 		category: def.category,
 		icon: def.icon,
 		unlockedAt: unlockedMap.get(def.id)?.toISOString() ?? null,
@@ -64,12 +63,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		categories,
 		unlockedCount,
 		totalCount,
-		progression: progression
-			? {
-				level: progression.current_level,
-				currentXp: progression.current_xp,
-				xpToNextLevel: progression.xp_to_next_level,
-			}
-			: null,
+		progression: progression ? mapProgressionRow(progression) : null,
 	};
 };

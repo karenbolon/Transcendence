@@ -1,23 +1,13 @@
 <script lang="ts">
 	import LevelBadge from './progression/LevelBadge.svelte';
-
-	type Badge = {
-		id: string;
-		name: string;
-		icon: string;
-		tier: string;
-		category: string;
-		unlockedAt: string;
-	};
-
-	type Progression = {
-		level: number;
-		currentXp: number;
-		xpToNextLevel: number;
-	};
+	import type { Achievement, Progression } from '$lib/types/progression';
+	import { formatDate } from '$lib/utils/format_date';
+	import AchievementCard from './progression/AchievementCard.svelte';
+	import { getStreakInfo, getMilestone } from '$lib/utils/format_progression';
+	import AchievementDetailModal from './progression/AchievementDetailModal.svelte';
 
 	type Props = {
-		badges: Badge[];
+		badges: Achievement[];
 		progression?: Progression | null;
 		currentStreak: number;
 		bestStreak: number;
@@ -37,37 +27,32 @@
 	}: Props = $props();
 
 	let level = $derived(progression?.level ?? 1);
-	let recentBadges = $derived(badges.slice(0, maxBadges));
-	let remaining = $derived(Math.max(0, badges.length - maxBadges));
+	let streak = $derived(getStreakInfo(currentStreak));
+	let selectedAchievement = $state<Achievement | null>(null);
+	let milestone = $derived(getMilestone(level));
 
-	function timeAgo(iso: string): string {
-		const diff = Date.now() - new Date(iso).getTime();
-		const mins = Math.floor(diff / 60000);
-		const hours = Math.floor(diff / 3600000);
-		const days = Math.floor(diff / 86400000);
-		if (mins < 1) return 'Just now';
-		if (mins < 60) return `${mins}m ago`;
-		if (hours < 24) return `${hours}h ago`;
-		if (days < 7) return `${days}d ago`;
-		return new Date(iso).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-		});
-	}
+	// If more than 8 badges, show 7 + overflow card = 8 slots
+	// If fewer, show earned + ghost slots = 8 slots
+	let hasOverflow = $derived(badges.length > maxBadges);
+	let displayCount = $derived(hasOverflow ? maxBadges - 1 : badges.length);
+	let recentBadges = $derived(badges.slice(0, displayCount));
+	let remaining = $derived(Math.max(0, badges.length - displayCount));
+	let emptySlots = $derived(maxBadges - displayCount - (hasOverflow ? 1 : 0));
 </script>
 
 <div class="showcase">
 	<!-- ═══ MILESTONES ═══ -->
 	<div class="milestones">
-		<div class="section-header">
+		<!-- <div class="section-header">
 			<h2 class="section-title"><span class="bar purple"></span> Milestones</h2>
-		</div>
+		</div> -->
 
 		<div class="milestone-grid">
 			<!-- Level -->
 			<div class="milestone-card level-card">
 				<LevelBadge {level} size="md" />
 				<div class="milestone-info">
+					<span class="milestone-value">{milestone.title}</span>
 					<span class="milestone-value">Level {level}</span>
 					{#if progression}
 						<span class="milestone-sub">
@@ -82,18 +67,10 @@
 			<!-- Current Streak -->
 			<div class="milestone-card streak-card" class:on-fire={currentStreak >= 3}>
 				<div class="milestone-icon">
-					{#if currentStreak >= 5}
-						💫
-					{:else if currentStreak >= 3}
-						🔥
-					{:else if currentStreak >= 1}
-						⚡
-					{:else}
-						❄️
-					{/if}
+					{streak.emoji}
 				</div>
 				<div class="milestone-info">
-					<span class="milestone-value">{currentStreak} win{currentStreak !== 1 ? 's' : ''}</span>
+					<span class="milestone-value">{streak.label}</span>
 					<span class="milestone-sub">Current streak</span>
 				</div>
 				{#if currentStreak >= 3}
@@ -115,42 +92,57 @@
 	<!-- ═══ RECENT BADGES ═══ -->
 	<div class="recent-badges">
 		<div class="section-header">
-			<h2 class="section-title"><span class="bar accent"></span> Recent Badges</h2>
-			<a href="/achievements" class="see-all">View all →</a>
+			<h2 class="section-title"><span class="bar purple"></span> Recent Badges</h2>
+			<a href="/achievements" class="see-all">{badges.length} earned · View all →</a>
 		</div>
 
-		{#if recentBadges.length > 0}
-			<div class="badge-grid">
-				{#each recentBadges as badge (badge.id)}
-					<div class="badge-card {badge.tier}" title="{badge.name}">
-						<div class="badge-tier-line"></div>
-						<span class="badge-icon">{badge.icon}</span>
-						<span class="badge-name">{badge.name}</span>
-						<span class="badge-time">{timeAgo(badge.unlockedAt)}</span>
-						<div class="badge-glow-bg"></div>
-					</div>
-				{/each}
-				{#if remaining > 0}
-					<a href="/achievements" class="badge-overflow">
-						<span class="overflow-num">+{remaining}</span>
-						<span class="overflow-text">more</span>
-					</a>
-				{/if}
-			</div>
-		{:else}
-			<div class="empty-state">
-				<span class="empty-icon">🔒</span>
-				<div class="empty-text">
-					<p class="empty-title">No badges yet</p>
-					<p class="empty-sub">Play games to start earning achievements!</p>
+		<div class="badge-grid">
+			<!-- Earned badges -->
+			{#each recentBadges as badge (badge.id)}
+				<AchievementCard
+					id={badge.id}
+					name={badge.name}
+					description={badge.description}
+					tier={badge.tier}
+					category={badge.category}
+					icon={badge.icon}
+					unlockedAt={badge.unlockedAt}
+					onclick={() => selectedAchievement = badge}
+					size="md"
+				/>
+			{/each}
+
+			<!-- Modal -->
+			{#if selectedAchievement}
+				<AchievementDetailModal
+					achievement={selectedAchievement}
+					onclose={() => selectedAchievement = null}
+				/>
+			{/if}
+
+			<!-- Overflow (+N) replaces last ghost slot if needed -->
+			{#if remaining > 0}
+				<a href="/achievements" class="badge-card ghost overflow-link">
+					<span class="overflow-num">+{remaining}</span>
+					<span class="overflow-text">more</span>
+				</a>
+			{/if}
+
+			<!-- Empty ghost slots -->
+			{#each Array(emptySlots) as _, i}
+				<div class="badge-card ghost">
+					<span class="ghost-icon">🔒</span>
+					<span class="ghost-label">???</span>
 				</div>
-			</div>
-		{/if}
+			{/each}
+		</div>
 	</div>
 </div>
 
 <style>
 	.showcase {
+		background: rgba(30, 27, 36, 0.244);
+		border-radius: 0.85rem;
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
@@ -185,9 +177,9 @@
 		background: #a855f7;
 	}
 
-	.bar.accent {
+	/* .bar.accent {
 		background: #ff6b9d;
-	}
+	} */
 
 	.see-all {
 		font-size: 0.72rem;
@@ -250,7 +242,7 @@
 	}
 
 	.milestone-icon {
-		font-size: 1.75rem;
+		font-size: 1.85rem;
 		flex-shrink: 0;
 		line-height: 1;
 	}
@@ -294,8 +286,8 @@
 	/* ═══════════════════════════════════ */
 	.badge-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-		gap: 0.5rem;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.75rem;
 	}
 
 	.badge-card {
@@ -303,200 +295,82 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.3rem;
-		padding: 0.85rem 0.5rem 0.65rem;
-		border-radius: 0.65rem;
+		gap: 0.75rem;
+		padding: 1rem 0.65rem 1.75rem;
+		border-radius: 0.75rem;
 		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid transparent;
 		text-align: center;
 		transition: all 0.25s;
 		overflow: hidden;
-		cursor: default;
+		cursor: pointer;
+		width: 100%;
+		font-family: inherit;
+		color: inherit;
 	}
 
-	.badge-card:hover {
+	.badge-card:hover:not(.ghost) {
 		transform: translateY(-2px);
 	}
 
-	/* Tier line */
-	.badge-tier-line {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 2px;
-		opacity: 0.6;
+	/* ── Ghost / empty slots ── */
+	.badge-card.ghost {
+		background: rgba(255, 255, 255, 0.01);
+		border: 1px dashed rgba(255, 255, 255, 0.06);
+		min-height: 140px;           /* match AchievementCard's natural height */
+		justify-content: center;     /* center the lock icon vertically */
 	}
 
-	/* Glow bg on hover */
-	.badge-glow-bg {
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		opacity: 0;
-		transition: opacity 0.25s;
-		pointer-events: none;
-	}
-
-	.badge-card:hover .badge-glow-bg {
-		opacity: 1;
-	}
-
-	/* Tier colors */
-	.badge-card.bronze {
-		border-color: rgba(205, 127, 50, 0.12);
-	}
-	.badge-card.bronze:hover {
-		border-color: rgba(205, 127, 50, 0.25);
-	}
-	.badge-card.bronze .badge-tier-line {
-		background: linear-gradient(90deg, transparent, #cd7f32, transparent);
-	}
-	.badge-card.bronze .badge-glow-bg {
-		background: radial-gradient(circle, rgba(205, 127, 50, 0.06) 0%, transparent 70%);
-	}
-
-	.badge-card.silver {
-		border-color: rgba(192, 192, 210, 0.1);
-	}
-	.badge-card.silver:hover {
-		border-color: rgba(192, 192, 210, 0.2);
-	}
-	.badge-card.silver .badge-tier-line {
-		background: linear-gradient(90deg, transparent, #c0c0d2, transparent);
-	}
-	.badge-card.silver .badge-glow-bg {
-		background: radial-gradient(circle, rgba(192, 192, 210, 0.05) 0%, transparent 70%);
-	}
-
-	.badge-card.gold {
-		border-color: rgba(255, 215, 0, 0.12);
-	}
-	.badge-card.gold:hover {
-		border-color: rgba(255, 215, 0, 0.25);
-	}
-	.badge-card.gold .badge-tier-line {
-		background: linear-gradient(90deg, transparent, #ffd700, transparent);
-	}
-	.badge-card.gold .badge-glow-bg {
-		background: radial-gradient(circle, rgba(255, 215, 0, 0.06) 0%, transparent 70%);
-	}
-
-	.badge-card.legendary {
-		border-color: rgba(168, 85, 247, 0.15);
-	}
-	.badge-card.legendary:hover {
-		border-color: rgba(168, 85, 247, 0.3);
-	}
-	.badge-card.legendary .badge-tier-line {
-		background: linear-gradient(90deg, transparent, #a855f7, transparent);
-	}
-	.badge-card.legendary .badge-glow-bg {
-		background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
-	}
-
-	.badge-icon {
-		font-size: 1.5rem;
+	.ghost-icon {
+		font-size: 1.75rem;
+		opacity: 0.15;
+		filter: grayscale(1);
 		line-height: 1;
-		position: relative;
-		z-index: 1;
-		transition: transform 0.3s;
 	}
 
-	.badge-card:hover .badge-icon {
-		transform: scale(1.15);
+	.ghost-label {
+		font-size: 0.58rem;
+		color: #2a2a4a;
+		font-weight: 500;
+		letter-spacing: 0.05em;
 	}
 
-	.badge-name {
-		font-size: 0.62rem;
-		font-weight: 600;
-		color: #d1d5db;
-		line-height: 1.25;
-		position: relative;
-		z-index: 1;
-		display: -webkit-box;
-		-webkit-line-clamp: 1;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.badge-time {
-		font-size: 0.52rem;
-		color: #4b5563;
-		position: relative;
-		z-index: 1;
-	}
-
-	/* ── Overflow link ── */
-	.badge-overflow {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.15rem;
-		padding: 0.85rem 0.5rem 0.65rem;
-		border-radius: 0.65rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px dashed rgba(255, 255, 255, 0.08);
+	/* ── Overflow link (styled as ghost) ── */
+	.badge-card.overflow-link {
 		text-decoration: none;
-		transition: all 0.2s;
+		cursor: pointer;
+		border: 1px dashed rgba(255, 255, 255, 0.08);
 	}
 
-	.badge-overflow:hover {
+	.badge-card.overflow-link:hover {
 		border-color: rgba(255, 107, 157, 0.2);
 		background: rgba(255, 107, 157, 0.03);
+		transform: translateY(-2px);
 	}
 
 	.overflow-num {
 		font-size: 1.1rem;
 		font-weight: 700;
 		color: #5a5a7e;
+		line-height: 1;
 		transition: color 0.2s;
 	}
 
-	.badge-overflow:hover .overflow-num {
+	.badge-card.overflow-link:hover .overflow-num {
 		color: #ff6b9d;
 	}
 
 	.overflow-text {
-		font-size: 0.55rem;
+		font-size: 0.52rem;
+		color: #3a3a5e;
+	}
+
+	/* .badge-time {
+		font-size: 0.52rem;
 		color: #4b5563;
-	}
-
-	/* ── Empty state ── */
-	.empty-state {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		padding: 1.25rem;
-		border-radius: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px dashed rgba(255, 255, 255, 0.06);
-	}
-
-	.empty-icon {
-		font-size: 1.75rem;
-		opacity: 0.35;
-	}
-
-	.empty-text {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-	}
-
-	.empty-title {
-		font-size: 0.82rem;
-		font-weight: 600;
-		color: #6b7280;
-		margin: 0;
-	}
-
-	.empty-sub {
-		font-size: 0.72rem;
-		color: #4b5563;
-		margin: 0;
-	}
+		position: relative;
+		z-index: 1;
+	} */
 
 	/* ── Responsive ── */
 	@media (max-width: 640px) {

@@ -8,8 +8,6 @@
 	import type { ProfileEditData } from "$lib/types/utils";
 	let { data }: { data: PageData } = $props();
 
-	let showEditModal = $state(false);
-
 	// Local override for edited profile data
 	let editOverride = $state<ProfileEditData | null>(null);
 
@@ -104,6 +102,14 @@
 				</p>
 			{/if}
 	</section>
+
+	<BadgeDisplay badges={data.earnedBadges ?? []}
+		progression={data.progression}
+		currentStreak={data.stats.currentStreak}
+		bestStreak={data.stats.bestStreak}
+		totalGames={data.stats.totalGames}
+		wins={data.stats.wins}
+	/>
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     MATCH HISTORY

@@ -7,7 +7,6 @@ import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import { hash } from '@node-rs/argon2';
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Database connection
 // ══════════════════════════════════════════════════════════════════════════════

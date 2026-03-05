@@ -81,13 +81,10 @@
 		>
 			All
 		</button>
-		{#each data.categories as cat}
 			<button
 				class="category-btn"
 				class:active={selectedCategory === cat}
 				onclick={() => (selectedCategory = cat)}
-			>
-				{CATEGORYLABELS[cat] ?? cat}
 			</button>
 		{/each}
 	</nav>

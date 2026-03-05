@@ -126,14 +126,6 @@
 			{/if}
 	</section>
 
-	<BadgeDisplay badges={data.earnedBadges ?? []}
-		progression={data.progression}
-		currentStreak={data.stats.currentStreak}
-		bestStreak={data.stats.bestStreak}
-		totalGames={data.stats.totalGames}
-		wins={data.stats.wins}
-	/>
-
 	<!-- ═══════════════════════════════════════════════════════════
 	     MATCH HISTORY
 	═══════════════════════════════════════════════════════════ -->

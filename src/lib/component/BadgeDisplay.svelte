@@ -54,15 +54,9 @@
 				<div class="milestone-info">
 					<span class="milestone-value">{milestone.title}</span>
 					<span class="milestone-value">Level {level}</span>
-					{#if progression}
 						<span class="milestone-sub">
 							{progression.currentXp.toLocaleString()} / {progression.xpToNextLevel.toLocaleString()} XP
 						</span>
-					{:else}
-						<span class="milestone-sub">0 XP earned</span>
-					{/if}
-				</div>
-			</div>
 
 			<!-- Current Streak -->
 			<div class="milestone-card streak-card" class:on-fire={currentStreak >= 3}>
@@ -298,11 +292,6 @@
 		gap: 0.75rem;
 		padding: 1rem 0.65rem 1.75rem;
 		border-radius: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid transparent;
-		text-align: center;
-		transition: all 0.25s;
-		overflow: hidden;
 		cursor: pointer;
 		width: 100%;
 		font-family: inherit;

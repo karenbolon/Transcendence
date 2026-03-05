@@ -79,10 +79,20 @@
 		>
 			All
 		</button>
+		{#each data.categories as cat}
 			<button
 				class="category-btn"
 				class:active={selectedCategory === cat}
 				onclick={() => (selectedCategory = cat)}
+			>
+				{CATEGORYLABELS[cat] ?? cat}
+			</button>
+		{/each}
+	</nav>
+
+	<!-- Hint -->
+	<p class="hint">Tap any achievement for details</p>
+
 	<!-- Achievement Grid -->
 	<div class="achievement-list">
 		{#each filteredAchievements as ach (ach.id)}

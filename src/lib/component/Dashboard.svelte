@@ -227,12 +227,8 @@
 		gap: 1.6rem;
 		padding: 1rem;
 	}
-
 	.welcome-title {
 		font-size: 2rem;
-		font-weight: 700;
-		color: #fff;
-		margin: 0;
 	}
 
 	.accent { color: var(--accent, #ff6b9d); }

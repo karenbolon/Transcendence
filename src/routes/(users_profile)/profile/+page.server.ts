@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { games, users, player_progression, achievements, achievement_definitions } from '$lib/server/db/schema';
-import { eq, or, desc, and } from 'drizzle-orm';
+import { eq, or, desc, and, inArray } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// ── AUTH GUARD ──────────────────────────────────────────────
@@ -21,6 +21,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/login');
 	}
 
+	// ── STATS (from user record — lifetime totals) ───────────
+	const wins = user.wins ?? 0;
+	const losses = user.losses ?? 0;
+	const totalGames = wins + losses;
+	const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
 	// ── FETCH MATCH HISTORY ────────────────────────────────────
 	const matches = await db
 		.select()
@@ -32,22 +38,38 @@ export const load: PageServerLoad = async ({ locals }) => {
 			)
 		)
 		.orderBy(desc(games.created_at))
-		.limit(50);
+		.limit(20);
 
 	// ── CALCULATE STATS ────────────────────────────────────────
-	let wins = 0;
-	let losses = 0;
+	// let wins = 0;
+	// let losses = 0;
 
-	for (const match of matches) {
-		if (match.winner_id === userId) {
-			wins++;
-		} else if (match.status === 'finished') {
-			losses++;
-		}
+	// for (const match of matches) {
+	// 	if (match.winner_id === userId) {
+	// 		wins++;
+	// 	} else if (match.status === 'finished') {
+	// 		losses++;
+	// 	}
+	// }
+
+	// const totalGames = wins + losses;
+	// const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+	// ── LOOKUP PLAYER1 NAMES (for matches where user was player2) ──
+	const player1Ids = [...new Set(
+		matches
+			.filter(m => m.player1_id !== userId)
+			.map(m => m.player1_id)
+	)];
+
+	let player1Names: Record<number, string> = {};
+	if (player1Ids.length > 0) {
+		const rows = await db
+			.select({ id: users.id, username: users.username })
+			.from(users)
+			.where(inArray(users.id, player1Ids));
+		player1Names = Object.fromEntries(rows.map(r => [r.id, r.username]));
 	}
-
-	const totalGames = wins + losses;
-	const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
 
 	// ── FORMAT MATCHES FOR THE FRONTEND ────────────────────────
 	const formattedMatches = matches
@@ -61,7 +83,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 				won,
 				userScore: isPlayer1 ? match.player1_score : match.player2_score,
 				opponentScore: isPlayer1 ? match.player2_score : match.player1_score,
-				opponentName: isPlayer1 ? match.player2_name : 'You were Player 2',
+				// opponentName: isPlayer1 ? match.player2_name : 'You were Player 2',
+				opponentName: isPlayer1 ? match.player2_name : (player1Names[match.player1_id] ?? 'Unknown'),
 				gameMode: match.game_mode,
 				speedPreset: match.speed_preset,
 				winScore: match.winner_score,
@@ -97,8 +120,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		user: {
 			id: user.id,
 			username: user.username,
+			name: user.name,
 			email: user.email,
 			avatarUrl: user.avatar_url ?? null,
+			bio: user.bio ?? null,
 			isOnline: user.is_online,
 			createdAt: user.created_at,
 		},

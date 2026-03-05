@@ -11,7 +11,7 @@ import type { FormErrors } from '$lib/types/form';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user) {
-		redirect(302, '/dashboard');
+		redirect(302, '/');
 	}
 	return {};
 };
@@ -91,6 +91,6 @@ export const actions: Actions = {
 			});
 		}
 
-		redirect(302, '/dashboard');
+		redirect(302, '/');
 	}
 };

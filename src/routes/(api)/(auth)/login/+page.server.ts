@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (locals.user) {
-		redirect(302, '/dashboard');
+		redirect(302, '/');
 	}
 	return {};
 };
@@ -65,6 +65,6 @@ export const actions: Actions = {
 			.set({ is_online: true })
 			.where(eq(users.id, user.id));
 
-		redirect(302, '/dashboard');
+		redirect(302, '/');
 	}
 };

@@ -26,6 +26,9 @@ jobs:
       image-tag: ${{ steps.meta.outputs.version }}
 
     steps:
+      - name: Downcase container image
+	run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV" 
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -78,7 +81,7 @@ jobs:
           BRANCH_SLUG=$(echo "$BRANCH_REF" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
           POD_NAME="${REPO_OWNER}-${REPO_NAME}-${BRANCH_SLUG}"
           HOSTNAME="${POD_NAME}.${PERMITD_DOMAIN}"
-          IMAGE_REF="ghcr.io/${{ github.repository }}:${{ needs.build-and-push.outputs.image-tag }}"
+          IMAGE_REF="ghcr.io/$REPO_OWNER/$REPO_NAME:${{ needs.build-and-push.outputs.image-tag }}"
           VOLUME_NAME="${POD_NAME}-pgdata"
 
           echo "repo_name=$REPO_NAME" >> "$GITHUB_OUTPUT"

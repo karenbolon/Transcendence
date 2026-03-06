@@ -49,26 +49,12 @@ jobs:
             type=sha
 
       - name: Build and push
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          LABELS: ${{ steps.meta.outputs.labels }}
-        run: |
-          LABEL_ARGS=""
-          while IFS= read -r label; do
-            [ -n "$label" ] && LABEL_ARGS="$LABEL_ARGS --label $label"
-          done <<< "$LABELS"
-
-          # Use first tag for the build, then tag the rest
-          FIRST_TAG=$(echo "$TAGS" | head -1)
-          docker build $LABEL_ARGS -t "$FIRST_TAG" .
-
-          while IFS= read -r tag; do
-            [ -n "$tag" ] && [ "$tag" != "$FIRST_TAG" ] && docker tag "$FIRST_TAG" "$tag"
-          done <<< "$TAGS"
-
-          while IFS= read -r tag; do
-            [ -n "$tag" ] && docker push "$tag"
-          done <<< "$TAGS"
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     needs: build-and-push

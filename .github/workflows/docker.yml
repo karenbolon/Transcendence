@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Downcase container image
-	run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV" 
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV" 
 
       - name: Checkout
         uses: actions/checkout@v4

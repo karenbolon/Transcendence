@@ -79,7 +79,7 @@
 			if (!res.ok) {
 				error = result.error ?? 'Upload failed.';
 				return;
-			} 
+			}
 			avatarUrl = result.url;
 			uploadedAvatarUrl = result.url;
 		} catch {

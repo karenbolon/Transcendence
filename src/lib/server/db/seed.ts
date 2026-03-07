@@ -78,7 +78,7 @@ async function seed() {
 		{ username: 'Tatty',   name: 'Tatty Ramos',    email: 'tatty@pong.local',   bio: 'I like to play games'},
 	];
 
-	const createdUsers: { id: number; username: string }[] = [];
+	const createdUsers: { id: number; username: string }[] = [];\q
 
 	for (const userData of usersData) {
 		const [user] = await db

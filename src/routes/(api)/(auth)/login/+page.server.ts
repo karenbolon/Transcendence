@@ -4,12 +4,11 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { lucia } from '$lib/server/auth/lucia';
 import { verifyPassword } from '$lib/server/auth/password';
+import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
 import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (locals.user) {
-		redirect(302, '/dashboard');
-	}
+	redirectIfLoggedIn(locals);
 	return {};
 };
 
@@ -52,19 +51,7 @@ export const actions: Actions = {
 			});
 		}
 
-		const session = await lucia.createSession(String(user.id), {});
-		const sessionCookie = lucia.createSessionCookie(session.id);
-
-		cookies.set(sessionCookie.name, sessionCookie.value, {
-			path: '.',
-			...sessionCookie.attributes
-		});
-
-		await db
-			.update(users)
-			.set({ is_online: true })
-			.where(eq(users.id, user.id));
-
-		redirect(302, '/dashboard');
+		await createAndSetSession(user.id, cookies);
+		redirect(302, '/');
 	}
 };

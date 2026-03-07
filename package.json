@@ -27,7 +27,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:studio:test": "DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test drizzle-kit studio",
-		"db:seed:test": "DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test npx tsx src/lib/server/db/test_db/seed.ts"
+		"db:seed:test": "DATABASE_URL=postgres://root:mysecretpassword@localhost:5433/db_test npx tsx src/lib/server/db/test_db/seed.ts",
+		"db:seed": "npx tsx src/lib/server/db/seed.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",

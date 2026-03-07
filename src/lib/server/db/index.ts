@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { env } from '$env/dynamic/private';
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -8,7 +9,7 @@ let _db: Db | undefined;
 
 export function getDb(): Db {
 	if (!_db) {
-		const connectionString = process.env.DB_URL || process.env.DATABASE_URL;
+		const connectionString = env.DB_URL || env.DATABASE_URL;
 		if (!connectionString) throw new Error('DATABASE_URL is not set');
 		const client = postgres(connectionString, { prepare: false });
 		_db = drizzle(client, { schema });

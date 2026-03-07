@@ -4,7 +4,6 @@
 	import Header from '$lib/component/Header.svelte';
 	import Footer from '$lib/component/Footer.svelte';
 
-
 	let { children, data } = $props();
 </script>
 
@@ -17,5 +16,5 @@
 <div class="web">
 	<Header user={data.user} />
 	<main>{@render children()}</main>
-	<Footer user={data.user} />
+	<Footer />
 </div>

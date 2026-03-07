@@ -5,7 +5,7 @@ export const load: LayoutServerLoad = async (event) => {
 	if (event.locals.user) {
 		const path = event.url.pathname;
 		if (path === '/login' || path === '/register') {
-			redirect(302, '/');
+			redirect(302, '/dashboard');
 		}
 	}
 

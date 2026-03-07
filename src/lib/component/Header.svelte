@@ -1,18 +1,14 @@
 <script lang="ts">
 	import logo from '$lib/assets/favicon.ico';
 	import Logout from '$lib/component/Logout.svelte';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
-	//chat
-	//notifications
 
 	type Props = {
 		user: {
-			id: string;
+			id: number;
 			username: string;
 			email: string;
 			name: string;
 			avatar_url: string | null;
-			is_online: boolean;
 		} | null;
 	};
 
@@ -32,6 +28,16 @@
 		if (!target.closest('.dropdown-wrapper')) {
 			closeDropdown();
 		}
+	}
+
+	function getInitials(name: string): string {
+		if (!name) return '?';
+		return name
+			.split(' ')
+			.map(word => word[0]?.toUpperCase())
+			.filter(Boolean)
+			.join('')
+			.slice(0, 2);
 	}
 </script>
 
@@ -67,12 +73,15 @@
 							aria-haspopup="true"
 						>
 							<span class="avatar-name">{user.username}</span>
-							<UserAvatar
-								username={user.name || user.username}
-								avatarUrl={user.avatar_url}
-								size="lg"
-								status={user.is_online ? 'online' : 'offline'}
-							/>
+							<span class="avatar-circle">
+								{#if user.avatar_url}
+									<img src={user.avatar_url} alt="Avatar" class="avatar-img" />
+								{:else}
+									<span class="avatar-initials">
+										{getInitials(user.name || user.username)}
+									</span>
+								{/if}
+							</span>
 						</button>
 						{#if dropdownOpen}
 							<div class="dropdown-menu" role="menu">

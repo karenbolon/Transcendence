@@ -40,12 +40,12 @@
 		oneditprofile={() => showEditModal = true}
 	/>
 
-	<!-- <EditProfileModal
+	<EditProfileModal
 		open={showEditModal}
 		user={{ name: userName, bio: userBio, avatarUrl: userAvatarUrl }}
 		onclose={() => showEditModal = false}
 		onsave={handleEditSave}
-	/> -->
+	/>
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     STATS CARDS

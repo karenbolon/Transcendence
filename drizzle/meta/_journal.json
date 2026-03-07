@@ -22,6 +22,13 @@
       "when": 1772765395175,
       "tag": "0002_opposite_human_robot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772911846747,
+      "tag": "0003_magenta_cammi",
+      "breakpoints": true
     }
   ]
 }

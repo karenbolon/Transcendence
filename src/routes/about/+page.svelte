@@ -1,68 +1,89 @@
 <!-- Idea of how can look the About page. -->
 <!-- Have on mind that i haven incorporate everything, correctly until is compleately approve -->
 <div class="about-page">
+	<!-- Header -->
 	<div class="max-w-4xl mx-auto px-4 py-10">
-		<div class="hero">
-			<h1 class="game-title hero-title">ft_transcendence</h1>
-			<p class="hero-subtitle">
-				A real-time multiplayer Pong platform — the classic game, reimagined.
+		<div class="page-header">
+			<div class="page-tag">Ft_transcendence</div>
+			<h1 class="page-title">
+				Built by students.<br />
+				<span class="glow-text">Powered by passion.</span>
+			</h1>
+			<p class="page-sub">
+				ft_transcendence is the final project of the 42 core curriculum. <br>A
+				full-stack web application built from scratch as a team.
 			</p>
 			<div class="hero-badge">
 				<span>🎮</span> 42 Berlin · Final Project · 2025/2026
 			</div>
 		</div>
 		<section class="section">
-			<h2 class="section-title">About the Project</h2>
+			<h2 class="section-title">
+				<span class="title-bar accent"></span>
+				About the Project</h2>
 			<p class="text-gray-300 leading-relaxed">
-				ft_transcendence is the final project of the 42 common core curriculum.
-				It challenges students to build a full-stack web application from scratch —
-				a multiplayer Pong game complete with real-time gameplay, user authentication,
-				tournaments, and social features.
+				In this final project we choose to build a multiplayer Pong game.<br>
+				With real-time gameplay, a modern and responsive user interface, and social features.<br>
+			</p>
+			<p>
+				<br>
+				We designed and built a full-stack web application from scratch, with double authentication in Frontend and Backend,
+				database integration, session management, and password hashing, all running inside containers to ensure scalability and reproducibility.
+				<br><br>
+				The frontend was developed using <strong>SvelteKit</strong>, providing a reactive and dynamic user experience.
+				The backend integrates <strong>PostgreSQL</strong> with <strong>Drizzle ORM</strong> for type-safe database management.
+				<br><br>
+				Authentication is handled using <strong>Lucia</strong>, with password hashing secured via Argon2.
+				Input validation and schema safety are enforced using <strong>Zod</strong>.
+				<br><br>
+				And the entire application is containerized using Docker to ensure portability, isolation, and consistent deployment across environments.
 			</p>
 			<p class="text-gray-300 leading-relaxed mt-4">
-				Our goal: make something that's not just functional, but genuinely
+				<strong>Our goal:</strong> make something that's not just functional, but genuinely
 				fun to play and beautiful to look at. 🏓✨
 			</p>
 		</section>
 		<section class="section">
-			<h2 class="section-title">Tech Stack</h2>
+			<h2 class="section-title">
+				<span class="title-bar blue"></span>
+				Tech Stack</h2>
 			<div class="tech-grid">
-				<div class="tech-item">
+				<div class="tech-item s">
 					<span class="tech-icon">⚡</span>
 					<div>
 						<strong>SvelteKit</strong>
 						<p>Frontend & Backend</p>
 					</div>
 				</div>
-				<div class="tech-item">
+				<div class="tech-item po">
 					<span class="tech-icon">🐘</span>
 					<div>
 						<strong>PostgreSQL</strong>
 						<p>Database</p>
 					</div>
 				</div>
-				<div class="tech-item">
+				<div class="tech-item d">
 					<span class="tech-icon">💧</span>
 					<div>
 						<strong>Drizzle ORM</strong>
 						<p>Database Toolkit</p>
 					</div>
 				</div>
-				<div class="tech-item">
+				<div class="tech-item c">
 					<span class="tech-icon">🐳</span>
 					<div>
 						<strong>Docker</strong>
 						<p>Containerization</p>
 					</div>
 				</div>
-				<div class="tech-item">
+				<div class="tech-item t">
 					<span class="tech-icon">🔷</span>
 					<div>
 						<strong>TypeScript</strong>
 						<p>Type Safety</p>
 					</div>
 				</div>
-				<div class="tech-item">
+				<div class="tech-item l">
 					<span class="tech-icon">🔐</span>
 					<div>
 						<strong>Lucia + Argon2</strong>
@@ -74,12 +95,17 @@
 
 		<!-- Team card -->
 		<section class="section">
-			<h2 class="section-title">Meet the Team</h2>
+			<h2 class="section-title">
+				<span class="title-bar purple"></span>
+				Meet the Team</h2>
+			<p class="section-sub">
+				Four students, one goal: ship something we're proud of.
+			</p>
 			<div class="team-grid">
 
 				<!-- Karen Bolon -->
 				<div class="team-card">
-					<div class="avatar">KB</div>
+					<div class="avatar">⚡</div>
 					<h3 class="member-name">Karen Bolon</h3>
 					<p class="member-role">Product Owner · Frontend</p>
 					<div class="member-links">
@@ -100,7 +126,7 @@
 
 				<!-- James Dyar -->
 				<div class="team-card">
-					<div class="avatar">JD</div>
+					<div class="avatar">🚀</div>
 					<h3 class="member-name">James Dyar</h3>
 					<p class="member-role">Developer · Backend</p>
 					<div class="member-links">
@@ -118,7 +144,7 @@
 
 				<!-- Finn Dunkel -->
 				<div class="team-card">
-					<div class="avatar">FD</div>
+					<div class="avatar">🎮</div>
 					<h3 class="member-name">Finn Dunkel</h3>
 					<p class="member-role">Developer · Backend</p>
 					<div class="member-links">
@@ -133,7 +159,7 @@
 
 				<!-- Kellen Ramos -->
 				<div class="team-card">
-					<div class="avatar">KR</div>
+					<div class="avatar">🎨</div>
 					<h3 class="member-name">Kellen Ramos</h3>
 					<p class="member-role">Developer · Frontend</p>
 					<div class="member-links">
@@ -154,16 +180,20 @@
 
 		<!-- 42 BERLIN SECTION-->
 		<section class="section">
-			<h2 class="section-title">Built at 42 Berlin</h2>
-			<p class="text-gray-300 leading-relaxed">
-				<a href="https://42berlin.de" target="_blank" rel="noopener noreferrer" class="accent-link">42 Berlin</a>
-				is a tuition-free, peer-to-peer coding school where students learn by building
-				real projects. ft_transcendence is the capstone project of the common core —
-				the ultimate test of everything we've learned.
-			</p>
-			<p class="text-gray-400 text-sm mt-4">
-				No teachers. No lectures. Just code, collaboration, and a whole lot of Pong. 🏓
-			</p>
+			<div class="school-banner">
+				<div class="school-logo">🎓</div>
+				<h2 class="school-name"><strong>42 Berlin</strong></h2>
+				<p class="text-gray-300 leading-relaxed">
+					<a href="https://42berlin.de" target="_blank" rel="noopener noreferrer" class="accent-link"><strong>42</strong></a>
+					is a global network of tuition-free coding schools with a peer-to-peer learning model. <br>There are no teachers,
+					no lectures — students learn by building real projects and helping each other. Ft_transcendence is the capstone
+					project of the common core, that requires a team to build
+					the ultimate test of everything we've learned.
+				</p>
+				<p class="text-gray-400 text-sm mt-4">
+					<br>No teachers. No lectures. Just code, collaboration, and a whole lot of Pong. 🏓
+				</p>
+			</div>
 		</section>
 
 	</div>
@@ -174,22 +204,49 @@
 		min-height: 100%;
 		width: 100%;
 	}
-	.hero {
+
+	/* ── Header ── */
+	.page-header {
 		text-align: center;
 		margin-bottom: 3rem;
 	}
 
-	.hero-title {
-		font-size: 2.5rem;
-		margin-bottom: 0.75rem;
+	.page-tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.3rem 0.85rem;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 107, 157, 0.15);
+		background: rgba(255, 107, 157, 0.06);
+		margin-bottom: 1rem;
+		font-size: 0.8rem;
+		color: #ff6b9d;
+		font-weight: 500;
 	}
 
-	.hero-subtitle {
-		font-size: 1.125rem;
-		color: #d1d5db;
-		max-width: 500px;
+	.page-title {
+		font-size: 3.5rem;
+		font-weight: 800;
+		color: #fff;
+		margin: 0 0 0.5rem;
+		line-height: 1.15;
+	}
+
+	.glow-text {
+		background: linear-gradient(135deg, #ff6b9d, #a855f7);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		display: inline-block;
+	}
+
+	.page-sub {
+		font-size: 1rem;
+		color: #9ca3af;
+		line-height: 1.7;
+		max-width: 560px;
 		margin: 0 auto;
-		line-height: 1.6;
 	}
 
 	/* The little badge: "🎮 42 Berlin · Final Project · 2025/2026" */
@@ -217,10 +274,29 @@
 		color: #fff;
 		margin-bottom: 1rem;
 	}
+
+	.title-bar {
+		display: inline-block;
+		width: 4px;
+		height: 18px;
+		border-radius: 2px;
+	}
+
+	.title-bar.accent {
+		background: #ff6b9d;
+	}
+	.title-bar.purple {
+		background: #a855f7;
+	}
+
+	.title-bar.blue {
+		background: #60a5fa;
+	}
+
 	.tech-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-		gap: 1rem;
+		gap: 1.25rem;
 		margin-top: 1rem;
 	}
 
@@ -228,10 +304,80 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		padding: 0.75rem 1rem;
-		border-radius: 0.75rem;
+		padding: 1.25rem;
+		border-radius: 0.85rem;
 		background: rgba(255, 255, 255, 0.03);
 		border: 1px solid rgba(255, 255, 255, 0.06);
+		position: relative;
+		overflow: hidden;
+		transition: all 0.25s;
+	}
+
+	.tech-item:hover{
+		border-color: rgba(255, 255, 255, 0.1);
+		transform: translateY(-2px);
+	}
+
+	.tech-item::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		opacity: 0.5;
+	}
+
+	.tech-item.s::before{
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#ff6b9d,
+			transparent
+		);
+	}
+
+	.tech-item.po::before {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#a855f7,
+			transparent
+		);
+	}
+	.tech-item.d::before {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#60a5fa,
+			transparent
+		);
+	}
+	.tech-item.l::before {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#c3de4a,
+			transparent
+		);
+	}
+
+	.tech-item.c::before {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#4ade80,
+			transparent
+		);
+	}
+
+	.tech-item.t::before {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#152fd6,
+			transparent
+		);
 	}
 
 	.tech-icon {
@@ -261,25 +407,53 @@
 		padding: 1.75rem 1.25rem;
 		text-align: center;
 		transition: transform 0.2s, border-color 0.2s;
+
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		position: relative;
+		overflow: hidden;
 	}
 
 	.team-card:hover {
-		transform: translateY(-2px);
+		transform: translateY(-3px);
 		border-color: rgba(255, 107, 157, 0.3);
 	}
+
+	.team-card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		opacity: 0;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#ff6b9d,
+			transparent
+		);
+		transition: opacity 0.25s;
+	}
+
+	.team-card:hover::before {
+		opacity: 1;
+	}
+
 	.avatar {
-		width: 4rem;
-		height: 4rem;
+		width: 64px;
+		height: 64px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, #ff6b9d, #ff8db5);
-		color: #fff;
-		font-weight: 700;
-		font-size: 1.1rem;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin: 0 auto 0.75rem;
+		font-size: 1.75rem;
+		border: 2px solid rgba(255, 255, 255, 0.08);
+		background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
 	}
+
 
 	.member-name {
 		color: #fff;
@@ -325,17 +499,53 @@
 		color: #ff8db5;
 	}
 
+	/* ── School Banner ── */
+	.school-banner {
+		padding: 2rem;
+		border-radius: 1rem;
+		background: linear-gradient(
+			135deg,
+			rgba(168, 85, 247, 0.06),
+			rgba(255, 107, 157, 0.04)
+		);
+		border: 1px solid rgba(168, 85, 247, 0.1);
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.school-banner::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			#a855f7,
+			#ff6b9d,
+			transparent
+		);
+		opacity: 0.5;
+	}
+
+	.school-logo {
+		font-size: 2.5rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.school-name {
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: #fff;
+		margin-bottom: 0.35rem;
+	}
+
 	@media (max-width: 640px) {
 		.team-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.hero-title {
-			font-size: 1.75rem;
-		}
-
-		.hero-subtitle {
-			font-size: 1rem;
 		}
 	}
 </style>

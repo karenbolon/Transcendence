@@ -1,147 +1,81 @@
 <script lang="ts">
-	import Logout from "$lib/component/Logout.svelte";
-	import XpBar from "$lib/component/progression/XpBar.svelte";
+	import EditProfileModal from "$lib/component/EditProfileModal.svelte";
+	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
 	import LevelBadge from "$lib/component/progression/LevelBadge.svelte";
 	import AchievementCard from "$lib/component/progression/AchievementCard.svelte";
+	import { formatDate, formatDuration } from "$lib/utils/format_date";
+	import { speedEmoji, formatMode } from "$lib/utils/format_game";
 	import type { PageData } from "./$types";
+	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
+	import type { ProfileEditData } from "$lib/types/utils";
 
 	let { data }: { data: PageData } = $props();
 
-	// ── DELETE MODAL STATE ──────────────────────────────────────
-	let showDeleteModal = $state(false);
-	let deletePassword = $state("");
-	let deleteError = $state("");
-	let isDeleting = $state(false);
+	let showEditModal = $state(false);
 
-	// ── HELPER FUNCTIONS ───────────────────────────────────────
+	// Local override for edited profile data
+	let editOverride = $state<ProfileEditData | null>(null);
 
-	// Format a date for display
-	function formatDate(date: Date | string): string {
-		const d = new Date(date);
-		const now = new Date();
-		const diffMs = now.getTime() - d.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
+	let userName = $derived(editOverride?.name ?? data.user.name);
+	let userBio = $derived(editOverride?.bio ?? data.user.bio);
+	let userAvatarUrl = $derived(editOverride?.avatarUrl ?? data.user.avatarUrl);
 
-		if (diffMins < 1) return "Just now";
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
-
-		return d.toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-		});
+	function handleEditSave(updated: { name: string; bio: string | null; avatarUrl: string | null }) {
+		editOverride = updated;
 	}
 
-	// Format duration (seconds → "1m 23s")
-	function formatDuration(seconds: number | null): string {
-		if (!seconds) return "—";
-		const m = Math.floor(seconds / 60);
-		const s = seconds % 60;
-		return m > 0 ? `${m}m ${s}s` : `${s}s`;
-	}
-
-	// Format game mode for display
-	function formatMode(mode: string): string {
-		switch (mode) {
-			case "local":
-				return "Local Player";
-			case "computer":
-				return "vs Computer";
-			case "remote":
-				return "Online";
-			default:
-				return mode;
-		}
-	}
-
-	// Speed preset emoji
-	function speedEmoji(preset: string): string {
-		switch (preset) {
-			case "chill":
-				return "🐢";
-			case "normal":
-				return "🏓";
-			case "fast":
-				return "🔥";
-			default:
-				return "";
-		}
-	}
-
-	// Format join date
-	function formatJoinDate(date: Date | string): string {
-		return new Date(date).toLocaleDateString("en-US", {
-			month: "long",
-			year: "numeric",
-			day: "numeric",
-		});
-	}
+	// SVG ring: circumference = 2 * PI * 20 ≈ 125.66
+	const RING_C = 125.66;
+	let ringOffset = $derived(RING_C * (1 - data.stats.winRate / 100));
 </script>
 
 <div class="profile-page max-w-4xl mx-auto px-4 py-8">
-	<section class="user-info">
-		<div class="avatar relative">
-			<div class="avatar-circle">
-				{#if data.user.avatarUrl}
-					<img
-						src={data.user.avatarUrl}
-						alt="Avatar"
-						class="avatar-img"
-					/>
-				{:else}
-					<span class="avatar-initial"
-						>{data.user.username[0].toUpperCase()}</span
-					>
-				{/if}
-			</div>
-			{#if data.user.isOnline === false}
-				<span class="absolute bottom-2 right-2 w-4 h-4">🔴</span>
-			{:else}
-				<span class="absolute bottom-2 right-2 w-4 h-4">🟢</span>
-			{/if}
-		</div>
-		<div class="user-details">
-			<h1 class="username">{data.user.username}</h1>
-			<p class="email">{data.user.email}</p>
-			<p class="join-date">
-				Member since {formatJoinDate(data.user.createdAt)}
-			</p>
-		</div>
-	</section>
-	<section class="user-actions">
-		<a href="/profile/edit" class="action-btn">Edit Profile</a>
-		<a href="/settings" class="action-btn">Settings</a>
-		<Logout class="action-btn" />
-		<button
-			class="action-btn action-btn--danger"
-			onclick={() => (showDeleteModal = true)}>Delete Account</button
-		>
-	</section>
+	<ProfileBanner
+		username={data.user.username}
+		displayName={userName}
+		avatarUrl={userAvatarUrl}
+		email={data.user.email}
+		bio={userBio}
+		isOnline={data.user.isOnline}
+		createdAt={data.user.createdAt}
+		variant="own"
+		progression={data.progression}
+		oneditprofile={() => showEditModal = true}
+	/>
 
-	<!-- User Information, bio, etc -->
-	<section class="user-information"></section>
+	<!-- <EditProfileModal
+		open={showEditModal}
+		user={{ name: userName, bio: userBio, avatarUrl: userAvatarUrl }}
+		onclose={() => showEditModal = false}
+		onsave={handleEditSave}
+	/> -->
 
 	<!-- ═══════════════════════════════════════════════════════════
 	     STATS CARDS
 	═══════════════════════════════════════════════════════════ -->
 	<section class="stats-grid">
-		<div class="stat-card">
+		<div class="stat-card total">
 			<span class="stat-value">{data.stats.totalGames}</span>
 			<span class="stat-label">Games</span>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value wins">{data.stats.wins}</span>
+		<div class="stat-card wins">
+			<span class="stat-value">{data.stats.wins}</span>
 			<span class="stat-label">Wins</span>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value losses">{data.stats.losses}</span>
+		<div class="stat-card losses">
+			<span class="stat-value">{data.stats.losses}</span>
 			<span class="stat-label">Losses</span>
 		</div>
-		<div class="stat-card">
-			<span class="stat-value rate">{data.stats.winRate}%</span>
+		<div class="stat-card rate">
+			<div class="rate-ring">
+				<svg viewBox="0 0 44 44">
+					<circle class="bg-ring" cx="22" cy="22" r="20" />
+					<circle class="fg-ring" cx="22" cy="22" r="20"
+						style="stroke-dashoffset: {ringOffset};" />
+				</svg>
+				<span class="rate-number">{data.stats.winRate}%</span>
+			</div>
+			<!-- <span class="stat-value rate">{data.stats.winRate}%</span> -->
 			<span class="stat-label">Win Rate</span>
 		</div>
 		<!-- <div class="stat-card">
@@ -150,8 +84,10 @@
 		</div> -->
 	</section>
 
-	<!-- Progression Section -->
-	{#if data.progression}
+	<!-- ═══════════════════════════════════════════════════════════
+	     PROGRESSION and ACHIEVEMENTS
+	═══════════════════════════════════════════════════════════ -->
+	<!-- {#if data.progression}
 		<section class="progression-section">
 			<div class="progression-header">
 				<LevelBadge level={data.progression.level} size="lg" />
@@ -170,32 +106,27 @@
 				>
 			</div>
 		</section>
-	{/if}
+	{/if} -->
 
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">
-			<h2 class="section-title">Achievements</h2>
-			<a href="/achievements" class="view-all-link">View all →</a>
+			<h2 class="section-title">Milestones and Achievements</h2>
+			<!-- <a href="/achievements" class="view-all-link">View all →</a> -->
 		</div>
-		{#if data.achievements && data.achievements.length > 0}
-			<div class="achievements-grid">
-				{#each data.achievements.slice(0, 6) as ach}
-					<AchievementCard
-						id={ach.id}
-						name={ach.name}
-						description={ach.description}
-						tier={ach.tier}
-						icon={ach.icon}
-						unlockedAt={ach.unlockedAt}
-					/>
-				{/each}
-			</div>
-		{:else}
-			<p class="empty-achievements">
-				No achievements yet. Play matches to unlock them!
-			</p>
-		{/if}
+			{#if data.achievements && data.achievements.length > 0}
+				<BadgeDisplay badges={data.achievements ?? []}
+					progression={data.progression}
+					currentStreak={data.stats.currentStreak}
+					bestStreak={data.stats.bestStreak}
+					totalGames={data.stats.totalGames}
+					wins={data.stats.wins}
+				/>
+			{:else}
+				<p class="empty-achievements">
+					No achievements yet. Play matches to unlock them!
+				</p>
+			{/if}
 	</section>
 
 	<!-- ═══════════════════════════════════════════════════════════
@@ -222,7 +153,7 @@
 					>
 						<!-- Result indicator -->
 						<span class="match-result">
-							{match.won ? "✅" : "❌"}
+							{match.won ? "W" : "L"}
 						</span>
 
 						<!-- Score -->
@@ -259,218 +190,16 @@
 			</div>
 		{/if}
 	</section>
-
-	<!-- ═══════════════════════════════════════════════════════════
-	     DELETE ACCOUNT CONFIRMATION MODAL
-	═══════════════════════════════════════════════════════════ -->
-	{#if showDeleteModal}
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="modal-backdrop"
-			onclick={() => {
-				if (!isDeleting) showDeleteModal = false;
-			}}
-		>
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="modal" onclick={(e) => e.stopPropagation()}>
-				<h2 class="modal-title">⚠️ Delete Account</h2>
-				<p class="modal-desc">
-					This action is <strong>permanent</strong>. Your account,
-					profile, and stats will be removed. Your match history will
-					be preserved for other players.
-				</p>
-
-				<form
-					method="POST"
-					action="/account/delete"
-					onsubmit={async (e) => {
-						e.preventDefault();
-						deleteError = "";
-
-						if (!deletePassword.trim()) {
-							deleteError = "Password is required.";
-							return;
-						}
-
-						isDeleting = true;
-						try {
-							const formData = new FormData();
-							formData.set("password", deletePassword);
-
-							const res = await fetch("/account/delete", {
-								method: "POST",
-								body: formData,
-							});
-
-							if (res.redirected) {
-								window.location.href = res.url;
-								return;
-							}
-
-							if (!res.ok) {
-								const result = await res.json();
-								deleteError =
-									result?.data?.error ??
-									"Failed to delete account.";
-							} else {
-								window.location.href = "/";
-							}
-						} catch {
-							deleteError =
-								"Something went wrong. Please try again.";
-						} finally {
-							isDeleting = false;
-						}
-					}}
-				>
-					<label class="modal-label" for="delete-password"
-						>Enter your password to confirm:</label
-					>
-					<input
-						id="delete-password"
-						type="password"
-						name="password"
-						class="modal-input"
-						placeholder="Your password"
-						bind:value={deletePassword}
-						disabled={isDeleting}
-						autocomplete="current-password"
-					/>
-
-					{#if deleteError}
-						<p class="modal-error">{deleteError}</p>
-					{/if}
-
-					<div class="modal-actions">
-						<button
-							type="button"
-							class="modal-btn modal-btn--cancel"
-							onclick={() => (showDeleteModal = false)}
-							disabled={isDeleting}
-						>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							class="modal-btn modal-btn--delete"
-							disabled={isDeleting}
-						>
-							{isDeleting ? "Deleting..." : "Delete My Account"}
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
-	{/if}
 </div>
 
 <style>
 	.profile-page {
-		max-width: 700px;
+		width: 100%;
+		max-width: 1200px;
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
-	}
-
-	/* ═════════════════════════════════════════════════
-	   USER INFO
-	   ═════════════════════════════════════════════════ */
-	.user-info {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-	}
-
-	.avatar-circle {
-		width: 80px;
-		height: 80px;
-		border-radius: 50%;
-		background: linear-gradient(135deg, #ff6b9d, #c084fc);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		overflow: hidden;
-	}
-
-	.avatar-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.avatar-initial {
-		color: white;
-		font-size: 2rem;
-		font-weight: 700;
-	}
-
-	.user-details {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-	}
-
-	.username {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: #f3f4f6;
-		margin: 0;
-	}
-
-	.email {
-		color: #9ca3af;
-		font-size: 0.9rem;
-		margin: 0;
-	}
-
-	.join-date {
-		color: #6b7280;
-		font-size: 0.8rem;
-		margin: 0;
-	}
-
-	/* ═════════════════════════════════════════════════
-	   USER ACTIONS ROW
-	   ═════════════════════════════════════════════════ */
-	.user-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.user-actions :global(.action-btn) {
-		flex: 1;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.5rem;
-		font-size: 0.85rem;
-		font-weight: 500;
-		text-align: center;
-		text-decoration: none;
-		cursor: pointer;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		background: rgba(255, 255, 255, 0.05);
-		color: #d1d5db;
-		transition:
-			background 0.15s,
-			border-color 0.15s;
-	}
-
-	.user-actions :global(.action-btn:hover) {
-		background: rgba(255, 255, 255, 0.1);
-		border-color: rgba(255, 255, 255, 0.2);
-	}
-
-	.user-actions :global(.action-btn--danger) {
-		color: #f87171;
-		border-color: rgba(248, 113, 113, 0.2);
-	}
-
-	.user-actions :global(.action-btn--danger:hover) {
-		background: rgba(248, 113, 113, 0.1);
-		border-color: rgba(248, 113, 113, 0.4);
 	}
 
 	/* ═════════════════════════════════════════════════
@@ -483,49 +212,101 @@
 	}
 
 	.stat-card {
-		background: rgba(255, 255, 255, 0.03);
+		background: linear-gradient(135deg, rgba(22, 22, 58, 0.8), rgba(16, 16, 42, 0.9));
+		backdrop-filter: blur(12px);
 		border: 1px solid rgba(255, 255, 255, 0.06);
-		border-radius: 0.75rem;
-		padding: 1rem;
+		border-radius: 0.85rem;
+		padding: 1.1rem;
 		text-align: center;
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.3rem;
+		position: relative;
+		overflow: hidden;
+		transition: all 0.25s;
+		/* background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 0.75rem;
+		padding: 1rem;
+		gap: 0.25rem; */
 	}
 
-	.stat-value {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: #f3f4f6;
+	.stat-card:hover {
+		border-color: rgba(255, 255, 255, 0.1);
+		transform: translateY(-2px);
 	}
 
-	.stat-value.wins {
-		color: #4ade80;
+	.stat-card::before {
+		content: '';
+		position: absolute;
+		top: 0; left: 0; right: 0;
+		height: 2px;
+		opacity: 0.5;
 	}
 
-	.stat-value.losses {
-		color: #f87171;
-	}
+	.stat-card.total::before { background: linear-gradient(90deg, transparent, #60a5fa, transparent); }
+	.stat-card.wins::before  { background: linear-gradient(90deg, transparent, #4ade80, transparent); }
+	.stat-card.losses::before { background: linear-gradient(90deg, transparent, #f87171, transparent); }
+	.stat-card.rate::before  { background: linear-gradient(90deg, transparent, #ff6b9d, transparent); }
 
-	.stat-value.rate {
-		color: #ff6b9d;
-	}
+	.stat-value { font-size: 1.75rem; font-weight: 700; }
+	.stat-card.total .stat-value { color: #60a5fa; }
+	.stat-card.wins .stat-value  { color: #4ade80; }
+	.stat-card.losses .stat-value { color: #f87171; }
+	/* .stat-card.rate .stat-value  { color: #ff6b9d; } */
+
 
 	.stat-label {
 		font-size: 0.75rem;
-		color: #6b7280;
+		color: #7a7a9e;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.08em;
+		font-weight: 500;
+	}
+
+	/* Ring */
+	.rate-ring { position: relative; width: 48px; height: 48px; margin: 0 auto 0.15rem; }
+	.rate-ring svg { transform: rotate(-90deg); width: 48px; height: 48px; }
+	.rate-ring .bg-ring { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 4; }
+	.rate-ring .fg-ring {
+		fill: none;
+		stroke: var(--accent, #ff6b9d);
+		stroke-width: 4;
+		stroke-linecap: round;
+		stroke-dasharray: 125.66;
+		filter: drop-shadow(0 0 4px rgba(255, 107, 157, 0.5));
+		transition: stroke-dashoffset 1s ease;
+	}
+	.rate-number {
+		position: absolute; inset: 0;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 0.8rem; font-weight: 700; color: var(--accent, #ff6b9d);
 	}
 
 	/* ═════════════════════════════════════════════════
 	   MATCH HISTORY
 	   ═════════════════════════════════════════════════ */
+	.section-header {
+		display: flex;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
 	.section-title {
 		font-size: 1.1rem;
-		font-weight: 600;
+		font-weight: 900;
 		color: #d1d5db;
-		margin: 0 0 0.75rem 0;
+		/* margin: 0 0 0.75rem 0; */
+		margin: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.section-title::before {
+		content: '';
+		width: 3px;
+		height: 16px;
+		border-radius: 2px;
+		background: var(--accent, #ff6b9d);
 	}
 
 	.empty-state {
@@ -547,37 +328,53 @@
 	.matches-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.4rem;
 	}
 
 	.match-row {
 		display: grid;
-		grid-template-columns: 30px 70px 1fr 100px 30px 60px 70px;
+		grid-template-columns: 32px 70px 1fr 100px 32px 60px 70px;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.6rem 0.75rem;
-		border-radius: 0.5rem;
+		gap: 0.6rem;
+		padding: 0.65rem 0.85rem;
+		border-radius: 0.6rem;
 		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid transparent;
 		font-size: 0.85rem;
+		border-left: 2px solid transparent;
+		transition: all 0.2s;
 	}
 
-	.match-row.won {
-		border-color: rgba(74, 222, 128, 0.08);
+	.match-row:nth-child(even) {
+		background: rgba(255, 255, 255, 0.02);
 	}
 
-	.match-row.lost {
-		border-color: rgba(248, 113, 113, 0.08);
+	.match-row:nth-child(odd) {
+		background: rgba(255, 255, 255, 0.05);
 	}
+
+	.match-row:hover { background: rgba(255, 255, 255, 0.04); }
+	.match-row.won  { border-left-color: rgba(74, 222, 128, 0.4); }
+	.match-row.lost { border-left-color: rgba(248, 113, 113, 0.3); }
 
 	.match-result {
-		font-size: 0.9rem;
+		font-size: 0.8rem;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
 	}
+
+	.match-row.won .match-result  { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
+	.match-row.lost .match-result { background: rgba(248, 113, 113, 0.1); color: #f87171; }
 
 	.match-score {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.3rem;
 		font-weight: 600;
 	}
 
@@ -625,13 +422,6 @@
 	   RESPONSIVE
 	   ═════════════════════════════════════════════════ */
 	@media (max-width: 640px) {
-		.user-actions {
-			flex-wrap: wrap;
-		}
-
-		.user-actions :global(.action-btn) {
-			flex: 1 1 calc(50% - 0.25rem);
-		}
 
 		.stats-grid {
 			grid-template-columns: repeat(2, 1fr);
@@ -652,7 +442,7 @@
 	/* ═════════════════════════════════════════════════
 	   PROGRESSION SECTION
 	   ═════════════════════════════════════════════════ */
-	.progression-section {
+	/* .progression-section {
 		padding: 1rem;
 		background: rgba(255, 255, 255, 0.03);
 		border: 1px solid rgba(255, 255, 255, 0.06);
@@ -676,7 +466,7 @@
 	.mini-stat {
 		font-size: 0.75rem;
 		color: #6b7280;
-	}
+	} */
 
 	/* ═════════════════════════════════════════════════
 	   ACHIEVEMENTS SECTION
@@ -692,143 +482,11 @@
 		margin: 0;
 	}
 
-	.view-all-link {
-		font-size: 0.8rem;
-		color: #ff6b9d;
-		text-decoration: none;
-	}
-
-	.view-all-link:hover {
-		text-decoration: underline;
-	}
-
-	.achievements-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
 	.empty-achievements {
 		color: #6b7280;
 		font-size: 0.85rem;
 		text-align: center;
 		padding: 1rem;
-	}
-
-	/* ═════════════════════════════════════════════════
-	   DELETE ACCOUNT MODAL
-	   ═════════════════════════════════════════════════ */
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		animation: fadeIn 0.15s ease;
-	}
-
-	.modal {
-		background: #1f2937;
-		border: 1px solid rgba(248, 113, 113, 0.2);
-		border-radius: 1rem;
-		padding: 2rem;
-		max-width: 420px;
-		width: 90%;
-		animation: scaleIn 0.15s ease;
-	}
-
-	.modal-title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: #f87171;
-		margin: 0 0 0.75rem 0;
-	}
-
-	.modal-desc {
-		color: #9ca3af;
-		font-size: 0.9rem;
-		line-height: 1.5;
-		margin: 0 0 1.25rem 0;
-	}
-
-	.modal-label {
-		display: block;
-		color: #d1d5db;
-		font-size: 0.85rem;
-		font-weight: 500;
-		margin-bottom: 0.5rem;
-	}
-
-	.modal-input {
-		width: 100%;
-		padding: 0.65rem 0.75rem;
-		border-radius: 0.5rem;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		background: rgba(255, 255, 255, 0.05);
-		color: #f3f4f6;
-		font-size: 0.9rem;
-		outline: none;
-		box-sizing: border-box;
-		transition: border-color 0.15s;
-	}
-
-	.modal-input:focus {
-		border-color: rgba(248, 113, 113, 0.5);
-	}
-
-	.modal-input:disabled {
-		opacity: 0.5;
-	}
-
-	.modal-error {
-		color: #f87171;
-		font-size: 0.8rem;
-		margin: 0.5rem 0 0 0;
-	}
-
-	.modal-actions {
-		display: flex;
-		gap: 0.75rem;
-		margin-top: 1.5rem;
-	}
-
-	.modal-btn {
-		flex: 1;
-		padding: 0.6rem 1rem;
-		border-radius: 0.5rem;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		border: none;
-		transition:
-			background 0.15s,
-			opacity 0.15s;
-	}
-
-	.modal-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.modal-btn--cancel {
-		background: rgba(255, 255, 255, 0.08);
-		color: #d1d5db;
-	}
-
-	.modal-btn--cancel:hover:not(:disabled) {
-		background: rgba(255, 255, 255, 0.12);
-	}
-
-	.modal-btn--delete {
-		background: #dc2626;
-		color: white;
-	}
-
-	.modal-btn--delete:hover:not(:disabled) {
-		background: #b91c1c;
 	}
 
 	@keyframes fadeIn {

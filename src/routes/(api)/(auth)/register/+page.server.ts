@@ -4,15 +4,14 @@ import { lucia } from '$lib/server/auth/lucia';
 import { hashPassword } from '$lib/server/auth/password';
 import { validateRegistration } from '$lib/server/auth/validation';
 import { validateRegistrationUniqueness } from '$lib/server/auth/db_valid';
+import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import type { FormErrors } from '$lib/types/form';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (locals.user) {
-		redirect(302, '/dashboard');
-	}
+	redirectIfLoggedIn(locals);
 	return {};
 };
 
@@ -71,17 +70,7 @@ export const actions: Actions = {
 				})
 				.returning({ id: users.id });
 
-			const session = await lucia.createSession(String(newUser.id), {});
-			const sessionCookie = lucia.createSessionCookie(session.id);
-
-			cookies.set(sessionCookie.name, sessionCookie.value, {
-				path: '.',
-				...sessionCookie.attributes
-			});
-			await db
-				.update(users)
-				.set({ is_online: true })
-				.where(eq(users.id, newUser.id));
+			await createAndSetSession(newUser.id, cookies);
 		} catch (err) {
 			console.error('Registration error:', err);
 
@@ -91,6 +80,6 @@ export const actions: Actions = {
 			});
 		}
 
-		redirect(302, '/dashboard');
+		redirect(302, '/');
 	}
 };

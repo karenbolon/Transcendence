@@ -143,9 +143,15 @@ db-studio:
 	@echo "$(DATABASE) $(PURPLE)Opening Drizzle Studio...$(NC)"
 	@npm run db:studio
 
-## Seed the database with sample data
+## Seed the main database with test profiles and games
 db-seed:
-	@echo "$(DATABASE) $(PURPLE)Seeding database...$(NC)"
+	@echo "$(DATABASE) $(PURPLE)Seeding database with test data...$(NC)"
+	@npm run db:seed
+	@echo "$(CHECK) $(MINT)Database seeded! Password for all users: 123321Pa$(NC)"
+
+## Seed the test database
+db-seed-test:
+	@echo "$(DATABASE) $(PURPLE)Seeding test database...$(NC)"
 	@npm run db:seed:test
 
 ## Open Drizzle Studio for test DB

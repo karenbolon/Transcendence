@@ -1,0 +1,74 @@
+name: Cleanup Preview Environment
+
+on:
+  delete:
+
+env:
+  PERMITD_URL: https://apps.walt3r.dev
+  API_VERSION: v5.4.2
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch' && github.event.ref != 'main'
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+    steps:
+      - name: Derive names
+        id: vars
+        run: |
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          BRANCH_SLUG=$(echo "${{ github.event.ref }}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+          POD_NAME="${REPO_OWNER}-${REPO_NAME}-${BRANCH_SLUG}"
+          VOLUME_NAME="${POD_NAME}-pgdata"
+
+          echo "pod_name=$POD_NAME" >> "$GITHUB_OUTPUT"
+          echo "volume_name=$VOLUME_NAME" >> "$GITHUB_OUTPUT"
+          echo "environment_name=preview/${{ github.event.ref }}" >> "$GITHUB_OUTPUT"
+          echo "Cleaning up pod: $POD_NAME"
+
+      - name: Get OIDC token
+        id: oidc
+        run: |
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=permitd" | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Stop pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME/stop")
+          echo "Stop returned: $STATUS"
+
+      - name: Remove pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Removing pod (cascade removes containers)"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME")
+          echo "Remove returned: $STATUS"
+
+      - name: Remove preview volume
+        env:
+          VOLUME_NAME: ${{ steps.vars.outputs.volume_name }}
+        run: |
+          echo "Removing volume: $VOLUME_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/volumes/$VOLUME_NAME")
+          echo "Remove returned: $STATUS"
+
+      - name: Delete GitHub environment
+        uses: strumwolf/delete-deployment-environment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: ${{ steps.vars.outputs.environment_name }}

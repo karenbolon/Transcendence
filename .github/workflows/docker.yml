@@ -1,0 +1,266 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PERMITD_URL: https://apps.walt3r.dev
+  PERMITD_DOMAIN: walt3r.dev
+  API_VERSION: v5.4.2
+  APP_PORT: "3000"
+  POSTGRES_IMAGE: docker.io/library/postgres:16-alpine
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Downcase container image
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV" 
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || format('preview/{0}', github.ref_name) }}
+      url: https://${{ steps.vars.outputs.hostname }}
+
+    steps:
+      - name: Derive names
+        id: vars
+        run: |
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+
+          BRANCH_REF="${GITHUB_REF#refs/heads/}"
+          BRANCH_SLUG=$(echo "$BRANCH_REF" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+          POD_NAME="${REPO_OWNER}-${REPO_NAME}-${BRANCH_SLUG}"
+          HOSTNAME="${POD_NAME}.${PERMITD_DOMAIN}"
+          IMAGE_REF="ghcr.io/$REPO_OWNER/$REPO_NAME:${{ needs.build-and-push.outputs.image-tag }}"
+          VOLUME_NAME="${POD_NAME}-pgdata"
+
+          echo "repo_name=$REPO_NAME" >> "$GITHUB_OUTPUT"
+          echo "branch_slug=$BRANCH_SLUG" >> "$GITHUB_OUTPUT"
+          echo "pod_name=$POD_NAME" >> "$GITHUB_OUTPUT"
+          echo "hostname=$HOSTNAME" >> "$GITHUB_OUTPUT"
+          echo "image_ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "volume_name=$VOLUME_NAME" >> "$GITHUB_OUTPUT"
+
+          echo "Pod: $POD_NAME"
+          echo "Hostname: $HOSTNAME"
+          echo "Image: $IMAGE_REF"
+          echo "Volume: $VOLUME_NAME"
+
+      - name: Get OIDC token
+        id: oidc
+        run: |
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=permitd" | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Pull images
+        env:
+          IMAGE_REF: ${{ steps.vars.outputs.image_ref }}
+        run: |
+          echo "Pulling app image: $IMAGE_REF"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$IMAGE_REF"
+
+          echo "Pulling postgres image: $POSTGRES_IMAGE"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$POSTGRES_IMAGE"
+
+      - name: Stop existing pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Stopping pod: $POD_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME/stop")
+          echo "Stop returned: $STATUS"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "304" ] && [ "$STATUS" != "404" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Remove existing pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Removing pod: $POD_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME")
+          echo "Remove returned: $STATUS"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Create volume
+        env:
+          VOLUME_NAME: ${{ steps.vars.outputs.volume_name }}
+        run: |
+          echo "Creating volume: $VOLUME_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{"name": "'"$VOLUME_NAME"'"}' \
+            "$PERMITD_URL/$API_VERSION/libpod/volumes/create")
+          echo "Volume create returned: $STATUS"
+          # 201 = created, 500 = already exists (podman returns 500 for duplicate volume)
+          if [ "$STATUS" != "201" ] && [ "$STATUS" != "500" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Create pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+          HOSTNAME: ${{ steps.vars.outputs.hostname }}
+        run: |
+          echo "Creating pod: $POD_NAME"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "'"$POD_NAME"'",
+              "labels": {
+                "traefik.enable": "true",
+                "traefik.http.routers.'"$POD_NAME"'.rule": "Host(`'"$HOSTNAME"'`)",
+                "traefik.http.services.'"$POD_NAME"'.loadbalancer.server.port": "'"$APP_PORT"'"
+              },
+              "netns": {"nsmode": "bridge"},
+              "networks": {"apps": {}}
+            }' \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/create"
+
+      - name: Create postgres container
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+          VOLUME_NAME: ${{ steps.vars.outputs.volume_name }}
+        run: |
+          echo "Creating postgres container in pod: $POD_NAME"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "'"$POD_NAME"'-postgres",
+              "image": "'"$POSTGRES_IMAGE"'",
+              "pod": "'"$POD_NAME"'",
+              "env": {
+                "POSTGRES_USER": "transcendence",
+                "POSTGRES_PASSWORD": "transcendence",
+                "POSTGRES_DB": "transcendence"
+              },
+              "volumes": [{
+                "Name": "'"$VOLUME_NAME"'",
+                "Dest": "/var/lib/postgresql/data"
+              }]
+            }' \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/create"
+
+      - name: Create app container
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+          IMAGE_REF: ${{ steps.vars.outputs.image_ref }}
+          REPO_NAME: ${{ steps.vars.outputs.repo_name }}
+          BRANCH_SLUG: ${{ steps.vars.outputs.branch_slug }}
+        run: |
+          echo "Creating app container in pod: $POD_NAME"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "'"$POD_NAME"'-app",
+              "image": "'"$IMAGE_REF"'",
+              "pod": "'"$POD_NAME"'",
+              "env": {
+                "DATABASE_URL": "postgresql://transcendence:transcendence@localhost:5432/transcendence",
+                "NODE_ENV": "production"
+              },
+              "labels": {
+                "app": "'"$REPO_NAME"'",
+                "branch": "'"$BRANCH_SLUG"'"
+              }
+            }' \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/create"
+
+      - name: Start pod
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Starting pod: $POD_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME/start")
+          echo "Start returned: $STATUS"
+          # 200 = started, 304 = already running, 409 = partial (infra container may already be running)
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "304" ] && [ "$STATUS" != "409" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Verify deployment
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+          HOSTNAME: ${{ steps.vars.outputs.hostname }}
+        run: |
+          echo "Checking pod status..."
+          sleep 3
+          echo "Checking app container..."
+          curl -sSf \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/${POD_NAME}-app/json" | \
+            jq '{name: .Name, state: .State.Status, image: .ImageName}'
+          echo ""
+          echo "Deployed to: https://$HOSTNAME"

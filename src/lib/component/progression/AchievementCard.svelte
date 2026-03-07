@@ -172,6 +172,7 @@
 		line-height: 1;
 		margin-bottom: 0.15rem;
 		transition: transform 0.3s;
+		padding: 0.2rem;
 	}
 
 	.achievement-card.earned:hover .card-icon {

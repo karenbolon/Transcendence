@@ -15,6 +15,13 @@
       "when": 1771693585608,
       "tag": "0001_romantic_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772765395175,
+      "tag": "0002_opposite_human_robot",
+      "breakpoints": true
     }
   ]
 }

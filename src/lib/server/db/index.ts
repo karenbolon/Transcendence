@@ -3,11 +3,26 @@ import postgres from 'postgres';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
 
-// we need prepare: false for supabase transaction mode
-// Use DB_URL (Transaction Mode) if available, otherwise fall back to DATABASE_URL
-const connectionString = env.DB_URL || env.DATABASE_URL;
-if (!connectionString) throw new Error('DATABASE_URL is not set');
+type Db = ReturnType<typeof drizzle<typeof schema>>;
 
-const client = postgres(connectionString, { prepare: false });
+let _db: Db | undefined;
 
-export const db = drizzle(client, { schema });
+export function getDb(): Db {
+	if (!_db) {
+		const connectionString = env.DB_URL || env.DATABASE_URL;
+		if (!connectionString) throw new Error('DATABASE_URL is not set');
+		const client = postgres(connectionString, { prepare: false });
+		_db = drizzle(client, { schema });
+	}
+	return _db;
+}
+
+// Proxy preserves backward compat: `import { db }` works unchanged everywhere.
+// Properties are forwarded to the lazily-initialized instance on first access.
+export const db: Db = new Proxy({} as Db, {
+	get: (_target, prop, receiver) => {
+		const instance = getDb();
+		const value = Reflect.get(instance, prop, receiver);
+		return typeof value === 'function' ? value.bind(instance) : value;
+	}
+});

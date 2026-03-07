@@ -212,10 +212,10 @@
 		width: 100%;
 		max-width: 1300px;
 		margin: 0 auto;
-		padding: 1.5rem 1.5rem 4rem;
+		padding: 2.5rem 1.5rem 4rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.9rem;
 	}
 
 	/* WELCOME */
@@ -224,7 +224,8 @@
 		justify-content: space-between;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 1.5rem;
+		gap: 1.6rem;
+		padding: 1rem;
 	}
 
 	.welcome-title {
@@ -350,7 +351,7 @@
 	.podium-row.rank-2 { background: rgba(192, 192, 210, 0.03); border-color: rgba(192, 192, 210, 0.06); }
 	.podium-row.rank-3 { background: rgba(205, 127, 50, 0.03); border-color: rgba(205, 127, 50, 0.06); }
 
-	.rank-medal { font-size: 1.1rem; width: 24px; text-align: center; flex-shrink: 0; }
+	.rank-medal { font-size: 1.7rem; width: 24px; text-align: center; flex-shrink: 0; }
 
 	.podium-avatar {
 		width: 34px;
@@ -453,7 +454,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.85rem;
+		font-size: 1.25rem;
 		flex-shrink: 0;
 		background: rgba(255, 255, 255, 0.05);
 		border: 1px solid rgba(255, 255, 255, 0.08);
@@ -463,10 +464,10 @@
 	.feed-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 
 	.feed-content { flex: 1; min-width: 0; }
-	.feed-text { font-size: 0.78rem; color: #d1d5db; line-height: 1.4; }
+	.feed-text { font-size: 0.88rem; color: #d1d5db; line-height: 1.4; }
 	.feed-text strong { color: #fff; font-weight: 600; }
-	.feed-time { font-size: 0.65rem; color: #5a5a7e; margin-top: 0.1rem; }
-	.feed-emoji { font-size: 1.1rem; flex-shrink: 0; }
+	.feed-time { font-size: 0.75rem; color: #5a5a7e; margin-top: 0.1rem; }
+	.feed-emoji { font-size: 1.2rem; flex-shrink: 0; }
 
 	/* TOURNAMENTS */
 	.tournaments-section {

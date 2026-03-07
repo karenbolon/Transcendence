@@ -11,6 +11,12 @@
 			description: "Looks like this page doesn't exist. It's out of bounds!",
 			footer: "The ball went out of bounds and we couldn't find it... 🏓"
 		},
+		401: {
+			emoji: '🔒',
+			title: 'Not authenticated',
+			description: "You need to be logged in to access this page.",
+			footer: 'Please log in to continue. 🔐'
+		},
 		403: {
 			emoji: '🚫',
 			title: 'Access Denied',
@@ -22,6 +28,12 @@
 			title: 'Server Error',
 			description: "Something went wrong on our end. We're working to fix it!",
 			footer: 'Our server missed the ball. Game over! 🎮'
+		},
+		503: {
+			emoji: '🔧',
+			title: 'Under maintenance',
+			description: "We're doing some upgrades. Please check back in a few minutes.",
+			footer: 'The server is taking a break. Come back soon! 🛠️'
 		}
 	};
 
@@ -54,7 +66,7 @@
 		{/if}
 
 		<div class="error-actions">
-			<a href="/" class="btn-login">Go Home</a>
+			<a href="/" class="btn-login">🏠 Go Home</a>
 			<button onclick={() => window.history.back()} class="btn-signup">
 				Go Back
 			</button>
@@ -64,7 +76,7 @@
 				</button>
 			{/if}
 		</div>
-
+		
 		<p class="error-footer">{info.footer}</p>
 	</div>
 </div>

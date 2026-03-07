@@ -3,6 +3,7 @@
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
 	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
+	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import {
 		SPEED_CONFIGS,
 		type SpeedPreset,
@@ -51,12 +52,7 @@
 		newLevel: number;
 		currentXp: number;
 		xpForNextLevel: number;
-		newAchievements: {
-			id: string;
-			name: string;
-			description: string;
-			tier: string;
-		}[];
+		newAchievements: NewAchievement[];
 	} | null>(null);
 
 	async function handleGameOver(result: {

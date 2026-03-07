@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, timestamp, boolean, check } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, text, timestamp, boolean, check, jsonb } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -19,7 +19,12 @@ export const users = pgTable('users', {
 	deleted_at: timestamp('deleted_at'),
 	terms_accepted_at: timestamp('terms_accepted_at'),
 	// Multi-user Integrity
-	version: integer('version').notNull().default(1)
+	version: integer('version').notNull().default(1),
+	notification_prefs: jsonb('notification_prefs').default({
+		friendRequests: true,
+		gameInvites: true,
+		matchResults: true,
+	})
 }, (t) => ({
 	checkWins: check('positive_wins', sql`${t.wins} >= 0`),
 	checkLosses: check('positive_losses', sql`${t.losses} >= 0`),

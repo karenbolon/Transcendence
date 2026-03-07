@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { lucia } from '$lib/server/auth/lucia';
+import { clearSessionCookie } from '$lib/server/auth/helpers';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get(lucia.sessionCookieName);
@@ -19,21 +20,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	if (!session) {
-		const sessionCookie = lucia.createBlankSessionCookie();
-		event.cookies.set(sessionCookie.name, sessionCookie.value, {
-			path: '.',
-			...sessionCookie.attributes
-		});
+		clearSessionCookie(event.cookies);
 	}
 
 	// Block soft-deleted users even if they have a valid session
 	if (user && user.is_deleted) {
 		await lucia.invalidateSession(sessionId);
-		const blankCookie = lucia.createBlankSessionCookie();
-		event.cookies.set(blankCookie.name, blankCookie.value, {
-			path: '.',
-			...blankCookie.attributes
-		});
+		clearSessionCookie(event.cookies);
 		event.locals.user = null;
 		event.locals.session = null;
 		return resolve(event);

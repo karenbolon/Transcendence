@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { FullAutoFill } from 'svelte/elements';
 	type Props = {
 		id: string;
 		name: string;
@@ -6,6 +7,8 @@
 		value: string;
 		required?: boolean;
 		minlength?: number;
+		disabled?: boolean;
+		autocomplete?: FullAutoFill | null
 		onfocusout?: () => void;
 	};
 
@@ -16,6 +19,8 @@
 		value = $bindable(''),
 		required = false,
 		minlength,
+		disabled = false,
+		autocomplete,
 		onfocusout
 	}: Props = $props();
 	let showPassword = $state(false);
@@ -30,6 +35,8 @@
 		{placeholder}
 		{required}
 		{minlength}
+		{disabled}
+		{autocomplete}
 		bind:value
 		{onfocusout}
 	/>

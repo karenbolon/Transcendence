@@ -8,6 +8,8 @@
 	import type { ProfileEditData } from "$lib/types/utils";
 	let { data }: { data: PageData } = $props();
 
+	let showEditModal = $state(false);
+
 	// Local override for edited profile data
 	let editOverride = $state<ProfileEditData | null>(null);
 

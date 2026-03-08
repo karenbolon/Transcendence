@@ -50,7 +50,6 @@
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
-
 		if (file.size > 2 * 1024 * 1024) {
 			error = 'Image must be 2MB or less.';
 			return;
@@ -58,23 +57,24 @@
 
 		uploading = true;
 		error = '';
-
 		try {
 			const formData = new FormData();
 			formData.set('avatar', file);
-
 			const res = await fetch('/api/profile/avatars', {
 				method: 'POST',
 				body: formData,
 			});
-
-			const result = await res.json();
-
+			let result;
+			try {
+				result = await res.json();
+			} catch {
+				error = 'Invalid server response.';
+				return;
+			}
 			if (!res.ok) {
 				error = result.error ?? 'Upload failed.';
 				return;
-			}
-
+			} 
 			avatarUrl = result.url;
 			uploadedAvatarUrl = result.url;
 		} catch {

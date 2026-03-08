@@ -39,263 +39,29 @@ docker exec -it ft_db psql -U root -d pong_db -c "
 TRUNCATE TABLE friendships, games, users RESTART IDENTITY CASCADE;
 "
 
+Great thinking! Showing 100 games on the profile page is definitely too much. Here's my take:
 
-later
+  On the profile page:
+  - Show the last 5 games — keeps it clean and focused
+  - Add a "View All" link/button that takes you to a dedicated match history page
+  - No filters here — keep the profile simple
 
-<script lang="ts">
-	type Props = {
-		id: string;
-		name: string;
-		description: string;
-		tier: string;
-		category: string;
-		icon: string;
-		unlockedAt: string | null;
-		progress?: [number, number] | null;
-		hint?: string | null;
-		onclick?: () => void;
-	};
+  On a dedicated match history page (e.g., /match-history or inside (users_profile)/match-history):
+  - Pagination over "load all" — better for performance. Something like 15-20 games per page
+  - Filter buttons at the top: All / Local / Computer / Online (Remote)
+  - Could also add a sort by date toggle (newest/oldest)
+  - Maybe a simple win/loss filter too since you're already filtering
 
-	let {
-		id,
-		name,
-		description,
-		tier,
-		category,
-		icon,
-		unlockedAt,
-		progress = null,
-		hint = null,
-		onclick,
-	}: Props = $props();
+  Why pagination over infinite scroll:
+  - Simpler to implement
+  - Works better with filters (reset to page 1 when filter changes)
+  - Users can bookmark/share a specific page
+  - Lighter on the server
 
-	let earned = $derived(!!unlockedAt);
+  Structure-wise, since you're grouping profile stuff under (users_profile), the match history page would fit nicely at:
+  src/routes/(users_profile)/match-history/+page.svelte
+  src/routes/(users_profile)/match-history/+page.server.ts
 
-	const xpRewards: Record<string, number> = {
-		bronze: 50,
-		silver: 100,
-		gold: 200,
-		legendary: 500,
-	};
+  So the flow would be: Profile → shows last 5 games → "View All" → /match-history with filters + pagination.
 
-	let xp = $derived(xpRewards[tier] ?? 50);
-</script>
-
-<button
-	class="achievement-card {tier}"
-	class:earned
-	class:locked={!earned}
-	title={earned ? description : 'Keep playing to unlock'}
-	onclick={onclick}
-	type="button"
->
-	<!-- Tier glow line -->
-	<div class="tier-line"></div>
-
-	<!-- Icon -->
-	<div class="card-icon">
-		{#if earned}
-			{icon}
-		{:else}
-			🔒
-		{/if}
-	</div>
-
-	<!-- Info -->
-	<div class="card-info">
-		<span class="card-name">{earned ? name : '???'}</span>
-		<span class="card-desc"
-			>{earned ? description : 'Keep playing to unlock'}</span
-		>
-	</div>
-
-	<!-- Tier + XP -->
-	<div class="card-footer">
-		<span class="card-tier">{tier}</span>
-		<span class="card-xp">+{xp} XP</span>
-	</div>
-</button>
-
-<style>
-	.achievement-card {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 1rem 0.65rem 0.75rem;
-		border-radius: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid transparent;
-		text-align: center;
-		transition: all 0.25s;
-		overflow: hidden;
-		cursor: pointer;
-		width: 100%;
-		font-family: inherit;
-		color: inherit;
-	}
-
-	/* Locked */
-	.achievement-card.locked {
-		opacity: 0.35;
-		filter: grayscale(0.5);
-	}
-
-	/* Earned */
-	.achievement-card.earned {
-		background: rgba(255, 255, 255, 0.03);
-	}
-
-	.achievement-card.earned:hover {
-		transform: translateY(-2px);
-	}
-
-	/* Tier glow line */
-	.tier-line {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 2px;
-		opacity: 0;
-		transition: opacity 0.25s;
-	}
-
-	.achievement-card.earned .tier-line {
-		opacity: 0.6;
-	}
-
-	/* Tier colors */
-	.achievement-card.bronze.earned {
-		border-color: rgba(205, 127, 50, 0.15);
-	}
-	.achievement-card.bronze.earned:hover {
-		border-color: rgba(205, 127, 50, 0.3);
-		box-shadow: 0 4px 20px rgba(205, 127, 50, 0.06);
-	}
-	.achievement-card.bronze .tier-line {
-		background: linear-gradient(90deg, transparent, #cd7f32, transparent);
-	}
-
-	.achievement-card.silver.earned {
-		border-color: rgba(192, 192, 210, 0.15);
-	}
-	.achievement-card.silver.earned:hover {
-		border-color: rgba(192, 192, 210, 0.25);
-		box-shadow: 0 4px 20px rgba(192, 192, 210, 0.06);
-	}
-	.achievement-card.silver .tier-line {
-		background: linear-gradient(90deg, transparent, #c0c0d2, transparent);
-	}
-
-	.achievement-card.gold.earned {
-		border-color: rgba(255, 215, 0, 0.15);
-	}
-	.achievement-card.gold.earned:hover {
-		border-color: rgba(255, 215, 0, 0.3);
-		box-shadow: 0 4px 20px rgba(255, 215, 0, 0.06);
-	}
-	.achievement-card.gold .tier-line {
-		background: linear-gradient(90deg, transparent, #ffd700, transparent);
-	}
-
-	.achievement-card.legendary.earned {
-		border-color: rgba(168, 85, 247, 0.2);
-	}
-	.achievement-card.legendary.earned:hover {
-		border-color: rgba(168, 85, 247, 0.35);
-		box-shadow: 0 4px 20px rgba(168, 85, 247, 0.08);
-	}
-	.achievement-card.legendary .tier-line {
-		background: linear-gradient(90deg, transparent, #a855f7, transparent);
-	}
-
-	/* Icon */
-	.card-icon {
-		font-size: 1.75rem;
-		line-height: 1;
-		margin-bottom: 0.15rem;
-		transition: transform 0.3s;
-	}
-
-	.achievement-card.earned:hover .card-icon {
-		transform: scale(1.15);
-	}
-
-	/* Info */
-	.card-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		min-height: 2.2rem;
-	}
-
-	.card-name {
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: #6b7280;
-		line-height: 1.3;
-	}
-
-	.achievement-card.earned .card-name {
-		color: #e5e7eb;
-	}
-
-	.card-desc {
-		font-size: 0.6rem;
-		color: #4b5563;
-		line-height: 1.35;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.achievement-card.earned .card-desc {
-		color: #7a7a9e;
-	}
-
-	/* Footer */
-	.card-footer {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		margin-top: 0.15rem;
-	}
-
-	.card-tier {
-		font-size: 0.5rem;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		font-weight: 700;
-		padding: 0.08rem 0.35rem;
-		border-radius: 1rem;
-	}
-
-	.achievement-card.bronze .card-tier {
-		color: #cd7f32;
-		background: rgba(205, 127, 50, 0.12);
-	}
-	.achievement-card.silver .card-tier {
-		color: #c0c0d2;
-		background: rgba(192, 192, 210, 0.1);
-	}
-	.achievement-card.gold .card-tier {
-		color: #ffd700;
-		background: rgba(255, 215, 0, 0.1);
-	}
-	.achievement-card.legendary .card-tier {
-		color: #a855f7;
-		background: rgba(168, 85, 247, 0.12);
-	}
-
-	.card-xp {
-		font-size: 0.5rem;
-		font-weight: 600;
-		color: #a855f7;
-		background: rgba(168, 85, 247, 0.1);
-		padding: 0.08rem 0.35rem;
-		border-radius: 1rem;
-	}
-</style>
+  Want to start building this out?

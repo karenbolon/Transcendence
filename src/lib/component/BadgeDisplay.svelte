@@ -14,6 +14,7 @@
 		totalGames: number;
 		wins: number;
 		maxBadges?: number;
+		viewAllHref?: string;
 	};
 
 	let {
@@ -24,6 +25,7 @@
 		totalGames,
 		wins,
 		maxBadges = 8,
+		viewAllHref = '/achievements',
 	}: Props = $props();
 
 	let level = $derived(progression?.level ?? 1);
@@ -54,9 +56,15 @@
 				<div class="milestone-info">
 					<span class="milestone-value">{milestone.title}</span>
 					<span class="milestone-value">Level {level}</span>
+					{#if progression}
 						<span class="milestone-sub">
 							{progression.currentXp.toLocaleString()} / {progression.xpToNextLevel.toLocaleString()} XP
 						</span>
+					{:else}
+						<span class="milestone-sub">0 XP earned</span>
+					{/if}
+				</div>
+			</div>
 
 			<!-- Current Streak -->
 			<div class="milestone-card streak-card" class:on-fire={currentStreak >= 3}>
@@ -87,7 +95,7 @@
 	<div class="recent-badges">
 		<div class="section-header">
 			<h2 class="section-title"><span class="bar purple"></span> Recent Badges</h2>
-			<a href="/achievements" class="see-all">{badges.length} earned · View all →</a>
+			<a href={viewAllHref} class="see-all">{badges.length} earned · View all →</a>
 		</div>
 
 		<div class="badge-grid">

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import EditProfileModal from "$lib/component/EditProfileModal.svelte";
 	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
-	import LevelBadge from "$lib/component/progression/LevelBadge.svelte";
-	import AchievementCard from "$lib/component/progression/AchievementCard.svelte";
 	import { formatDate, formatDuration } from "$lib/utils/format_date";
 	import { speedEmoji, formatMode } from "$lib/utils/format_game";
 	import type { PageData } from "./$types";
 	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
 	import type { ProfileEditData } from "$lib/types/utils";
 	let { data }: { data: PageData } = $props();
+
+	let showEditModal = $state(false);
 
 	// Local override for edited profile data
 	let editOverride = $state<ProfileEditData | null>(null);
@@ -84,27 +84,6 @@
 	<!-- ═══════════════════════════════════════════════════════════
 	     PROGRESSION and ACHIEVEMENTS
 	═══════════════════════════════════════════════════════════ -->
-	<!-- {#if data.progression}
-		<section class="progression-section">
-			<div class="progression-header">
-				<LevelBadge level={data.progression.level} size="lg" />
-			</div>
-			<XpBar
-				currentXp={data.progression.currentXp}
-				xpToNextLevel={data.progression.xpToNextLevel}
-				level={data.progression.level}
-			/>
-			<div class="progression-stats">
-				<span class="mini-stat"
-					>🔥 Streak: {data.progression.currentWinStreak}</span
-				>
-				<span class="mini-stat"
-					>⭐ Best: {data.progression.bestWinStreak}</span
-				>
-			</div>
-		</section>
-	{/if} -->
-
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">

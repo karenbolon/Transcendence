@@ -161,7 +161,7 @@
 								<img src={uploadedAvatarUrl} alt="Your upload" />
 							</button>
 						{/if}
-						{#each defaultAvatars as url}
+						{#each defaultAvatars as url (url)}
 							<button
 								class="avatar-option"
 								class:selected={avatarUrl === url}

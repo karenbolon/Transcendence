@@ -38,30 +38,3 @@ npm run db:push
 docker exec -it ft_db psql -U root -d pong_db -c "
 TRUNCATE TABLE friendships, games, users RESTART IDENTITY CASCADE;
 "
-
-Great thinking! Showing 100 games on the profile page is definitely too much. Here's my take:
-
-  On the profile page:
-  - Show the last 5 games — keeps it clean and focused
-  - Add a "View All" link/button that takes you to a dedicated match history page
-  - No filters here — keep the profile simple
-
-  On a dedicated match history page (e.g., /match-history or inside (users_profile)/match-history):
-  - Pagination over "load all" — better for performance. Something like 15-20 games per page
-  - Filter buttons at the top: All / Local / Computer / Online (Remote)
-  - Could also add a sort by date toggle (newest/oldest)
-  - Maybe a simple win/loss filter too since you're already filtering
-
-  Why pagination over infinite scroll:
-  - Simpler to implement
-  - Works better with filters (reset to page 1 when filter changes)
-  - Users can bookmark/share a specific page
-  - Lighter on the server
-
-  Structure-wise, since you're grouping profile stuff under (users_profile), the match history page would fit nicely at:
-  src/routes/(users_profile)/match-history/+page.svelte
-  src/routes/(users_profile)/match-history/+page.server.ts
-
-  So the flow would be: Profile → shows last 5 games → "View All" → /match-history with filters + pagination.
-
-  Want to start building this out?

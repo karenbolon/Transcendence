@@ -109,7 +109,7 @@
 			<!-- Show top 3 in table too if no separate table rows -->
 			{#if rest.length === 0}
 				{#each podium as player}
-					<a href="/profile/{player.id}" class="table-row"  class:is-me={player.id === data.myId}>
+					<a href="/friends/{player.id}" class="table-row"  class:is-me={player.id === data.myId}>
 						<span class="col-rank rank-num">{RANK_MEDALS[player.rank - 1]}</span>
 						<span class="col-player">
 
@@ -118,7 +118,6 @@
 								avatarUrl={player.avatarUrl}
 								size="xs"
 							/>
-
 							<span class="player-name-text">
 								{player.name || player.username}
 								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
@@ -132,7 +131,7 @@
 				{/each}
 			{:else}
 				{#each rest as player}
-					<a href="/profile/{player.id}" class="table-row" class:is-you={player.id === data.myId}>
+					<a href="/friends/{player.id}" class="table-row" class:is-you={player.id === data.myId}>
 						<span class="col-rank rank-num">{player.rank}</span>
 						<span class="col-player">
 							<UserAvatar

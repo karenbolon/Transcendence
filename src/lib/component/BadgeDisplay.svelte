@@ -14,6 +14,7 @@
 		totalGames: number;
 		wins: number;
 		maxBadges?: number;
+		viewAllHref?: string;
 	};
 
 	let {
@@ -24,6 +25,7 @@
 		totalGames,
 		wins,
 		maxBadges = 8,
+		viewAllHref = '/achievements',
 	}: Props = $props();
 
 	let level = $derived(progression?.level ?? 1);
@@ -93,7 +95,7 @@
 	<div class="recent-badges">
 		<div class="section-header">
 			<h2 class="section-title"><span class="bar purple"></span> Recent Badges</h2>
-			<a href="/achievements" class="see-all">{badges.length} earned · View all →</a>
+			<a href={viewAllHref} class="see-all">{badges.length} earned · View all →</a>
 		</div>
 
 		<div class="badge-grid">
@@ -298,11 +300,6 @@
 		gap: 0.75rem;
 		padding: 1rem 0.65rem 1.75rem;
 		border-radius: 0.75rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid transparent;
-		text-align: center;
-		transition: all 0.25s;
-		overflow: hidden;
 		cursor: pointer;
 		width: 100%;
 		font-family: inherit;

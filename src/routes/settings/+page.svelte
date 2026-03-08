@@ -3,7 +3,7 @@
 	import DeleteModal from '$lib/component/DeleteModal.svelte';
 	import PasswordInput from '$lib/component/PasswordInput.svelte';
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
-	import { postJSON } from '$lib/utils/format_utils';
+	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
 
 	let { data }: { data: PageData } = $props();
 
@@ -22,44 +22,23 @@
 		passwordError = '';
 		passwordSuccess = '';
 
-		if (!currentPassword || !newPassword || !confirmPassword) {
-			passwordError = 'All fields are required.';
-			return;
-		}
-
-		const pwError = validatePassword(newPassword);
-		if (pwError) {
-			passwordError = pwError;
-			return;
-		}
-
-		const confirmError = validateConfirmPassword(newPassword, confirmPassword);
-		if (confirmError) {
-			passwordError = confirmError;
-			return;
-		}
-
-		savingPassword = true;
-		try {
-			const { ok, data: result } = await postJSON('/api/settings/password', {
-				currentPassword,
-				newPassword,
-			});
-
-			if (!ok) {
-				passwordError = result.error ?? 'Failed to update password';
-				return;
-			} else {
-				passwordSuccess = 'Password updated successfully';
+		await handleFormSubmit({
+			url: '/api/settings/password',
+			body: { currentPassword, newPassword },
+			errorMessage: 'Failed to change password.',
+			validate: () => {
+				if (!currentPassword || !newPassword || !confirmPassword) return 'All fields are required.';
+				return validatePassword(newPassword) || validateConfirmPassword(newPassword, confirmPassword) || undefined;
+			},
+			onSuccess: () => {
+				passwordSuccess = 'Password changed successfully.';
 				currentPassword = '';
 				newPassword = '';
 				confirmPassword = '';
-			}
-		} catch {
-			passwordError = 'Something went wrong';
-		} finally {
-			savingPassword = false;
-		}
+			},
+			onError: (msg) => { passwordError = msg; },
+			onLoading: (v) => { savingPassword = v; },
+		});
 	}
 
 	// Email Change
@@ -75,36 +54,23 @@
 		emailError = '';
 		emailSuccess = '';
 
-		if (!newEmail || !emailPassword) {
-			emailError = 'All fields are required.';
-			return;
-		}
-
-		const emError = validateEmail(newEmail);
-		if (emError) {
-			emailError = emError;
-			return;
-		}
-
-		savingEmail = true;
-		try {
-			const { ok, data: result } = await postJSON('/api/settings/email', {
-				newEmail,
-				password: emailPassword,
-			});
-			if (!ok) {
-					emailError = result.error ?? 'Failed to change email.';
-			} else {
+		await handleFormSubmit({
+			url: '/api/settings/email',
+			body: { newEmail, password: emailPassword },
+			errorMessage: 'Failed to change email.',
+			validate: () => {
+				if (!newEmail || !emailPassword) return 'All fields are required.';
+				return validateEmail(newEmail) || undefined;
+			},
+			onSuccess: (result) => {
 				emailSuccess = 'Email updated successfully.';
-				currentEmail = result.email;
+				currentEmail = result.email as string;
 				newEmail = '';
 				emailPassword = '';
-			}
-		} catch {
-			emailError = 'Something went wrong.';
-		} finally {
-			savingEmail = false;
-		}
+			},
+			onError: (msg) => { emailError = msg; },
+			onLoading: (v) => { savingEmail = v; },
+		});
 	}
 
 	// Notification Preferences
@@ -114,11 +80,7 @@
 
 	async function updateNotificationPref(key: string, value: boolean) {
 		try {
-			await fetch('/api/settings/notifications', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ [key]: value }),
-			});
+			await fetchJSON('/api/settings/notifications', 'PUT', { [key]: value });
 		} catch {
 			// Silently fail
 		}
@@ -184,7 +146,8 @@
 				</div>
 				<div class="field">
 					<label class="field-label" for="email-password">Password</label>
-					<input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" />
+					<!-- <input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" /> -->
+					<PasswordInput id="confirm-password" name="confirm-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
 				</div>
 
 				{#if emailError}
@@ -212,7 +175,7 @@
 					<span class="toggle-name">Friend Requests</span>
 					<span class="toggle-desc">Get notified when someone sends you a friend request</span>
 				</div>
-				<input type="checkbox" class="toggle-switch"  />
+				<input type="checkbox" class="toggle-switch" bind:checked={friendRequests} onchange={() => updateNotificationPref('friendRequests', friendRequests)} />
 			</label>
 
 			<label class="toggle-row">
@@ -220,7 +183,7 @@
 					<span class="toggle-name">Game Invites</span>
 					<span class="toggle-desc">Get notified when someone challenges you to a game</span>
 				</div>
-				<input type="checkbox" class="toggle-switch"  />
+				<input type="checkbox" class="toggle-switch" bind:checked={gameInvites} onchange={() => updateNotificationPref('gameInvites', gameInvites)} />
 			</label>
 
 			<label class="toggle-row">
@@ -228,7 +191,7 @@
 					<span class="toggle-name">Match Results</span>
 					<span class="toggle-desc">Get notified about match outcomes from friends</span>
 				</div>
-				<input type="checkbox" class="toggle-switch" />
+				<input type="checkbox" class="toggle-switch" bind:checked={matchResults} onchange={() => updateNotificationPref('matchResults', matchResults)} />
 			</label>
 		</div>
 	</section>

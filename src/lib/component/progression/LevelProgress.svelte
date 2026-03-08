@@ -23,7 +23,6 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.15rem;
 	}
 
 	.level-ring {
@@ -51,6 +50,7 @@
 		letter-spacing: 0.08em;
 		font-weight: 700;
 		color: #5a5a7e;
+		padding: 0.3rem;
 	}
 
 	/* ── Sizes ── */

@@ -22,14 +22,6 @@
 	}: Props = $props();
 
 	let earned = $derived(!!unlockedAt);
-
-	// const tierEmojis: Record<string, string> = {
-	// 	bronze: "🥉",
-	// 	silver: "🥈",
-	// 	gold: "🥇",
-	// };
-
-	// let tierEmoji = $derived(tierEmojis[tier] ?? "🏅");
 	// let isUnlocked = $derived(!!unlockedAt);
 
 	let xp = $derived(XP_REWARDS[tier] ?? 50);

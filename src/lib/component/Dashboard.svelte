@@ -30,7 +30,7 @@
 			</div>
 			<div class="podium">
 				{#each globalLeaderboard as player, i}
-					<a href="/friends/[id]/{player.id}" class="podium-row rank-{i + 1}">
+					<a href="/friends/{player.id}" class="podium-row rank-{i + 1}">
 						<span class="rank-medal">
 							{RANK_MEDALS[i]}
 						</span>
@@ -63,7 +63,7 @@
 			</div>
 			<div class="podium">
 				{#each friendsLeaderboard as player, i}
-					<a href="/friends/[id]/{player.id}" class="podium-row rank-{i + 1}">
+					<a href="/friends/{player.id}" class="podium-row rank-{i + 1}">
 						<span class="rank-medal">
 							{RANK_MEDALS[i]}
 						</span>
@@ -227,12 +227,8 @@
 		gap: 1.6rem;
 		padding: 1rem;
 	}
-
 	.welcome-title {
 		font-size: 2rem;
-		font-weight: 700;
-		color: #fff;
-		margin: 0;
 	}
 
 	.accent { color: var(--accent, #ff6b9d); }

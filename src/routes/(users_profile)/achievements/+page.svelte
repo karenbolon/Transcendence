@@ -63,11 +63,13 @@
 			</div>
 		</div>
 
-		<XpBar
-			currentXp={progression.currentXp}
-			xpToNextLevel={progression.xpToNextLevel}
-			level={progression.level}
-		/>
+		{#if progression}
+			<XpBar
+				currentXp={progression.currentXp}
+				xpToNextLevel={progression.xpToNextLevel}
+				level={progression.level}
+			/>
+		{/if}
 	</section>
 
 	<!-- Category Filter -->

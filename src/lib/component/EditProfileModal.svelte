@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { handleFormSubmit } from '$lib/utils/format_utils';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 
@@ -21,24 +22,28 @@
 	let defaultAvatars: string[] = $state([]);
 	let uploadedAvatarUrl: string | null = $state(null);
 
+	// Only track `open` — use untrack for reads/writes so the effect
+	// doesn't re-fire when `user` props or local state change.
 	$effect(() => {
 		if (open) {
-			name = user.name;
-			bio = user.bio ?? '';
-			avatarUrl = user.avatarUrl;
-			error = '';
+			untrack(() => {
+				name = user.name;
+				bio = user.bio ?? '';
+				avatarUrl = user.avatarUrl;
+				error = '';
 
-			// Keep track of existing uploaded avatar
-			if (user.avatarUrl && user.avatarUrl.includes('/uploads/')) {
-				uploadedAvatarUrl = user.avatarUrl;
-			}
+				// Keep track of existing uploaded avatar
+				if (user.avatarUrl && user.avatarUrl.includes('/uploads/')) {
+					uploadedAvatarUrl = user.avatarUrl;
+				}
 
-			if (defaultAvatars.length === 0) {
-				fetch('/api/avatars/defaults')
-					.then((r) => r.json())
-					.then((urls) => { defaultAvatars = urls; })
-					.catch(() => {});
-			}
+				if (defaultAvatars.length === 0) {
+					fetch('/api/avatars/defaults')
+						.then((r) => r.json())
+						.then((urls) => { defaultAvatars = urls; })
+						.catch(() => {});
+				}
+			});
 		}
 	});
 

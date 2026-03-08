@@ -1,11 +1,21 @@
 import { json } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import type { RequestHandler } from './$types';
 import { writeFile, mkdir, readdir, unlink } from 'fs/promises';
 import { join } from 'path';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-const UPLOAD_DIR = 'static/avatars/uploads';
+
+function getUploadsDir(): string {
+	if (dev) {
+		return path.resolve('static/avatars/uploads');
+	}
+	const serverDir = path.dirname(fileURLToPath(import.meta.url));
+		return path.resolve(serverDir, '../../client/avatars/uploads');
+}
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -38,16 +48,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	try {
 		const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
 		const filename = `${userId}-${Date.now()}.${ext}`;
-		const filepath = join(UPLOAD_DIR, filename);
+		const uploadDir = getUploadsDir();
+		const filepath = join(uploadDir, filename);
 
 		// Ensure upload directory exists
-		await mkdir(UPLOAD_DIR, { recursive: true });
+		await mkdir(uploadDir, { recursive: true });
 
 		// Delete previous uploads for this user
 		try {
-			const files = await readdir(UPLOAD_DIR);
+			const files = await readdir(uploadDir);
 			const oldFiles = files.filter(f => f.startsWith(`${userId}-`));
-			await Promise.all(oldFiles.map(f => unlink(join(UPLOAD_DIR, f))));
+			await Promise.all(oldFiles.map(f => unlink(join(uploadDir, f))));
 		} catch {
 			// Ignore cleanup errors
 		}

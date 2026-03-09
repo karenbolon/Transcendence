@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { handleFormSubmit } from '$lib/utils/format_utils';
+	import { invalidateAll } from '$app/navigation';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import AvatarGallery from '$lib/component/AvatarGallery.svelte';
 
 	type Props = {
 		open: boolean;
@@ -19,8 +21,9 @@
 	let saving = $state(false);
 	let uploading = $state(false);
 
-	let defaultAvatars: string[] = $state([]);
-	let uploadedAvatarUrl: string | null = $state(null);
+	// let defaultAvatars: string[] = $state([]);
+	let defaultAvatars: Record<string, string[]> = $state({})
+	let uploadedAvatarUrl: string[] = $state([]);
 
 	// Only track `open` — use untrack for reads/writes so the effect
 	// doesn't re-fire when `user` props or local state change.
@@ -32,12 +35,14 @@
 				avatarUrl = user.avatarUrl;
 				error = '';
 
-				// Keep track of existing uploaded avatar
-				if (user.avatarUrl && user.avatarUrl.includes('/uploads/')) {
-					uploadedAvatarUrl = user.avatarUrl;
-				}
+				// Fetch uploaded avatars for this user
+				fetch('/api/profile/avatars/uploads')
+					.then((r) => r.json())
+					.then((urls) => { uploadedAvatarUrl = urls; })
+					.catch(() => { uploadedAvatarUrl = []; });
 
-				if (defaultAvatars.length === 0) {
+				// old version defaultAvatars.length === 0
+				if (Object.keys(defaultAvatars).length === 0) {
 					fetch('/api/avatars/defaults')
 						.then((r) => r.json())
 						.then((urls) => { defaultAvatars = urls; })
@@ -81,12 +86,32 @@
 				return;
 			}
 			avatarUrl = result.url;
-			uploadedAvatarUrl = result.url;
+			const res2 = await fetch('/api/profile/avatars/uploads');
+			uploadedAvatarUrl = await res2.json();
 		} catch {
 			error = 'Upload failed. Please try again.';
 		} finally {
 			uploading = false;
 			input.value = '';
+		}
+	}
+
+	async function handleDeleteUpload(url: string) {
+		try {
+			const res = await fetch('/api/profile/avatars/uploads', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url }),
+			});
+			if (res.ok) {
+				uploadedAvatarUrl = uploadedAvatarUrl.filter(u => u !== url);
+				// If the deleted avatar was selected, fall back to initials
+				if (avatarUrl === url) {
+					avatarUrl = null;
+				}
+			}
+		} catch {
+			error = 'Failed to delete image.';
 		}
 	}
 
@@ -106,6 +131,7 @@
 			onSuccess: (result) => {
 				const u = result.user as { name: string; bio: string | null; avatarUrl: string | null };
 				onsave({ name: u.name, bio: u.bio, avatarUrl: u.avatarUrl });
+				invalidateAll();
 				onclose();
 			},
 			onError: (msg) => { error = msg; },
@@ -144,44 +170,19 @@
 						<UserAvatar username={name} displayName={name} avatarUrl={avatarUrl} size="xl" />
 					</div>
 
-					<div class="avatar-gallery">
-						<button
-							class="avatar-option initials-option"
-							class:selected={avatarUrl === null}
-							onclick={() => { avatarUrl = null; }}
-						>
-							<span class="initials-badge">{name.charAt(0).toUpperCase()}</span>
-						</button>
-						{#if uploadedAvatarUrl}
-							<button
-								class="avatar-option uploaded-option"
-								class:selected={avatarUrl === uploadedAvatarUrl}
-								onclick={() => { avatarUrl = uploadedAvatarUrl; }}
-							>
-								<img src={uploadedAvatarUrl} alt="Your upload" />
-							</button>
-						{/if}
-						{#each defaultAvatars as url (url)}
-							<button
-								class="avatar-option"
-								class:selected={avatarUrl === url}
-								onclick={() => selectAvatar(url)}
-							>
-								<img src={url} alt="Default avatar" />
-							</button>
-						{/each}
-					</div>
+					<AvatarGallery
+						{name}
+						selectedUrl={avatarUrl}
+						uploadedAvatars={uploadedAvatarUrl}
+						defaultAvatars={defaultAvatars}
+						{uploading}
+						unlockedAvatars={[]}
+						lockableAvatars={[]}
+						onselect={(url) => { avatarUrl = url; }}
+						onupload={handleFileUpload}
+						ondelete={handleDeleteUpload}
 
-					<label class="upload-btn" class:disabled={uploading}>
-						<input
-							type="file"
-							accept="image/png,image/jpeg,image/webp"
-							onchange={handleFileUpload}
-							disabled={uploading}
-							hidden
-						/>
-						{uploading ? 'Uploading...' : 'Upload custom image'}
-					</label>
+					/>
 				</div>
 
 				<!-- Name field -->
@@ -334,7 +335,7 @@
 		border: 3px solid rgba(255, 107, 157, 0.3);
 	}
 
-	.avatar-gallery {
+	/* .avatar-gallery {
 		display: flex;
 		gap: 0.5rem;
 		flex-wrap: wrap;
@@ -409,7 +410,7 @@
 	.upload-btn.disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
-	}
+	} */
 
 	/* Form fields */
 	.field {

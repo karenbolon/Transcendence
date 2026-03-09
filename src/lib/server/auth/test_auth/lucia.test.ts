@@ -11,7 +11,9 @@ import { eq } from 'drizzle-orm';
 // ══════════════════════════════════════════════════════════════════════════════
 async function cleanDatabase() {
 	await db.delete(sessions).execute().catch(() => { });
-	await db.delete(users).execute().catch(() => { });
+	await db.delete(users).where(
+		eq(users.username, 'testuser_%') // won't work with eq
+	).execute().catch(() => { });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

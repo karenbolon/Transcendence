@@ -1,0 +1,514 @@
+{
+  "meta": {
+    "title": "PONG - ft_transcendence",
+    "simple_title": "PONG",
+    "description": "Gioca al classico Pong online!"
+  },
+  "nav": {
+    "home": "Home",
+    "login": "Accedi",
+    "logout": "Disconnetti"
+  },
+  "game": {
+    "start": "Avvia partita",
+    "pause": "Pausa",
+    "winner": "Vincitore: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "Email",
+      "confirm_password": "Conferma password"
+    },
+    "login": {
+      "title": "Accesso",
+      "subtitle": "Bentornato! Pronto a giocare?",
+      "submit": "Accedi",
+      "remember_me": "Ricordami",
+      "forgot_password": "Password dimenticata?",
+      "no_account": "Non hai un account?",
+      "logging_in": "Accesso in corso...",
+      "signup_link": "Registrati",
+      "continue_with": "Oppure continua con",
+      "oauth_42": "🔗 42 Intra",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Nome utente",
+      "password": "Password"
+    },
+    "register": {
+      "title": "Registrazione",
+      "subtitle": "Unisciti al gioco e inizia a giocare!",
+      "success": "Account creato! Reindirizzamento...",
+      "submit": "Registrati",
+      "submitting": "Registrazione in corso...",
+      "have_account": "Hai già un account?",
+      "login_link": "Accedi",
+      "or_signup_with": "Oppure registrati con",
+      "oauth_42_coming": "🔗 42 Intra (Prossimamente)",
+      "oauth_coming": "👤 OAuth (Prossimamente)",
+      "accept_terms_prefix": "Accetto i",
+      "terms_link": "Termini di servizio",
+      "and": "e la",
+      "privacy_link": "Informativa sulla privacy",
+      "privacy_note": "Utilizziamo la tua email e il tuo nome utente per creare e proteggere il tuo account. Non utilizziamo cookie di tracciamento o di analisi.",
+      "password_hint": "Deve contenere almeno 8 caratteri con maiuscole, minuscole e un numero"
+    },
+    "placeholders": {
+      "username": "Inserisci il tuo nome utente",
+      "password": "Inserisci la tua password",
+      "register_username": "Scegli un nome utente",
+      "register_email": "tua.email@esempio.com",
+      "register_password": "Crea una password",
+      "register_confirm_password": "Reinserisci la tua password"
+    },
+    "errors": {
+      "username_required": "Inserisci il tuo nome utente",
+      "password_required": "Inserisci la tua password",
+      "username_taken": "Nome utente già in uso",
+      "email_taken": "Email già in uso",
+      "invalid_email": "Email non valida",
+      "weak_password": "La tua password è troppo debole",
+      "login_failed": "Accesso fallito",
+      "email_required": "Inserisci un indirizzo email",
+      "all_fields_required": "Compila tutti i campi",
+      "passwords_do_not_match": "Le password non corrispondono",
+      "accept_terms_required": "Devi accettare i Termini di servizio e l'Informativa sulla privacy",
+      "invalid_credentials": "Nome utente o password non validi",
+      "server_error": "Qualcosa è andato storto. Riprova."
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Informativa sulla privacy",
+      "last_updated": "Ultimo aggiornamento: 04/02/2026",
+      "who_we_are": {
+        "title": "Chi siamo",
+        "body": "Questo sito web (“noi”, “nostro”) fornisce un gioco Pong online (il “Servizio”). Questa applicazione è gestita da Pixies that Ride Pink Pony Unicorns (il “Team”), un progetto studentesco creato come parte del programma accademico di 42Berlin."
+      },
+      "data_collect": {
+        "title": "Quali dati raccogliamo",
+        "intro": "Raccogliamo solo i dati necessari per gestire il gioco:",
+        "username_label": "Nome utente",
+        "username_desc": "per identificare i giocatori nel gioco",
+        "email_label": "Indirizzo email",
+        "email_desc": "utilizzato per comunicazioni relative all'account (ad es. creazione account, recupero password)"
+      },
+      "data_not_collect": {
+        "title": "Non raccogliamo",
+        "real_names": "Nomi reali",
+        "payment": "Informazioni di pagamento",
+        "location": "Dati di posizione",
+        "sensitive": "Dati personali sensibili"
+      },
+      "legal_basis": {
+        "title": "Perché raccogliamo questi dati (Base legale)",
+        "intro": "Secondo il Regolamento generale sulla protezione dei dati (GDPR), dobbiamo avere una base legale per trattare i tuoi dati. Ci basiamo su:",
+        "contractual_title": "Necessità contrattuale (Art. 6(1)(b) GDPR):",
+        "contractual_item": "Il tuo nome utente e la tua email sono necessari per creare e mantenere un account di gioco.",
+        "legit_title": "Interessi legittimi (Art. 6(1)(f) GDPR):",
+        "legit_item": "Per garantire la sicurezza, la stabilità e il corretto funzionamento del servizio."
+      },
+      "use_data": {
+        "title": "Come utilizziamo i tuoi dati",
+        "intro": "Trattiamo questi dati per:",
+        "items": {
+          "account": "Creare e gestire il tuo account di gioco",
+          "identify": "Identificarti nel gioco (nome utente)",
+          "participate": "Consentire agli utenti di partecipare al gioco",
+          "communicate": "Comunicare con te riguardo al tuo account (email)",
+          "security": "Mantenere la sicurezza e il corretto funzionamento dell'applicazione"
+        }
+      },
+      "sharing": {
+        "title": "Condivisione dei dati",
+        "body": "Non vendiamo né utilizziamo i dati personali per la pubblicità. I dati sono trattati solo da fornitori di servizi tecnici necessari per eseguire l'applicazione."
+      },
+      "retention": {
+        "title": "Conservazione dei dati",
+        "body": "I dati personali vengono conservati solo finché l'account utente rimane attivo. Gli utenti possono richiedere la cancellazione del proprio account in qualsiasi momento."
+      },
+      "rights": {
+        "title": "I tuoi diritti",
+        "body": "Hai il diritto di accedere, correggere o richiedere la cancellazione dei tuoi dati personali in conformità al GDPR. Hai anche il diritto di presentare un reclamo a un'autorità di controllo."
+      },
+      "cookies": {
+        "title": "Cookie",
+        "body": "Questo sito web utilizza cookie essenziali necessari per le funzionalità principali, come l'autenticazione degli utenti e il mantenimento delle sessioni attive. Non utilizziamo cookie di tracciamento, pubblicitari o di analisi di terze parti. Se ciò dovesse cambiare, questa informativa verrà aggiornata di conseguenza."
+      },
+      "changes": {
+        "title": "Modifiche a questa informativa",
+        "body": "Possiamo aggiornare questa Informativa sulla privacy di tanto in tanto. Eventuali modifiche saranno pubblicate su questa pagina con una data di “Ultimo aggiornamento” aggiornata."
+      },
+      "contact": {
+        "title": "Contatto",
+        "intro": "Per richieste relative alla privacy, contattaci a:"
+      }
+    },
+    "terms": {
+      "title": "Termini di Servizio",
+      "last_updated": "Ultimo aggiornamento: 04/02/2026",
+      "introduction": {
+        "title": "Introduzione",
+        "body": "Benvenuto su ft_transcendence (il \"Servizio\"), un'applicazione multiplayer basata su web sviluppata come parte del curriculum 42. Accedendo o utilizzando il Servizio, accetti di essere vincolato da questi Termini di Servizio (\"Termini\"). Se non accetti questi Termini, non devi utilizzare il Servizio."
+      },
+      "description": {
+        "title": "Descrizione del Servizio",
+        "intro": "Il Servizio è fornito solo a scopi educativi e dimostrativi ed è una piattaforma online che permette agli utenti di:",
+        "items": {
+          "account": "Creare un account utilizzando un indirizzo email e nome utente",
+          "login": "Accedere in modo sicuro",
+          "interact": "Interagire con altri utenti",
+          "play": "Giocare giochi online (es. Pong)",
+          "realtime": "Partecipare a funzionalità in tempo reale come partite, tornei o chat"
+        }
+      },
+      "eligibility": {
+        "title": "Idoneità",
+        "intro": "Devi:",
+        "items": {
+          "age": "Avere almeno 13 anni per utilizzare il Servizio",
+          "accurate": "Fornire informazioni di registrazione accurate e complete",
+          "security": "Mantenere la sicurezza delle credenziali del tuo account"
+        },
+        "note": "Sei responsabile di tutta l'attività che si verifica sotto il tuo account"
+      },
+      "accounts": {
+        "title": "Account Utente",
+        "intro": "Creando un account, accetti di:",
+        "items": {
+          "accurate": "Fornire informazioni accurate e aggiornate",
+          "impersonate": "Non impersonare un'altra persona o entità",
+          "share": "Non condividere le tue credenziali di accesso con altri"
+        },
+        "note": "Ci riserviamo il diritto di sospendere o eliminare account che violano questi Termini."
+      },
+      "acceptable_use": {
+        "title": "Uso Accettabile",
+        "intro": "Accetti di non:",
+        "items": {
+          "illegal": "Utilizzare il Servizio per scopi illegali",
+          "harass": "Molestare, abusare, minacciare o danneggiare altri utenti",
+          "malicious": "Caricare codice dannoso o tentare di compromettere la sicurezza del sistema",
+          "exploit": "Sfruttare bug, trucchi o meccaniche di gioco non intenzionali",
+          "unauthorized": "Tentare accesso non autorizzato ad account, server o dati"
+        },
+        "note": "La violazione di queste regole può comportare la sospensione o terminazione dell'account."
+      },
+      "ugc": {
+        "title": "Contenuto Generato dall'Utente",
+        "intro": "Sei responsabile di qualsiasi contenuto che invii, inclusi:",
+        "items": {
+          "usernames": "Nomi utente",
+          "profile": "Informazioni del profilo",
+          "chat": "Messaggi di chat",
+          "ingame": "Interazioni di gioco"
+        },
+        "prohibited_intro": "Accetti di non inviare contenuto che è:",
+        "prohibited": {
+          "items": {
+            "offensive": "Offensivo, odioso o discriminatorio",
+            "illegal": "Illegale o che viola i diritti di altri",
+            "misleading": "Fuorviante o che si spaccia per un altro utente"
+          }
+        },
+        "note": "Ci riserviamo il diritto di rimuovere contenuto che viola questi Termini."
+      },
+      "privacy": {
+        "title": "Privacy e Protezione dei Dati",
+        "intro": "Il tuo uso del Servizio è anche regolato dalla nostra Informativa sulla Privacy, che spiega:",
+        "items": {
+          "collect": "Quali dati personali raccogliamo",
+          "used": "Come vengono utilizzati",
+          "rights": "I tuoi diritti sotto il GDPR"
+        },
+        "note": "Si prega di rivedere attentamente l'Informativa sulla Privacy prima di utilizzare il Servizio."
+      },
+      "availability": {
+        "title": "Disponibilità e Modifiche",
+        "intro": "Il Servizio è fornito \"così com'è\" e \"come disponibile\". Non garantiamo:",
+        "items": {
+          "continuous": "Disponibilità continua",
+          "error_free": "Funzionamento senza errori",
+          "preservation": "Conservazione di dati o statistiche di gioco"
+        },
+        "note": "Essendo questo un progetto educativo, le funzionalità possono cambiare, essere resettate o rimosse in qualsiasi momento."
+      },
+      "termination": {
+        "title": "Terminazione",
+        "intro": "Possiamo sospendere o terminare il tuo accesso al Servizio:",
+        "items": {
+          "violate": "Se violi questi Termini",
+          "security": "Se richiesto per ragioni di sicurezza o manutenzione",
+          "discontinued": "Se il progetto viene interrotto"
+        },
+        "note": "Puoi smettere di utilizzare il Servizio in qualsiasi momento."
+      },
+      "ip": {
+        "title": "Proprietà Intellettuale",
+        "intro": "Tutto il codice, design e contenuto relativo a ft_transcendence:",
+        "items": {
+          "owned": "È di proprietà dei contributori del progetto",
+          "educational": "È fornito a scopi educativi",
+          "commercial": "Non può essere riutilizzato commercialmente senza permesso"
+        },
+        "note": "Il contenuto generato dall'utente rimane proprietà dell'utente che l'ha creato."
+      },
+      "liability": {
+        "title": "Limitazione di Responsabilità",
+        "intro": "Nella massima misura consentita dalla legge:",
+        "items": {
+          "loss": "Non siamo responsabili per perdita di dati, interruzioni del servizio o problemi di gioco",
+          "behaviour": "Non siamo responsabili per il comportamento o le interazioni degli utenti",
+          "warranties": "Il Servizio è fornito senza garanzie di alcun tipo"
+        },
+        "note": "L'uso del Servizio è a tuo rischio e pericolo."
+      },
+      "law": {
+        "title": "Legge Applicabile",
+        "body": "Questi Termini sono regolati dalle leggi dell'Unione Europea, incluse le disposizioni applicabili del GDPR, senza riguardo ai principi di conflitto di leggi."
+      },
+      "contact": {
+        "title": "Contatto",
+        "intro": "Per domande riguardo questi Termini o il Servizio, contattaci:"
+      }
+    }
+  },
+  "matches": {
+    "labels": {
+      "player1": "Giocatore 1",
+      "player2": "Giocatore 2",
+      "win_score": "Punteggio per vincere"
+    },
+    "status": {
+      "press_space_start": "Premi SPAZIO per iniziare",
+      "get_ready": "Preparati...",
+      "play_again": "Premi SPAZIO per giocare di nuovo",
+      "saving": "Salvataggio partita...",
+      "saved": "Partita salvata",
+      "match_not_saved": "Partita non salvata (non connesso?)"
+    },
+    "errors": {
+      "login_required": "Devi essere connesso per salvare i risultati della partita",
+      "invalid_json": "JSON non valido",
+      "invalid_match": "Dati della partita non validi",
+      "save_failed": "Impossibile salvare il risultato della partita"
+    },
+    "success": {
+      "saved_match": "Partita salvata! {winnerName} vince {score}"
+    },
+    "validation": {
+      "win_score_invalid": "Il punteggio vincente deve essere 3, 5, 7 o 11",
+      "score_must_equal_win_score": "Uno dei punteggi deve essere uguale al punteggio vincente",
+      "winner_must_have_winning_score": "Il vincitore deve avere il punteggio vincente"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "account": {
+      "title": "Il mio account",
+      "username": "Nome utente:",
+      "email": "Email:"
+    },
+    "security": {
+      "title": "Sicurezza",
+      "change_password": "Cambia password",
+      "current_password": "Password attuale",
+      "new_password": "Nuova password",
+      "confirm_new_password": "Conferma nuova password",
+      "saving": "Salvataggio...",
+      "update_password": "Aggiorna password",
+      "password_changed": "Password modificata con successo.",
+      "password_change_failed": "Impossibile modificare la password."
+    },
+    "email": {
+      "title": "Cambia email",
+      "current_email": "Email attuale:",
+      "new_email": "Nuova email",
+      "password": "Password",
+      "placeholder": "nuova@email.com",
+      "update_email": "Aggiorna email",
+      "email_updated": "Email aggiornata con successo.",
+      "email_change_failed": "Impossibile modificare l'email."
+    },
+    "common": {
+      "all_fields_required": "Tutti i campi sono obbligatori."
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "friend_requests": "Richieste di amicizia",
+      "friend_requests_desc": "Ricevi una notifica quando qualcuno ti invia una richiesta di amicizia",
+      "game_invites": "Inviti di gioco",
+      "game_invites_desc": "Ricevi una notifica quando qualcuno ti invita a giocare",
+      "match_results": "Risultati delle partite",
+      "match_results_desc": "Ricevi notifiche sui risultati delle partite dei tuoi amici"
+    },
+    "language": {
+      "title": "Lingua"
+    },
+    "danger": {
+      "title": "Zona di pericolo",
+      "description": "Una volta eliminato il tuo account, non sarà possibile tornare indietro.",
+      "delete_account": "Elimina account"
+    }
+  },
+  "instructions": {
+    "header": {
+      "tag": "Come giocare",
+      "title_prefix": "Impara le",
+      "title_highlight": "basi",
+      "subtitle": "Pong è facile da imparare, ma richiede pratica per essere padroneggiato. Ecco tutto quello che devi sapere."
+    },
+    "controls": {
+      "title": "Controlli",
+      "subtitle": "I controlli cambiano a seconda della modalità. Nel gioco online tutti usano gli stessi tasti.",
+      "player1": {
+        "tag": "Giocatore 1",
+        "side": "Lato sinistro"
+      },
+      "player2": {
+        "tag": "Giocatore 2",
+        "side": "Lato destro (solo locale)"
+      },
+      "move_up": "Muovi la racchetta in alto",
+      "move_down": "Muovi la racchetta in basso"
+    },
+    "modes": {
+      "title": "Modalità di gioco",
+      "subtitle": "Quattro modi di giocare, dalla pratica casual ai tornei competitivi.",
+      "local": {
+        "name": "Locale 1v1",
+        "desc": "Due giocatori, una tastiera. Classico gioco sul divano. Il giocatore 1 usa W/S, il giocatore 2 le frecce.",
+        "players": "👥 2 giocatori, stesso dispositivo"
+      },
+      "ai": {
+        "name": "Contro il computer",
+        "desc": "Allenati contro l'IA. Ottimo per riscaldarsi o imparare le meccaniche prima di giocare online.",
+        "players": "👤 Allenamento in solitaria"
+      },
+      "online": {
+        "name": "Multigiocatore online",
+        "desc": "Sfida altri giocatori in tempo reale tramite WebSockets. Trova una partita o invita amici direttamente dal loro profilo.",
+        "players": "🌍 2 giocatori, online"
+      },
+      "tournament": {
+        "name": "Torneo",
+        "desc": "Competizione a eliminazione. Partecipa ai tornei aperti, avanza nel tabellone e conquista il titolo di campione.",
+        "players": "🏆 4–8 giocatori, tabellone"
+      }
+    },
+    "rules": {
+      "title": "Regole",
+      "subtitle": "Regole semplici, partite veloci",
+      "score_to_win": {
+        "title": "Segna per vincere",
+        "body": "La palla rimbalza tra le racchette. Segni un punto quando il tuo avversario manca la palla."
+      },
+      "first_to_target": {
+        "title": "Il primo a raggiungere il punteggio vince",
+        "body": "Il valore predefinito è 5 punti. Nei tornei possono essere usati obiettivi diversi. Scegli tra 3, 5, 7 o 11 punti."
+      },
+      "ball_speeds_up": {
+        "title": "La palla accelera",
+        "body": "Ogni scambio rende la palla leggermente più veloce. Gli scambi più lunghi rendono il gioco più intenso."
+      },
+      "angle_control": {
+        "title": "Controllo dell'angolo",
+        "body": "Il punto in cui la palla colpisce la racchetta influisce sull'angolo del rimbalzo. Colpiscila sul bordo per creare angoli più difficili."
+      },
+      "no_pause_online": {
+        "title": "Nessuna pausa online",
+        "body": "Le partite locali e contro l'IA possono essere messe in pausa. Le partite online continuano senza interruzioni."
+      }
+    },
+    "game_speeds": {
+      "title": "Velocità di gioco",
+      "body": "Scegli il ritmo prima di ogni partita."
+    },
+    "speeds": {
+      "chill": {
+        "title": "Relax",
+        "body": "Velocità rilassata. Perfetta per principianti e partite casual."
+      },
+      "normal": {
+        "title": "Normale",
+        "body": "Velocità competitiva standard. L'impostazione predefinita per partite classificate e tornei."
+      },
+      "fast": {
+        "title": "Veloce",
+        "body": "Caos ad alta velocità. Per giocatori esperti in cerca di una sfida."
+      }
+    },
+    "tips": {
+      "title": "Suggerimenti e trucchi",
+      "subtitle": "Migliora più velocemente",
+      "edges": {
+        "title": "Usa i bordi",
+        "body": "Colpire la palla con il bordo della racchetta crea angoli più stretti, più difficili da rimandare."
+      },
+      "anticipate": {
+        "title": "Anticipa, non reagire",
+        "body": "Osserva l'angolo della palla e inizia a muoverti prima che attraversi la linea centrale."
+      },
+      "center": {
+        "title": "Rimani al centro",
+        "body": "Dopo ogni colpo, riporta la racchetta verso il centro per coprire più area."
+      },
+      "practice": {
+        "title": "Allenati prima contro l'IA",
+        "body": "La modalità computer è perfetta per imparare il tempismo e il controllo della racchetta prima di giocare online."
+      }
+    },
+    "progression": {
+      "title": "Progressione e XP",
+      "subtitle": "Prossimamente",
+      "desc": "Guadagna XP per ogni partita, aumenta il livello del tuo profilo e sblocca obiettivi. Il sistema di progressione è attualmente in sviluppo."
+    },
+    "play": {
+      "title": "Pronto a giocare?",
+      "subtitle": "Inizia subito — non serve un account per le partite locali o contro l'IA.",
+      "desc": "🎮 Gioca ora"
+    }
+  },
+  "pong_settings": {
+    "game_mode": {
+      "label": "Modalità di gioco",
+      "local": "👥 PvP locale",
+      "computer": "🤖 Contro il computer"
+    },
+    "player2": {
+      "label": "Giocatore 2",
+      "placeholder": "Ospite"
+    },
+    "win_score": {
+      "label": "Punti per vincere"
+    },
+    "ball_speed": {
+      "label": "Velocità della palla",
+      "chill": "🐢 Relax",
+      "normal": "🏓 Normale",
+      "fast": "🔥 Veloce"
+    }
+  },
+  "footer": {
+    "brand": {
+      "tagline": "Il gioco classico, reinventato."
+    },
+    "sections": {
+      "resources": "Risorse",
+      "follow_us": "Seguici",
+      "legal": "Note legali",
+      "about": "Chi siamo"
+    },
+    "links": {
+      "play": "Gioca",
+      "leaderboard": "Classifica",
+      "tournaments": "Tornei",
+      "instructions": "Istruzioni",
+      "privacy": "Informativa sulla privacy",
+      "terms": "Termini di servizio",
+      "our_team": "Il nostro team"
+    },
+    "copyright": "© {year} ft_transcendence™ — Tutti i diritti riservati."
+  }
+}

@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
-import { lucia } from '$lib/server/auth/lucia';
+// import { lucia } from '$lib/server/auth/lucia';
 import { verifyPassword } from '$lib/server/auth/password';
 import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
 import { eq } from 'drizzle-orm';
@@ -22,7 +22,7 @@ export const actions: Actions = {
 
 		if (!username || !password) {
 			return fail(400, {
-				error: 'Please fill in all fields',
+				errorKey: 'auth.errors.all_fields_required',
 				username
 			});
 		}
@@ -34,7 +34,7 @@ export const actions: Actions = {
 
 		if (!user || user.is_deleted) {
 			return fail(400, {
-				error: 'Invalid username or password',
+				errorKey: 'auth.errors.invalid_credentials',
 				username
 			});
 		}
@@ -46,7 +46,7 @@ export const actions: Actions = {
 
 		if (!validPassword) {
 			return fail(400, {
-				error: 'Invalid username or password',
+				errorKey: 'auth.errors.invalid_credentials',
 				username
 			});
 		}

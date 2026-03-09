@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { _ } from "svelte-i18n";
 	import {
 		type GameState,
 		type GameSettings,
@@ -34,7 +35,6 @@
 	let { settings, onGameOver }: Props = $props();
 	let game = $state<GameState>(createGameState());
 
-	// Expose game state for the parent to read (phase, scores, etc.)
 	export function getGameState(): GameState {
 		return game;
 	}
@@ -44,6 +44,17 @@
 
 	const keysDown = new Set<string>();
 
+	const uiText = $derived({
+		escQuit: $_("canvas_game.esc_quit"),
+		title: $_("canvas_game.title"),
+		pressSpace: $_("canvas_game.press_space"),
+		controlsReminder: $_("canvas_game.controls_reminder"),
+		gameOver: $_("canvas_game.game_over"),
+		winsSuffix: $_("canvas_game.wins_suffix"),
+		player1: $_("canvas_game.players.player1"),
+		player2: $_("canvas_game.players.player2"),
+	});
+
 	function getInput(): InputState {
 		const humanInput: InputState = {
 			paddle1Up: keysDown.has("w"),
@@ -52,7 +63,6 @@
 			paddle2Down: keysDown.has("arrowdown"),
 		};
 
-		// In computer mode, override paddle 2 with AI logic
 		if (settings.gameMode === "computer") {
 			const aiInput = computeComputerInput(game);
 			humanInput.paddle2Up = aiInput.paddle2Up;
@@ -70,14 +80,12 @@
 			e.preventDefault();
 		}
 
-		// ESC → Quit to menu from any active state
 		if (key === "escape") {
 			if (game.phase === "playing" || game.phase === "countdown") {
 				returnToMenu(game);
 			}
 		}
 
-		// SPACE → State transitions
 		if (key === " " || key === "space") {
 			e.preventDefault();
 			if (game.phase === "menu") {
@@ -107,22 +115,15 @@
 		lastTime = timestamp;
 		const safeDt = Math.min(dt, 0.05);
 
-		// Get current input
 		const input = getInput();
-
-		// Track previous phase to detect transitions
 		const prevPhase = game.phase;
 
-		// Update game state via engine
 		update(game, safeDt, input, settings);
 
-		// Check if countdown just finished
 		if (game.phase === "countdown" && game.countdownTimer <= 0) {
 			startPlaying(game, settings);
 		}
 
-		// Detect game-over transition → fire callback to save match
-		// We check prevPhase to ensure this fires ONCE (not every frame)
 		if (game.phase === "gameover" && prevPhase === "playing") {
 			onGameOver?.({
 				score1: game.score1,
@@ -135,36 +136,24 @@
 			});
 		}
 
-		// Draw
 		draw(ctx);
-
 		requestAnimationFrame((t) => gameLoop(ctx, t));
 	}
+
 	function draw(ctx: CanvasRenderingContext2D) {
-		// Background
 		ctx.fillStyle = "#0a0a1a";
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-		// Score flash
 		if (game.scoreFlash) {
-			const flashOpacity = Math.max(
-				0,
-				(game.scoreFlashTimer / 0.5) * 0.15,
-			);
+			const flashOpacity = Math.max(0, (game.scoreFlashTimer / 0.5) * 0.15);
 			ctx.fillStyle = `rgba(255, 107, 157, ${flashOpacity})`;
 			if (game.scoreFlash === "left") {
 				ctx.fillRect(0, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
 			} else {
-				ctx.fillRect(
-					CANVAS_WIDTH / 2,
-					0,
-					CANVAS_WIDTH / 2,
-					CANVAS_HEIGHT,
-				);
+				ctx.fillRect(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
 			}
 		}
 
-		// Center line
 		ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
 		ctx.lineWidth = 2;
 		ctx.setLineDash([15, 10]);
@@ -174,12 +163,12 @@
 		ctx.stroke();
 		ctx.setLineDash([]);
 
-		// Paddles with intensity glow
 		const glowIntensity =
 			settings.maxBallSpeed > settings.ballSpeed
 				? (game.currentBallSpeed - settings.ballSpeed) /
 					(settings.maxBallSpeed - settings.ballSpeed)
 				: 0;
+
 		ctx.shadowColor = "#ffffff";
 		ctx.shadowBlur = glowIntensity * 10;
 		ctx.fillStyle = "#ffffff";
@@ -192,7 +181,6 @@
 		);
 		ctx.shadowBlur = 0;
 
-		// Ball (hidden during menu)
 		if (game.phase !== "menu") {
 			ctx.fillStyle = "#ff6b9d";
 			ctx.shadowColor = "#ff6b9d";
@@ -203,7 +191,6 @@
 			ctx.shadowBlur = 0;
 		}
 
-		// Score
 		ctx.font = "32px 'Press Start 2P', monospace";
 		ctx.textAlign = "center";
 
@@ -227,16 +214,14 @@
 		ctx.fillText(String(game.score2), (CANVAS_WIDTH / 4) * 3, 50);
 		ctx.shadowBlur = 0;
 
-		// ESC hint (during active gameplay)
 		if (game.phase === "playing" || game.phase === "countdown") {
 			ctx.fillStyle = "rgba(107, 114, 128, 0.4)";
 			ctx.font = "10px 'Inter', sans-serif";
 			ctx.textAlign = "right";
-			ctx.fillText("ESC to quit", CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
-			ctx.textAlign = "center"; // Reset
+			ctx.fillText(uiText.escQuit, CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
+			ctx.textAlign = "center";
 		}
 
-		// Phase overlays
 		if (game.phase === "menu") drawMenuOverlay(ctx);
 		else if (game.phase === "countdown") drawCountdownOverlay(ctx);
 		else if (game.phase === "gameover") drawGameOverOverlay(ctx);
@@ -246,31 +231,24 @@
 		ctx.fillStyle = "rgba(10, 10, 26, 0.85)";
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-		// Title
 		ctx.fillStyle = "#ff6b9d";
 		ctx.shadowColor = "#ff6b9d";
 		ctx.shadowBlur = 30;
 		ctx.font = "48px 'Press Start 2P', monospace";
 		ctx.textAlign = "center";
-		ctx.fillText("PONG", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+		ctx.fillText(uiText.title, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
 		ctx.shadowBlur = 0;
 
-		// Pulsing "PRESS SPACE"
 		const pulse = 0.4 + Math.abs(Math.sin(Date.now() / 500)) * 0.6;
 		ctx.globalAlpha = pulse;
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "16px 'Press Start 2P', monospace";
-		ctx.fillText("PRESS SPACE", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+		ctx.fillText(uiText.pressSpace, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
 		ctx.globalAlpha = 1.0;
 
-		// Controls reminder
 		ctx.fillStyle = "#6b7280";
 		ctx.font = "12px 'Inter', sans-serif";
-		ctx.fillText(
-			"Player 1: W / S          Player 2: ↑ / ↓",
-			CANVAS_WIDTH / 2,
-			CANVAS_HEIGHT / 2 + 80,
-		);
+		ctx.fillText(uiText.controlsReminder, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 	}
 
 	function drawCountdownOverlay(ctx: CanvasRenderingContext2D) {
@@ -278,22 +256,16 @@
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 		const fractional = game.countdownTimer % 1;
-		const scale =
-			game.countdownDisplay === "GO!" ? 1.2 : 1 + fractional * 0.3;
+		const scale = game.countdownDisplay === "GO!" ? 1.2 : 1 + fractional * 0.3;
 		const fontSize = Math.round(72 * scale);
 
 		ctx.fillStyle = game.countdownDisplay === "GO!" ? "#ff6b9d" : "#ffffff";
-		ctx.shadowColor =
-			game.countdownDisplay === "GO!" ? "#ff6b9d" : "#ffffff";
+		ctx.shadowColor = game.countdownDisplay === "GO!" ? "#ff6b9d" : "#ffffff";
 		ctx.shadowBlur = 20;
 		ctx.font = `${fontSize}px 'Press Start 2P', monospace`;
 		ctx.textAlign = "center";
 		ctx.textBaseline = "middle";
-		ctx.fillText(
-			game.countdownDisplay,
-			CANVAS_WIDTH / 2,
-			CANVAS_HEIGHT / 2,
-		);
+		ctx.fillText(game.countdownDisplay, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 		ctx.shadowBlur = 0;
 		ctx.textBaseline = "alphabetic";
 	}
@@ -305,14 +277,16 @@
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "36px 'Press Start 2P', monospace";
 		ctx.textAlign = "center";
-		ctx.fillText("GAME OVER", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70);
+		ctx.fillText(uiText.gameOver, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70);
+
+		const winnerLabel = game.winner === "player1" ? uiText.player1 : uiText.player2;
 
 		ctx.fillStyle = "#ff6b9d";
 		ctx.shadowColor = "#ff6b9d";
 		ctx.shadowBlur = 20;
 		ctx.font = "24px 'Press Start 2P', monospace";
 		ctx.fillText(
-			`${game.winner} Wins!`,
+			`${winnerLabel} ${uiText.winsSuffix}`,
 			CANVAS_WIDTH / 2,
 			CANVAS_HEIGHT / 2 - 15,
 		);
@@ -330,31 +304,7 @@
 		ctx.globalAlpha = pulse;
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "14px 'Press Start 2P', monospace";
-		ctx.fillText("PRESS SPACE", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+		ctx.fillText(uiText.pressSpace, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 		ctx.globalAlpha = 1.0;
 	}
 </script>
-
-<!-- Keyboard listeners -->
-<svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
-
-<!-- Canvas -->
-<div class="canvas-wrapper">
-	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}
-	></canvas>
-</div>
-
-<style>
-	.canvas-wrapper {
-		border-radius: 0.75rem;
-		overflow: hidden;
-		border: 1px solid rgba(255, 107, 157, 0.2);
-		box-shadow: 0 0 30px rgba(255, 107, 157, 0.1);
-	}
-
-	canvas {
-		display: block;
-		max-width: 100%;
-		height: auto;
-	}
-</style>

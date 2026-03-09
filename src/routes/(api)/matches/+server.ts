@@ -25,7 +25,7 @@ const matchResultSchema = z.object({
 	// Settings that were used
 	winScore: z.number().int().refine(
 		(val) => [3, 5, 7, 11].includes(val),
-		{ message: 'Win score must be 3, 5, 7, or 11' }
+		{ message: 'matches.validation.win_score_invalid' }
 	),
 	speedPreset: z.enum(['chill', 'normal', 'fast']),
 
@@ -39,20 +39,20 @@ const matchResultSchema = z.object({
 }).refine(
 	// At least one score must equal winScore (someone won!)
 	(data) => data.player1Score === data.winScore || data.player2Score === data.winScore,
-	{ message: 'One score must equal the win score' }
+	{ message: 'matches.validation.score_must_equal_win_score' }
 ).refine(
 	// The winner's score must be the winScore
 	(data) => {
 		if (data.winner === 'player1') return data.player1Score === data.winScore;
 		return data.player2Score === data.winScore;
 	},
-	{ message: 'Winner must have the winning score' }
+	{ message: 'matches.validation.winner_must_have_winning_score' }
 );
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 
 	if (!locals.user) {
-		return json({ error: 'You must be logged in to save match results' }, { status: 401 });
+		return json({ errorKey: 'matches.errors.login_required' }, { status: 401 });
 	}
 
 	// ── PARSE + VALIDATE BODY ──────────────────────────────────
@@ -60,13 +60,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		body = await request.json();
 	} catch {
-		return json({ error: 'Invalid JSON' }, { status: 400 });
+		return json({ errorKey: 'matches.errors.invalid_json' }, { status: 400 });
 	}
 
 	const result = matchResultSchema.safeParse(body);
 	if (!result.success) {
 		return json({
-			error: 'Invalid match data',
+			errorKey: 'matches.errors.invalid_match',
 			details: result.error.flatten().fieldErrors
 		}, { status: 400 });
 	}
@@ -149,12 +149,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({
 			success: true,
 			matchId: txResult.match.id,
-			message: `Match saved! ${winnerName} wins ${data.player1Score}-${data.player2Score}`,
+			messageKey: 'matches.success.saved_match',
+			messageParams: {
+				winnerName,
+				score: `${data.player1Score}-${data.player2Score}`
+			},
 			progression: txResult.progression,
 		}, { status: 201 });
 
 	} catch (err) {
 		console.error('Failed to save match:', err);
-		return json({ error: 'Failed to save match result' }, { status: 500 });
+		return json({ errorKey: 'matches.errors.save_failed' }, { status: 500 });
 	}
 };

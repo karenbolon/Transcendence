@@ -1,0 +1,591 @@
+{
+  "meta": {
+    "title": "PONG - ft_transcendence",
+    "simple_title": "PONG",
+    "description": "Play the classic Pong game online!"
+  },
+  "nav": {
+    "home": "Home",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "game": {
+    "start": "Start game",
+    "pause": "Pause",
+    "winner": "Winner: {name}"
+  },
+  "auth": {
+    "common": {
+      "email": "Email",
+      "confirm_password": "Confirm password"
+    },
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome back! Ready to play?",
+      "submit": "Login",
+      "remember_me": "Remember me",
+      "forgot_password": "Forgot password?",
+      "no_account": "Don't have an account?",
+      "logging_in": "Logging in...",
+      "signup_link": "Sign up",
+      "continue_with": "Or continue with",
+      "oauth_42": "🔗 42 Intra",
+      "oauth": "👤 OAuth"
+    },
+    "fields": {
+      "username": "Username",
+      "password": "Password"
+    },
+    "register": {
+      "title": "Sign Up",
+      "subtitle": "Join the game and start playing!",
+      "success": "Account created! Redirecting...",
+      "submit": "Sign Up",
+      "submitting": "Signing up...",
+      "have_account": "Already have an account?",
+      "login_link": "Login",
+      "or_signup_with": "Or sign up with",
+      "oauth_42_coming": "🔗 42 Intra (Coming Soon)",
+      "oauth_coming": "👤 OAuth (Coming Soon)",
+      "accept_terms_prefix": "I agree to the",
+      "terms_link": "Terms of Service",
+      "and": "and",
+      "privacy_link": "Privacy Policy",
+      "privacy_note": "We use your email and username to create and secure your accounts. No tracking or analytics cookies are used.",
+      "password_hint": "Must be 8+ characters with uppercase, lowercase, and number"
+    },
+    "placeholders": {
+      "username": "Enter your username",
+      "password": "Enter your password",
+      "register_username": "Choose a username",
+      "register_email": "your.email@example.com",
+      "register_password": "Create a password",
+      "register_confirm_password": "Re-enter your password"
+    },
+    "errors": {
+      "username_required": "Enter your username",
+      "password_required": "Enter your password",
+      "username_taken": "Username already taken",
+      "email_taken": "Email is already taken",
+      "invalid_email": "Email is invalid",
+      "weak_password": "Your password is weak",
+      "login_failed": "Login failed",
+      "email_required": "Please enter an email",
+      "all_fields_required": "Please fill in all fields",
+      "passwords_do_not_match": "Passwords do not match",
+      "accept_terms_required": "You must accept the Terms of Service and Privacy Policy",
+      "invalid_credentials": "Invalid username or password",
+      "server_error": "Something went wrong. Please try again."
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "last_updated": "Last updated: 04/02/2026",
+      "who_we_are": {
+        "title": "Who We Are",
+        "body": "This website (“we”, “us”, “our”) provides an online Pong game (the “Service”). This application is operated by Pixies that Ride Pink Pony Unicorns (the “Team”), a student project created as part of an academic program at 42Berlin."
+      },
+      "data_collect": {
+        "title": "What Data do we Collect",
+        "intro": "We collect only the data required to operate the game:",
+        "username_label": "Username",
+        "username_desc": "to identify players in the game",
+        "email_label": "Email address",
+        "email_desc": "used for account-related communication (e.g. account creation, password recovery)"
+      },
+      "data_not_collect": {
+        "title": "We do not Collect",
+        "real_names": "Real names",
+        "payment": "Payment information",
+        "location": "Location data",
+        "sensitive": "Sensitive personal data"
+      },
+      "legal_basis": {
+        "title": "Why we collect this data (Legal Basis)",
+        "intro": "Under the General Data Protection Regulation (GDPR), we must have a legal reason to process your data. We rely on:",
+        "contractual_title": "Contractual necessity (Art. 6(1)(b) GDPR):",
+        "contractual_item": "Your username and email are required to create and maintain a game account.",
+        "legit_title": "Legitimate interests (Art. 6(1)(f) GDPR):",
+        "legit_item": "To ensure the security, stability, and proper functioning of the Service."
+      },
+      "use_data": {
+        "title": "How We Use Your Data",
+        "intro": "We process this data to:",
+        "items": {
+          "account": "Create and manage your game account",
+          "identify": "Identify you in the game (username)",
+          "participate": "Allow users to participate in the game",
+          "communicate": "Communicate with you about your account (email)",
+          "security": "Maintain the security and proper functioning of the application"
+        }
+      },
+      "sharing": {
+        "title": "Data Sharing",
+        "body": "We do not sell or use personal data for advertising. Data is only processed by technical service providers required to run the application."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "body": "Personal data is stored only for as long as the user account remains active. Users may request deletion of their account at any time."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "body": "You have the right to access, correct, or request deletion of your personal data in accordance with GDPR. You also have the right to lodge a complaint with a supervisory authority."
+      },
+      "cookies": {
+        "title": "Cookies",
+        "body": "This website uses essential cookies that are required for core functionality, such as user authentication and maintaining active sessions. We do not use tracking cookies, advertising cookies, or third-party analytics cookies. If this changes, this policy will be updated accordingly."
+      },
+      "changes": {
+        "title": "Changes to This Policy",
+        "body": "We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated “Last updated” date."
+      },
+      "contact": {
+        "title": "Contact",
+        "intro": "For privacy-related requests, contact us at:"
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "last_updated": "Last updated: 04/02/2026",
+      "introduction": {
+        "title": "Introduction",
+        "body": "Welcome to ft_transcendence (“the Service”), a web-based multiplayer application developed as part of the 42 curriculum. By accessing or using the Service, you agree to be bound by these Terms of Service (“Terms”). If you do not agree with these Terms, you must not use the Service."
+      },
+      "description": {
+        "title": "Description of the Service",
+        "intro": "The Service is provided for educational and demonstration purposes only and is an online platform that allows users to:",
+        "items": {
+          "account": "Create an account using an email address and username",
+          "login": "Log in securely",
+          "interact": "Interact with other users",
+          "play": "Play online games (e.g. Pong)",
+          "realtime": "Participate in real-time features such as matches, tournaments, or chat"
+        }
+      },
+      "eligibility": {
+        "title": "Eligibility",
+        "intro": "You must:",
+        "items": {
+          "age": "Be at least 13 years old to use the Service",
+          "accurate": "Provide accurate and complete registration information",
+          "security": "Maintain the security of your account credentials"
+        },
+        "note": "You are responsible for all activity that occurs under your account"
+      },
+      "accounts": {
+        "title": "User Accounts",
+        "intro": "When creating an account, you agree to:",
+        "items": {
+          "accurate": "Provide accurate and up-to-date information",
+          "impersonate": "Not impersonate another person or entity",
+          "share": "Not share your login credential with others"
+        },
+        "note": "We reserve the right to suspend or delete accounts that violate these Terms."
+      },
+      "acceptable_use": {
+        "title": "Acceptable Use",
+        "intro": "You agree not to:",
+        "items": {
+          "illegal": "Use the Service for illegal purposes",
+          "harass": "Harass, abuse, threaten, or harm other users",
+          "malicious": "Upload malicious code or attempt to compromise system security",
+          "exploit": "Exploit bugs, cheats, or unintended gameplay mechanics",
+          "unauthorized": "Attempt unauthorised access to accounts, servers, or data"
+        },
+        "note": "Violation of these rules may result in account suspension or termination."
+      },
+      "ugc": {
+        "title": "User-Generated Content",
+        "intro": "You are responsible for any content you submit, including:",
+        "items": {
+          "usernames": "Usernames",
+          "profile": "Profile information",
+          "chat": "Chat messages",
+          "ingame": "In-game interactions"
+        },
+        "prohibited_intro": "You agree not to submit content that is:",
+        "prohibited": {
+          "items": {
+            "offensive": "Offensive, hateful, or discriminatory",
+            "illegal": "Illegal or infringing on others’ rights",
+            "misleading": "Misleading or impersonating another user"
+          }
+        },
+        "note": "We reserve the right to remove content that violates these Terms."
+      },
+      "privacy": {
+        "title": "Privacy and Data Protection",
+        "intro": "Your use of the Service is also governed by our Privacy Policy, which explains:",
+        "items": {
+          "collect": "What personal data we collect",
+          "used": "How it is used",
+          "rights": "Your rights under GDPR"
+        },
+        "note": "Please review the Privacy Policy carefully before using the Service."
+      },
+      "availability": {
+        "title": "Availability and Changes",
+        "intro": "The Service is provided “as is” and “as available”. We do not guarantee:",
+        "items": {
+          "continuous": "Continuous availability",
+          "error_free": "Error-free operation",
+          "preservation": "Preservation of data or game statistics"
+        },
+        "note": "As this is an educational project, features may change, reset, or be removed at any time."
+      },
+      "termination": {
+        "title": "Termination",
+        "intro": "We may suspend or terminate your access to the Service:",
+        "items": {
+          "violate": "If you violate these Terms",
+          "security": "If required for security or maintenance reasons",
+          "discontinued": "If the project is discontinued"
+        },
+        "note": "You may stop using the Service at any time."
+      },
+      "ip": {
+        "title": "Intellectual Property",
+        "intro": "All code, design, and content related to ft_transcendence:",
+        "items": {
+          "owned": "Is owned by the project contributors",
+          "educational": "Is provided for educational purposes",
+          "commercial": "May not be reused commercially without permission"
+        },
+        "note": "User-generated content remains the property of the user who created it."
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "intro": "To the maximum extent permitted by law:",
+        "items": {
+          "loss": "We are not liable for data loss, service interruptions, or gameplay issues",
+          "behaviour": "We are not responsible for user behaviour or interactions",
+          "warranties": "The Service is provided without warranties of any kind"
+        },
+        "note": "Use of the Service is at your own risk."
+      },
+      "law": {
+        "title": "Governing Law",
+        "body": "These Terms are governed by the laws of the European Union, including applicable GDPR provisions, without regard to conflict-of-law principles."
+      },
+      "contact": {
+        "title": "Contact",
+        "intro": "For questions regarding these Terms or the Service, please contact:"
+      }
+    }
+  },
+  "account": {
+    "delete": {
+      "errors": {
+        "password_required": "Password is required to delete your account",
+        "incorrect_password": "Incorrect password"
+      }
+    }
+  },
+  "matches": {
+    "labels": {
+      "player1": "Player 1",
+      "player2": "Player 2",
+      "win_score": "Win score"
+    },
+    "status": {
+      "press_space_start": "Press SPACE to start",
+      "get_ready": "Get ready...",
+      "play_again": "Press SPACE to play again",
+      "saving": "Saving match...",
+      "saved": "Match saved",
+      "match_not_saved": "Match not saved (not logged in?)"
+    },
+    "errors": {
+      "login_required": "You must be logged in to save match results",
+      "invalid_json": "Invalid JSON",
+      "invalid_match": "Invalid match data",
+      "save_failed": "Failed to save match result"
+    },
+    "success": {
+      "saved_match": "Match saved! {winnerName} wins {score}"
+    },
+    "validation": {
+      "win_score_invalid": "Win score must be 3, 5, 7, or 11",
+      "score_must_equal_win_score": "One score must equal the win score",
+      "winner_must_have_winning_score": "Winner must have the winning score"
+    }
+  },
+  "user_profile": {
+    "achievements": {
+      "title": "Achievements",
+      "hint": "Tap any achievement for details",
+      "empty": "No achievements in this category yet."
+    },
+    "labels": {
+      "unlocked": "unlocked",
+      "all": "All",
+      "back_profile": "← Back to Profile"
+    },
+    "milestones": {
+      "transcendent": "Transcendent",
+      "legend": "Legend",
+      "diamond": "Diamond",
+      "flame": "Flame",
+      "spark": "Spark",
+      "seedling": "Seedling"
+    },
+    "categories": {
+      "onboarding": "⭐ Onboarding",
+      "social": "🤝 Social",
+      "origins": "🌀 Origins",
+      "tournament": "🏟️ Tournament",
+      "shutout": "🛡️ Shutout",
+      "streak": "🔥 Streaks",
+      "scorer": "🎯 Scorer",
+      "veteran": "🎮 Veteran",
+      "comeback": "💪 Comeback",
+      "rally": "🏓 Rally",
+      "secret": "🕵️ Secret"
+    },
+    "tiers": {
+      "legendary": "legendary",
+      "epic": "epic",
+      "gold": "gold",
+      "silver": "silver",
+      "bronze": "bronze"
+    },
+    "streak": {
+      "wins": "{count} wins",
+      "current": "Current streak",
+      "best": "Best streak"
+    },
+    "level": {
+      "label": "Level {level}",
+      "xp_progress": "{currentXp} / {xpToNextLevel} XP",
+      "no_xp": "0 XP earned"
+    },
+    "badges": {
+      "recent": "Recent Badges",
+      "view_all": "{count} earned · View all →",
+      "more": "more",
+      "locked": "???"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "account": {
+      "title": "My Account",
+      "username": "Username:",
+      "email": "Email:"
+    },
+    "security": {
+      "title": "Security",
+      "change_password": "Change Password",
+      "current_password": "Current Password",
+      "new_password": "New Password",
+      "confirm_new_password": "Confirm New Password",
+      "saving": "Saving...",
+      "update_password": "Update Password",
+      "password_changed": "Password changed successfully.",
+      "password_change_failed": "Failed to change password."
+    },
+    "email": {
+      "title": "Change Email",
+      "current_email": "Current email:",
+      "new_email": "New Email",
+      "password": "Password",
+      "placeholder": "new@email.com",
+      "update_email": "Update Email",
+      "email_updated": "Email updated successfully.",
+      "email_change_failed": "Failed to change email."
+    },
+    "common": {
+      "all_fields_required": "All fields are required."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "friend_requests": "Friend Requests",
+      "friend_requests_desc": "Get notified when someone sends you a friend request",
+      "game_invites": "Game Invites",
+      "game_invites_desc": "Get notified when someone challenges you to a game",
+      "match_results": "Match Results",
+      "match_results_desc": "Get notified about match outcomes from friends"
+    },
+    "language": {
+      "title": "Language"
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "description": "Once you delete your account, there is no going back.",
+      "delete_account": "Delete Account"
+    }
+  },
+  "instructions": {
+    "header": {
+      "tag": "How to Play",
+      "title_prefix": "Learn the",
+      "title_highlight": "basics",
+      "subtitle": "Pong is simple to pick up but takes practice to master. Here's everything you need to know."
+    },
+    "controls": {
+      "title": "Controls",
+      "subtitle": "Different controls depending on the mode. In online play, everyone uses the same keys.",
+      "player1": {
+        "tag": "Player 1",
+        "side": "Left side"
+      },
+      "player2": {
+        "tag": "Player 2",
+        "side": "Right side (local only)"
+      },
+      "move_up": "Move paddle up",
+      "move_down": "Move paddle down"
+    },
+    "modes": {
+      "title": "Game Modes",
+      "subtitle": "Four ways to play, from casual practice to competitive tournaments.",
+      "local": {
+        "name": "Local 1v1",
+        "desc": "Two players, one keyboard. Classic couch gaming. Player 1 uses W/S, Player 2 uses arrow keys.",
+        "players": "👥 2 players, same device"
+      },
+      "ai": {
+        "name": "vs Computer",
+        "desc": "Practice against the AI. Great for warming up or learning the mechanics before going online.",
+        "players": "👤 Solo practice"
+      },
+      "online": {
+        "name": "Online Multiplayer",
+        "desc": "Challenge players in real-time over WebSockets. Matchmake or invite friends directly from their profile.",
+        "players": "🌍 2 players, online"
+      },
+      "tournament": {
+        "name": "Tournament",
+        "desc": "Bracket-style competition. Join open tournaments, climb the bracket, and claim the championship title.",
+        "players": "🏆 4–8 players, bracket"
+      }
+    },
+    "rules": {
+      "title": "Rules",
+      "subtitle": "Simple rules, fast games",
+
+      "score_to_win": {
+        "title": "Score to win",
+        "body": "The ball bounces between paddles. Score a point when your opponent misses the ball."
+      },
+      "first_to_target": {
+        "title": "First to the target wins",
+        "body": "Default is 5 points. Tournament matches may use different targets. Choose from 3, 5, 7, or 11 points."
+      },
+      "ball_speeds_up": {
+        "title": "Ball speeds up",
+        "body": "Each rally makes the ball slightly faster. Longer rallies mean more intense gameplay."
+      },
+      "angle_control": {
+        "title": "Angle control",
+        "body": "Where the ball hits your paddle affects its bounce angle. Hit with the edge for sharper angles."
+      },
+      "no_pause_online": {
+        "title": "No pausing online",
+        "body": "Local and AI games can be paused. Online matches play continuously."
+      }
+    },
+    "game_speeds": {
+      "title": "Game Speeds",
+      "body": "Choose your pace before each match."
+    },
+    "speeds": {
+      "chill": {
+        "title": "Chill",
+        "body": "Relaxed speed. Perfect for beginners and casual play."
+      },
+      "normal": {
+        "title": "Normal",
+        "body": "Standard competitive speed. The default for ranked and tournaments."
+      },
+      "fast": {
+        "title": "Fast",
+        "body": "High-speed chaos. For experienced players looking for a challenge."
+      }
+    },
+    "tips": {
+      "title": "Tips & Tricks",
+      "subtitle": "Get better faster",
+      "edges": {
+        "title": "Use the edges",
+        "body": "Hitting the ball with the edge of your paddle creates sharper angles that are harder to return."
+      },
+      "anticipate": {
+        "title": "Anticipate, don't react",
+        "body": "Watch the ball angle and start moving before it crosses the midline."
+      },
+      "center": {
+        "title": "Stay centered",
+        "body": "After each return, move your paddle back toward the middle to cover more area."
+      },
+      "practice": {
+        "title": "Practice vs AI first",
+        "body": "Computer mode is great for learning timing and paddle control before going online."
+      }
+    },
+    "progression": {
+      "title": "Progression & XP",
+      "subtitle": "Coming Soon",
+      "desc": "Earn XP for every match, level up your profile, and unlock achievements. The progression system is currently in development."
+    },
+    "play": {
+      "title": "Ready to play?",
+      "subtitle": "Jump straight in — no account needed for local and AI games.",
+      "desc": "🎮 Play Now"
+    }
+  },
+  "canvas_game": {
+    "esc_quit": "ESC to quit",
+    "title": "PONG",
+    "press_space": "PRESS SPACE",
+    "controls_reminder": "Player 1: W / S          Player 2: ↑ / ↓",
+    "game_over": "GAME OVER",
+    "wins_suffix": "Wins!",
+    "players": {
+      "player1": "Player 1",
+      "player2": "Player 2"
+    }
+  },
+  "pong_settings":  {
+    "game_mode": {
+      "label": "Game mode",
+      "local": "👥 Local PvP",
+      "computer": "🤖 vs Computer"
+    },
+    "player2": {
+      "label": "Player 2",
+      "placeholder": "Guest"
+    },
+    "win_score": {
+      "label": "Points to win"
+    },
+    "ball_speed": {
+      "label": "Ball speed",
+      "chill": "🐢 Chill",
+      "normal": "🏓 Normal",
+      "fast": "🔥 Fast"
+    }
+  },
+  "footer": {
+    "brand": {
+      "tagline": "The classic game, reimagined."
+    },
+    "sections": {
+      "resources": "Resources",
+      "follow_us": "Follow Us",
+      "legal": "Legal",
+      "about": "About"
+    },
+    "links": {
+      "play": "Play",
+      "leaderboard": "Leaderboard",
+      "tournaments": "Tournaments",
+      "instructions": "Instructions",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "our_team": "Our Team"
+    },
+    "copyright": "© {year} ft_transcendence™ — All rights reserved."
+  }
+}

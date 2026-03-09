@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PongGame from "$lib/component/pong/PongGame.svelte";
+	import PongGame from "$lib/component/pong/PongGame.extra";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
 	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
@@ -10,6 +10,7 @@
 		type GameMode,
 		type GameSettings,
 	} from "$lib/component/pong/gameEngine";
+	import { _ } from 'svelte-i18n';
 
 	let gameMode = $state<GameMode>("local");
 	let winScore = $state(5);
@@ -42,6 +43,9 @@
 	});
 
 	let saveStatus = $state<"idle" | "saving" | "saved" | "error">("idle");
+	let saveMessageKey = $state<string | null>(null);
+	let saveMessageParams = $state<Record<string, string> | null>(null);
+	let saveErrorKey = $state<string | null>(null);
 
 	// Progression state for level-up modal
 	let showLevelUpModal = $state(false);
@@ -65,6 +69,9 @@
 		reachedDeuce: boolean;
 	}) {
 		saveStatus = "saving";
+		saveMessageKey = null;
+		saveMessageParams = null;
+		saveErrorKey = null;
 
 		// Determine Player 2's display name
 		const p2DisplayName =
@@ -91,9 +98,13 @@
 				}),
 			});
 
+			const data = await response.json();
+
 			if (response.ok) {
 				saveStatus = "saved";
-				const data = await response.json();
+				saveMessageKey = data.messageKey ?? null;
+				saveMessageParams = data.messageParams ?? null;
+				// const data = await response.json();
 
 				// Show progression modal after every match
 				if (data.progression) {
@@ -102,25 +113,30 @@
 				}
 			} else {
 				// Not logged in or validation error — still fine, game works
-				const data = await response.json();
-				console.warn("Match not saved:", data.error);
+				// const data = await response.json();
+				console.warn("Match not saved:", data.errorKey || data.error);
+				saveErrorKey = data.errorKey ?? 'matches.errors.save_failed';
 				saveStatus = "error";
 			}
 		} catch (err) {
 			// Network error — game still works, just not saved
 			console.warn("Could not save match:", err);
+			saveErrorKey = 'matches.errors.save_failed';
 			saveStatus = "error";
 		}
 
 		// Reset status after a few seconds
 		setTimeout(() => {
 			saveStatus = "idle";
+			saveMessageKey = null;
+			saveMessageParams = null;
+			saveErrorKey = null;
 		}, 3000);
 	}
 </script>
 
 <div class="game-container">
-	<h1 class="game-title">PONG</h1>
+	<h1 class="game-title">{$_('meta.simple_title')}</h1>
 
 	<!-- Settings — only visible during menu -->
 	{#if gamePhase === "menu"}
@@ -142,27 +158,37 @@
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
 		{#if gamePhase === "menu"}
-			<span class="status-text">Press SPACE to start</span>
+			<span class="status-text">{$_('matches.status.press_space_start')}</span>
 		{:else if gamePhase === "countdown"}
-			<span class="status-text">Get ready...</span>
+			<span class="status-text">{$_('matches.status.get_ready')}</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
-				<span class="status-text">Press SPACE to play again</span>
+				<span class="status-text">{$_('matches.status.play_again')}</span>
 				{#if saveStatus === "saving"}
-					<span class="save-indicator saving">Saving match...</span>
+					<span class="save-indicator saving">
+						{$_('matches.status.saving')}</span>
 				{:else if saveStatus === "saved"}
-					<span class="save-indicator saved">✓ Match saved</span>
+					<span class="save-indicator saved">
+						{#if saveMessageKey}
+							✓ {$_(saveMessageKey, saveMessageParams ?? {})}
+						{:else}
+							✓ {$_('matches.status.saved')}
+		{/if}</span>
 					{#if progressionResult}
 						<span class="xp-indicator"
 							>+{progressionResult.xpEarned} XP</span
 						>
 					{/if}
 				{:else if saveStatus === "error"}
-					<span class="save-indicator error"
-						>Match not saved (not logged in?)</span
-					>
+					<span class="save-indicator error">
+						{#if saveErrorKey}
+							{$_(saveErrorKey)}
+						{:else}
+							{$_('matches.status.match_not_saved')}
+						{/if}
+					</span>
 				{/if}
 			</div>
 		{/if}

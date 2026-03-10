@@ -3,21 +3,24 @@
 	import { formatTournamentTime, formatTournamentFormat } from '$lib/utils/format_game';
 	import type { DashboardProps } from '$lib/types/dashboard';
 	import {RANK_MEDALS } from '$lib/utils/format_progression';
+	import { _, isLoading } from 'svelte-i18n';
 
 	let { user, globalLeaderboard, friendsLeaderboard, activityFeed, openTournaments }: DashboardProps = $props();
 
 </script>
 
+<!-- Only render when translations are loaded -->
+{#if !$isLoading}
 <div class="dashboard">
 	<!-- Welcome -->
 	<div class="welcome-row">
 		<div>
 			<h1 class="welcome-title">
-				Welcome back, <span class="accent">{user.displayName || user.username} 👋</span>
+				{$_('dashboard.welcomeBack')} <span class="accent">{user.displayName || user.username} 👋</span>
 			</h1>
-			<p class="welcome-sub">Ready for another match?</p>
+			<p class="welcome-sub">{$_('dashboard.readyMatch')}</p>
 		</div>
-		<a href="/play" class="btn-play">🎮 Play Now</a>
+		<a href="/play" class="btn-play">🎮 {$_('dashboard.playNow')}</a>
 	</div>
 
 	<!-- LEADERBOARDS -->
@@ -25,8 +28,8 @@
 		<!-- Global -->
 		<div class="lb-card global">
 			<div class="lb-header">
-				<h2 class="lb-title">Global Leaderboard</h2>
-				<a href="/leaderboard" class="lb-link">View all →</a>
+				<h2 class="lb-title">{$_('dashboard.title')}</h2>
+				<a href="/leaderboard" class="lb-link">{$_('dashboard.viewAll')} →</a>
 			</div>
 			<div class="podium">
 				{#each globalLeaderboard as player, i}
@@ -50,7 +53,7 @@
 						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>
 					</a>
 				{:else}
-					<div class="empty-mini">No games played yet</div>
+					<div class="empty-mini">{$_('dashboard.noGames')}</div>
 				{/each}
 			</div>
 		</div>
@@ -58,8 +61,8 @@
 		<!-- Friends -->
 		<div class="lb-card friends">
 			<div class="lb-header">
-				<h2 class="lb-title">Friends Leaderboard</h2>
-				<a href="/leaderboard?tab=friends" class="lb-link">View all →</a>
+				<h2 class="lb-title">{$_('dashboard.friendsLeaderboard')}</h2>
+				<a href="/leaderboard?tab=friends" class="lb-link">{$_('dashboard.viewAll')} →</a>
 			</div>
 			<div class="podium">
 				{#each friendsLeaderboard as player, i}
@@ -83,7 +86,7 @@
 						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>
 					</a>
 				{:else}
-					<div class="empty-mini">Add friends to see their rankings!</div>
+					<div class="empty-mini">{$_('dashboard.friendsEmpty')}</div>
 				{/each}
 			</div>
 		</div>
@@ -92,10 +95,10 @@
 	<!-- ═══ ACTIVITY FEED ═══ -->
 	<div class="feed-card">
 		<div class="feed-header">
-			<h2 class="feed-title">Recent Activity</h2>
+			<h2 class="feed-title">{$_('dashboard.recentActivity')}</h2>
 		</div>
 		{#if activityFeed.length === 0}
-			<div class="empty-mini">Play some games to see activity here!</div>
+			<div class="empty-mini">{$_('dashboard.activityEmpty')}</div>
 		{:else}
 			<div class="feed-list">
 				{#each activityFeed as item}
@@ -110,8 +113,8 @@
 							</div>
 							<div class="feed-content">
 								<div class="feed-text">
-									<strong>{item.userId === user.id ? 'You' : (item.displayName || item.username)}</strong>
-									unlocked <span class="badge-highlight">{item.achievementIcon} {item.achievementName}</span>
+									<strong>{item.userId === user.id ? $_('dashboard.you') : (item.displayName || item.username)}</strong>
+									{$_('dashboard.unlocked')} <span class="badge-highlight">{item.achievementIcon} {item.achievementName}</span>
 								</div>
 								<div class="feed-time">{formatDate(item.unlockedAt)}</div>
 							</div>
@@ -127,7 +130,7 @@
 							<div class="feed-content">
 								<div class="feed-text">
 									<strong>{item.winnerId === user.id ? 'You' : (item.winnerDisplayName || item.winnerName)}</strong>
-									beat <strong>{item.loserName}</strong>
+									{$_('dashboard.beat')} <strong>{item.loserName}</strong>
 									{item.winnerScore}–{item.loserScore}
 								</div>
 								<div class="feed-time">{formatDate(item.playedAt)}</div>
@@ -143,17 +146,17 @@
 	<!-- OPEN TOURNAMENTS -->
 	<div class="tournaments-section">
 		<div class="tourn-header">
-			<h2 class="tourn-title">Open Tournaments</h2>
-			<a href="/tournaments" class="tourn-link">Browse all</a>
+			<h2 class="tourn-title">{$_('dashboard.openTournaments')}</h2>
+			<a href="/tournaments" class="tourn-link">{$_('dashboard.browseAll')}</a>
 		</div>
 		{#if openTournaments.length === 0}
-			<div class="empty-mini">No open tournaments right now. Check back soon!</div>
+			<div class="empty-mini">{$_('dashboard.noOpenTournaments')}</div>
 		{:else}
 			<div class="tourn-grid">
 				{#each openTournaments as tourn}
 					<div class="tourn-card">
 						<span class="tourn-status {tourn.status}">
-							{tourn.status === 'open' ? 'Open' : 'Scheduled'}
+							{tourn.status === 'open' ? $_('dashboard.statusOpen') : $_('dashboard.statusScheduled')}
 						</span>
 						<div class="tourn-card-name">{tourn.name}</div>
 						<div class="tourn-card-meta">
@@ -171,9 +174,9 @@
 							</div>
 						</div>
 						{#if tourn.playerCount < tourn.maxPlayers}
-							<a href="/tournaments/{tourn.id}/join" class="tourn-join">Join Tournament</a>
+							<a href="/tournaments/{tourn.id}/join" class="tourn-join">{$_('dashboard.joinTournament')}</a>
 						{:else}
-							<button class="tourn-join" disabled>Full</button>
+							<button class="tourn-join" disabled>{$_('dashboard.full')}</button>
 						{/if}
 					</div>
 				{/each}
@@ -184,28 +187,29 @@
 	<!-- QUICK PLAY -->
 	<div class="quick-section">
 		<div class="quick-header">
-			<h2 class="quick-title">Quick Play</h2>
+			<h2 class="quick-title">{$_('dashboard.quickPlay')}</h2>
 		</div>
 		<div class="quick-grid">
 			<a href="/play?mode=remote" class="quick-card">
 				<span class="quick-icon">🌐</span>
-				<span class="quick-name">Find a Match</span>
-				<span class="quick-desc">Play against someone online</span>
+				<span class="quick-name">{$_('dashboard.findMatch')}</span>
+				<span class="quick-desc">{$_('dashboard.findMatchDesc')}</span>
 			</a>
 			<a href="/play?mode=local" class="quick-card">
 				<span class="quick-icon">👥</span>
-				<span class="quick-name">Local 1v1</span>
-				<span class="quick-desc">Same keyboard, two players</span>
+				<span class="quick-name">{$_('dashboard.local1v1')}</span>
+				<span class="quick-desc">{$_('dashboard.local1v1Desc')}</span>
 			</a>
 			<a href="/play?mode=computer" class="quick-card">
 				<span class="quick-icon">🤖</span>
-				<span class="quick-name">vs Computer</span>
-				<span class="quick-desc">Practice against the AI</span>
+				<span class="quick-name">{$_('dashboard.vsComputer')}</span>
+				<span class="quick-desc">{$_('dashboard.vsComputerDesc')}</span>
 			</a>
 		</div>
 	</div>
 
 </div>
+{/if}
 
 <style>
 	.dashboard {

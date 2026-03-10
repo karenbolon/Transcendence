@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
+
 	type Props = {
 		open: boolean;
 		onclose: () => void;
@@ -15,7 +17,7 @@
 		deleteError = '';
 
 		if (!deletePassword.trim()) {
-			deleteError = 'Password is required.';
+			deleteError = $_('common.password_required');
 			return;
 		}
 
@@ -36,12 +38,12 @@
 
 			if (!res.ok) {
 				const result = await res.json();
-				deleteError = result?.data?.error ?? 'Failed to delete account.';
+				deleteError = result?.data?.error ?? $_('errors.deletionFailed');
 			} else {
 				window.location.href = '/';
 			}
 		} catch {
-			deleteError = 'Something went wrong. Please try again.';
+			deleteError = $_('errors.server_error');
 		} finally {
 			isDeleting = false;
 		}
@@ -63,16 +65,14 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="modal" onclick={(e) => e.stopPropagation()}>
-			<h2 class="modal-title">⚠️ Delete Account</h2>
+			<h2 class="modal-title">⚠️ $_('danger.delete_account')</h2>
 			<p class="modal-desc">
-				This action is <strong>permanent</strong>. Your account,
-				profile, and stats will be removed. Your match history will
-				be preserved for other players.
+				$_('settings.danger.action') <strong>$_('settings.danger.action2') </strong>. $_('settings.danger.action3') 
 			</p>
 
 			<form onsubmit={handleSubmit}>
 				<label class="modal-label" for="delete-password">
-					Enter your password to confirm:
+					$_('common.register_confirm_password')
 				</label>
 				<input
 					id="delete-password"
@@ -103,7 +103,7 @@
 						class="modal-btn modal-btn--delete"
 						disabled={isDeleting}
 					>
-						{isDeleting ? 'Deleting...' : 'Delete My Account'}
+						{isDeleting ? $_('common.saving'): $_('settings.danger.delete_account')}
 					</button>
 				</div>
 			</form>

@@ -1,14 +1,15 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { lucia } from '$lib/server/auth/lucia';
+// import { lucia } from '$lib/server/auth/lucia';
 import { hashPassword } from '$lib/server/auth/password';
 import { validateRegistration } from '$lib/server/auth/validation';
 import { validateRegistrationUniqueness } from '$lib/server/auth/db_valid';
 import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+// import { eq } from 'drizzle-orm';
 import type { FormErrors } from '$lib/types/form';
+
 
 export const load: PageServerLoad = async ({ locals }) => {
 	redirectIfLoggedIn(locals);
@@ -27,14 +28,14 @@ export const actions: Actions = {
 
 		if (!acceptTerms) {
 			return fail(400, {
-				error: 'You must accept the Terms of Service and Privacy Policy',
+				errorKey: 'errors.accept_terms_required',
 				errors: {} as FormErrors
 			});
 		}
 		if (password !== confirmPassword) {
 			return fail(400, {
-				error: undefined,
-				errors: { confirmPassword: 'Passwords do not match' } as FormErrors
+				errorKey: undefined,
+				errors: { confirmPassword: 'errors.passwords_do_not_match' } as FormErrors
 			});
 		}
 
@@ -42,7 +43,7 @@ export const actions: Actions = {
 
 		if (!formatValidation.success) {
 			return fail(400, {
-				error: undefined,
+				errorKey: undefined,
 				errors: (formatValidation.errors ?? {}) as FormErrors
 			});
 		}
@@ -51,7 +52,7 @@ export const actions: Actions = {
 
 		if (!uniquenessCheck.success) {
 			return fail(400, {
-				error: undefined,
+				errorKey: undefined,
 				errors: (uniquenessCheck.errors ?? {}) as FormErrors
 			});
 		}
@@ -75,7 +76,7 @@ export const actions: Actions = {
 			console.error('Registration error:', err);
 
 			return fail(500, {
-				error: 'Something went wrong. Please try again.',
+				errorKey: 'errors.server_error',
 				errors: {} as FormErrors
 			});
 		}

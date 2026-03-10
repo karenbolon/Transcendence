@@ -1,5 +1,6 @@
 <script lang="ts">
 	import logo from '$lib/assets/favicon.ico';
+	import { _, isLoading } from 'svelte-i18n';
 
 	const currentYear = new Date().getFullYear();
 
@@ -35,29 +36,32 @@
 					<img src={logo} alt="PONG logo" class="brand-logo" />
 					<span class="brand-name">PONG</span>
 				</a>
-				<p class="brand-tagline">The classic game, reimagined.</p>
+				{#if !$isLoading}
+					<p class="brand-tagline">{$_('footer.brand.tagline')}</p>
+				{/if}
 			</div>
 
-			<div class="flex gap-24">
-				<div class="link-column">
-					<h3>Resources</h3>
-					{#if user}
-						<ul>
-							<li><a href="/play">Play</a></li>
-							<li><a href="/leaderboard">Leaderboard</a></li>
-							<li><a href="/tournaments">Tournaments</a></li>
-							<li><a href="/instructions">Instructions</a></li>
-						</ul>
-					{:else}
-						<ul>
-							<li><a href="/play">Play</a></li>
-							<li><a href="/instructions">Instructions</a></li>
-							<li><a href="/leaderboard">Leaderboard</a></li>
-						</ul>
-					{/if}
-				</div>
-				<div class="link-column">
-					<h3>Follow Us</h3>
+			{#if !$isLoading}
+				<div class="flex gap-24">
+					<div class="link-column">
+						<h3>{$_('footer.sections.resources')}</h3>
+						{#if user}
+							<ul>
+								<li><a href="/play">{$_('common.play')}</a></li>
+								<li><a href="/leaderboard">{$_('leaderboard.title')}</a></li>
+								<li><a href="/tournaments">{$_('tournaments.title')}</a></li>
+								<li><a href="/instructions">{$_('instructions.title')}</a></li>
+							</ul>
+						{:else}
+							<ul>
+								<li><a href="/play">{$_('common.play')}</a></li>
+								<li><a href="/instructions">{$_('instructions.title')}</a></li>
+								<li><a href="/leaderboard">{$_('leaderboard.title')}</a></li>
+							</ul>
+						{/if}
+					</div>
+					<div class="link-column">
+						<h3>{$_('footer.sections.follow_us')}</h3>
 					<ul>
 						<li class="follow-popup-wrapper">
 							<button class="follow-trigger" onclick={() => togglePopup('github')}>
@@ -92,16 +96,16 @@
 					</ul>
 				</div>
 				<div class="link-column">
-					<h3>Legal</h3>
+					<h3>{$_('footer.sections.legal')}</h3>
 					<ul>
-						<li><a href="/privacy">Privacy Policy</a></li>
-						<li><a href="/terms">Terms of Service</a></li>
+						<li><a href="/privacy">{$_('legal.privacy.title')}</a></li>
+						<li><a href="/terms">{$_('legal.terms.title')}</a></li>
 					</ul>
 				</div>
 				<div class="link-column">
-					<h3>About</h3>
+					<h3>{$_('about.title')}</h3>
 					<ul>
-						<li><a href="/about">Our Team</a></li>
+						<li><a href="/about">{$_('footer.sections.our_team')}</a></li>
 						<li>
 							<a href="https://42berlin.de" target="_blank" rel="noopener noreferrer">
 								42 Berlin
@@ -111,12 +115,19 @@
 				</div>
 
 			</div>
+		{/if}
 		</div>
 		<hr class="footer-divider" />
 		<div class="flex items-center justify-between">
-			<p class="copyright">
-				© {currentYear} ft_transcendence™ — All rights reserved.
-			</p>
+			{#if !$isLoading}
+				<p class="copyright">
+					{$_('footer.copyright', { values: { year: currentYear } })}
+				</p>
+			{:else}
+				<p class="copyright">
+					© {currentYear} ft_transcendence. All rights reserved.
+				</p>
+			{/if}
 			<div class="social-icons">
 				<!-- GitHub Icon -->
 				<a href="https://github.com/karenbolon/Transcendence" target="_blank" rel="noopener noreferrer" aria-label="GitHub">

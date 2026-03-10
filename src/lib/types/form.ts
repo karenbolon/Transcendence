@@ -7,12 +7,12 @@ export type FormErrors = {
 
 // Register page response shape
 export type RegisterFormResult = {
-	error?: string;
+	errorKey?: string;
 	errors?: FormErrors;
-};
+} | null;
 
 // Login page response shape
 export type LoginFormResult = {
-	error?: string;
+	errorKey?: string;
 	username?: string; // Preserved so the field stays filled after error
-};
+} | null;

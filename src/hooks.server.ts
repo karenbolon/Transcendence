@@ -35,6 +35,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 	event.locals.session = session;
 
-	return resolve(event);
+	// Set HTML lang attribute based on user's language preference
+	const userLanguage = user?.language || 'en';
+	
+	return resolve(event, {
+		transformPageChunk: ({ html }) => {
+			return html.replace('%lang%', userLanguage);
+		}
+	});
 
 };

@@ -6,6 +6,8 @@
 	import type { PageData } from "./$types";
 	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
 	import type { ProfileEditData } from "$lib/types/utils";
+	import { _ } from 'svelte-i18n';
+
 	let { data }: { data: PageData } = $props();
 
 	let showEditModal = $state(false);
@@ -53,15 +55,15 @@
 	<section class="stats-grid">
 		<div class="stat-card total">
 			<span class="stat-value">{data.stats.totalGames}</span>
-			<span class="stat-label">Games</span>
+			<span class="stat-label">{$_('common.games')}</span>
 		</div>
 		<div class="stat-card wins">
 			<span class="stat-value">{data.stats.wins}</span>
-			<span class="stat-label">Wins</span>
+			<span class="stat-label">{$_('user_profile.dashboard.wins')}</span>
 		</div>
 		<div class="stat-card losses">
 			<span class="stat-value">{data.stats.losses}</span>
-			<span class="stat-label">Losses</span>
+			<span class="stat-label">{$_('user_profile.dashboard.losses')}</span>
 		</div>
 		<div class="stat-card rate">
 			<div class="rate-ring">
@@ -73,7 +75,7 @@
 				<span class="rate-number">{data.stats.winRate}%</span>
 			</div>
 			<!-- <span class="stat-value rate">{data.stats.winRate}%</span> -->
-			<span class="stat-label">Win Rate</span>
+			<span class="stat-label">{$_('user_profile.dashboard.winRate')}</span>
 		</div>
 		<!-- <div class="stat-card">
 			<span class="stat-value best">{data.stats.bestScore}</span>
@@ -87,7 +89,7 @@
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">
-			<h2 class="section-title">Milestones and Achievements</h2>
+			<h2 class="section-title">{$_('user_profile.dashboard.milestonesTitle')}</h2>
 			<!-- <a href="/achievements" class="view-all-link">View all →</a> -->
 		</div>
 			{#if data.achievements && data.achievements.length > 0}
@@ -100,7 +102,7 @@
 				/>
 			{:else}
 				<p class="empty-achievements">
-					No achievements yet. Play matches to unlock them!
+					{$_('user_profile.dashboard.noAchievements')}
 				</p>
 			{/if}
 	</section>
@@ -109,14 +111,14 @@
 	     MATCH HISTORY
 	═══════════════════════════════════════════════════════════ -->
 	<section class="match-history">
-		<h2 class="section-title">Match History</h2>
+		<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">
-				<h3>No matches yet!</h3>
-				<p>Play your first game to see your match history here.</p>
+				<h3>{$_('user_profile.dashboard.noMatchesTitle')}</h3>
+				<p>{$_('user_profile.dashboard.noMatchesText')}</p>
 				<a href="/play" class="play-link"
-					>🎮 Play Now your first game →</a
+					>🎮 {$_('user_profile.dashboard.playFirstGame')} →</a
 				>
 			</div>
 		{:else}

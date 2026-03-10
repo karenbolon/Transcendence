@@ -95,11 +95,22 @@ async function seed() {
 		{ username: 'grace',   name: 'Grace Garcia',    email: 'grace@pong.local',   bio: 'New to pong but learning fast', avatar: '/avatars/defaults/animals/panda.svg' },
 		{ username: 'henry',   name: 'Henry Hill',      email: 'henry@pong.local',   bio: 'I play for fun', avatar: null },
 		// 8-9: Your test accounts
-		{ username: 'Test',    name: 'Test Ivanov',     email: 'test@pong.local',    bio: 'I love music', avatar: null },
-		{ username: 'Tatty',   name: 'Tatty Ramos',     email: 'tatty@pong.local',   bio: 'I like to play games', avatar: null },
+		{ username: 'test',    name: 'Test Ivanov',     email: 'test@pong.local',    bio: 'I love music', avatar: null },
+		{ username: 'tatty',   name: 'Tatty Ramos',     email: 'tatty@pong.local',   bio: 'I like to play games', avatar: null },
 		// 10-11: Extra players for variety
 		{ username: 'iris',    name: 'Iris Ingram',     email: 'iris@pong.local',    bio: 'Chill mode only', avatar: null },
 		{ username: 'jake',    name: 'Jake Johnson',    email: 'jake@pong.local',    bio: null, avatar: null },
+		// 12-21: Similar/confusable names for search testing
+		{ username: 'alice_99',  name: 'Alice Nguyen',     email: 'alice99@pong.local',   bio: 'Not the other Alice', avatar: null },
+		{ username: 'al1ce',     name: 'Alicia Romero',    email: 'al1ce@pong.local',     bio: 'Pong newbie',         avatar: '/avatars/defaults/retro/alien.svg' },
+		{ username: 'alison',    name: 'Alison Baker',     email: 'alison@pong.local',    bio: 'Just vibing',         avatar: null },
+		{ username: 'bob_jr',    name: 'Bobby Martinez',   email: 'bobjr@pong.local',     bio: 'Like bob but smaller', avatar: null },
+		{ username: 'bobby',     name: 'Bob Williams',     email: 'bobby@pong.local',     bio: null,                  avatar: '/avatars/defaults/animals/panda.svg' },
+		{ username: 'tester',    name: 'Tester McTest',    email: 'tester@pong.local',    bio: 'Testing everything',  avatar: null },
+		{ username: 'testking',  name: 'Test King',        email: 'testking@pong.local',  bio: 'King of testing',     avatar: null },
+		{ username: 'tatiana',   name: 'Tatiana Lopez',    email: 'tatiana@pong.local',   bio: 'Love pong',           avatar: '/avatars/defaults/animals/owl.svg' },
+		{ username: 'charlotte', name: 'Charlotte Brown',  email: 'charlotte@pong.local', bio: 'Not charlie',         avatar: null },
+		{ username: 'chuck',     name: 'Charles Daniels',  email: 'chuck@pong.local',     bio: 'Call me Chuck',       avatar: null },
 	];
 
 	const createdUsers: { id: number; username: string }[] = [];
@@ -163,12 +174,35 @@ async function seed() {
 		{ user: 8, friend: 1, status: 'accepted' as const },  // Test <-> bob
 		{ user: 9, friend: 2, status: 'accepted' as const },  // Tatty <-> charlie
 
+		// New users — accepted friends
+		{ user: 8, friend: 12, status: 'accepted' as const },  // Test <-> alice_99
+		{ user: 8, friend: 17, status: 'accepted' as const },  // Test <-> tester
+		{ user: 8, friend: 18, status: 'accepted' as const },  // Test <-> testking
+		{ user: 8, friend: 19, status: 'accepted' as const },  // Test <-> tatiana
+		{ user: 9, friend: 19, status: 'accepted' as const },  // Tatty <-> tatiana
+		{ user: 9, friend: 15, status: 'accepted' as const },  // Tatty <-> bob_jr
+		{ user: 0, friend: 12, status: 'accepted' as const },  // alice <-> alice_99
+		{ user: 0, friend: 13, status: 'accepted' as const },  // alice <-> al1ce
+		{ user: 1, friend: 15, status: 'accepted' as const },  // bob <-> bob_jr
+		{ user: 1, friend: 16, status: 'accepted' as const },  // bob <-> bobby
+		{ user: 2, friend: 20, status: 'accepted' as const },  // charlie <-> charlotte
+		{ user: 2, friend: 21, status: 'accepted' as const },  // charlie <-> chuck
+
 		// pending requests
-		{ user: 3, friend: 5, status: 'pending' as const },   // diana -> frank
-		{ user: 6, friend: 0, status: 'pending' as const },   // grace -> alice
-		{ user: 11, friend: 0, status: 'pending' as const },  // jake -> alice
-		{ user: 10, friend: 8, status: 'pending' as const },  // iris -> Test
-		{ user: 7, friend: 9, status: 'pending' as const },   // henry -> Tatty
+		{ user: 3, friend: 5, status: 'pending' as const },    // diana -> frank
+		{ user: 6, friend: 0, status: 'pending' as const },    // grace -> alice
+		{ user: 11, friend: 0, status: 'pending' as const },   // jake -> alice
+		{ user: 10, friend: 8, status: 'pending' as const },   // iris -> Test
+		{ user: 7, friend: 9, status: 'pending' as const },    // henry -> Tatty
+		{ user: 14, friend: 8, status: 'pending' as const },   // alison -> Test
+		{ user: 20, friend: 8, status: 'pending' as const },   // charlotte -> Test
+		{ user: 8, friend: 16, status: 'pending' as const },   // Test -> bobby (sent)
+		{ user: 8, friend: 21, status: 'pending' as const },   // Test -> chuck (sent)
+		{ user: 9, friend: 20, status: 'pending' as const },   // Tatty -> charlotte (sent)
+
+		// blocked relationships
+		{ user: 8, friend: 11, status: 'blocked' as const },   // Test blocked jake
+		{ user: 9, friend: 13, status: 'blocked' as const },   // Tatty blocked al1ce
 	];
 
 	for (const pair of friendshipPairs) {
@@ -374,6 +408,17 @@ async function seed() {
 		{ idx: 10, level: 2,  totalXp: 120,  currentXp: 20,  xpToNext: 100, winStreak: 1, bestStreak: 1, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 60,  daysPlayed: 2 },
 		// jake — newest
 		{ idx: 11, level: 1,  totalXp: 40,   currentXp: 40,  xpToNext: 50,  winStreak: 0, bestStreak: 0, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 30,  daysPlayed: 1 },
+		// new users — varied levels
+		{ idx: 12, level: 3,  totalXp: 300,  currentXp: 50,  xpToNext: 150, winStreak: 1, bestStreak: 2, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 100, daysPlayed: 4 },
+		{ idx: 13, level: 1,  totalXp: 30,   currentXp: 30,  xpToNext: 50,  winStreak: 0, bestStreak: 0, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 20,  daysPlayed: 1 },
+		{ idx: 14, level: 2,  totalXp: 100,  currentXp: 0,   xpToNext: 100, winStreak: 0, bestStreak: 1, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 50,  daysPlayed: 2 },
+		{ idx: 15, level: 2,  totalXp: 140,  currentXp: 40,  xpToNext: 100, winStreak: 0, bestStreak: 1, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 60,  daysPlayed: 3 },
+		{ idx: 16, level: 3,  totalXp: 250,  currentXp: 0,   xpToNext: 150, winStreak: 1, bestStreak: 1, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 90,  daysPlayed: 3 },
+		{ idx: 17, level: 4,  totalXp: 500,  currentXp: 0,   xpToNext: 200, winStreak: 0, bestStreak: 2, pointsScored: 0, shutouts: 0, comebacks: 1, ballReturns: 160, daysPlayed: 5 },
+		{ idx: 18, level: 3,  totalXp: 280,  currentXp: 30,  xpToNext: 150, winStreak: 1, bestStreak: 2, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 95,  daysPlayed: 4 },
+		{ idx: 19, level: 5,  totalXp: 800,  currentXp: 50,  xpToNext: 200, winStreak: 2, bestStreak: 3, pointsScored: 0, shutouts: 0, comebacks: 1, ballReturns: 240, daysPlayed: 7 },
+		{ idx: 20, level: 2,  totalXp: 110,  currentXp: 10,  xpToNext: 100, winStreak: 0, bestStreak: 1, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 45,  daysPlayed: 2 },
+		{ idx: 21, level: 1,  totalXp: 50,   currentXp: 50,  xpToNext: 50,  winStreak: 0, bestStreak: 0, pointsScored: 0, shutouts: 0, comebacks: 0, ballReturns: 25,  daysPlayed: 1 },
 	];
 
 	for (const p of progressionData) {
@@ -567,7 +612,8 @@ async function seed() {
 	console.log(`  Ach. defs:      ${achievementDefs.length}`);
 	console.log(`  Progressions:   ${progressionData.length}`);
 	console.log(`\n  All passwords: ${SHARED_PASSWORD}`);
-	console.log('  Usernames: alice, bob, charlie, diana, eve, frank, grace, henry, Test, Tatty, iris, jake\n');
+	console.log('  Usernames: alice, bob, charlie, diana, eve, frank, grace, henry, Test, Tatty, iris, jake');
+	console.log('  + alice_99, al1ce, alison, bob_jr, bobby, tester, testking, tatiana, charlotte, chuck\n');
 }
 
 seed()

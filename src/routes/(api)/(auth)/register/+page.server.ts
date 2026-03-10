@@ -19,7 +19,7 @@ export const actions: Actions = {
 	default: async ({ request, cookies }) => {
 		const formData = await request.formData();
 
-		const username = formData.get('username')?.toString().trim() ?? '';
+		const username = formData.get('username')?.toString().trim().toLowerCase() ?? '';
 		const email = formData.get('email')?.toString().trim().toLowerCase() ?? '';
 		const password = formData.get('password')?.toString() ?? '';
 		const confirmPassword = formData.get('confirmPassword')?.toString() ?? '';

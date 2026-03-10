@@ -43,6 +43,22 @@
 		setTimeout(() => { toast = ''; }, 3000);
 	}
 
+	// API search helper (used by input handler and tab switch)
+	async function triggerSearch(query: string) {
+		searching = true;
+		try {
+			const res = await fetch(`/api/friends/search?q=${encodeURIComponent(query)}`);
+			if (res.ok) {
+				const json = await res.json();
+				searchResults = json.results ?? [];
+			}
+		} catch {
+			searchResults = [];
+		} finally {
+			searching = false;
+		}
+	}
+
 	// Debounced search (API — only on Find tab)
 	let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 	function handleSearchInput(e: Event) {
@@ -56,20 +72,7 @@
 				searching = false;
 				return;
 			}
-			searching = true;
-			searchTimeout = setTimeout(async () => {
-				try {
-					const res = await fetch(`/api/friends/search?q=${encodeURIComponent(value.trim())}`);
-					if (res.ok) {
-						const json = await res.json();
-						searchResults = json.results ?? [];
-					}
-				} catch {
-					searchResults = [];
-				} finally {
-					searching = false;
-				}
-			}, 300);
+			searchTimeout = setTimeout(() => triggerSearch(value.trim()), 300);
 		}
 	}
 
@@ -140,7 +143,12 @@
 				<button
 					class="tab"
 					class:active={activeTab === tab.key}
-					onclick={() => activeTab = tab.key}
+					onclick={() => {
+					activeTab = tab.key;
+					if (tab.key === 'find' && searchQuery.trim().length >= 2) {
+						triggerSearch(searchQuery.trim());
+					}
+				}}
 				>
 					<span class="tab-emoji">{tab.emoji}</span>
 					<span class="tab-label">{tab.label}</span>

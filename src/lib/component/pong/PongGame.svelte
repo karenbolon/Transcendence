@@ -308,3 +308,26 @@
 		ctx.globalAlpha = 1.0;
 	}
 </script>
+
+<!-- Keyboard listeners -->
+<svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
+
+<!-- Canvas -->
+<div class="canvas-wrapper">
+	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
+</div>
+
+<style>
+	.canvas-wrapper {
+		border-radius: 0.75rem;
+		overflow: hidden;
+		border: 1px solid rgba(255, 107, 157, 0.2);
+		box-shadow: 0 0 30px rgba(255, 107, 157, 0.1);
+	}
+
+	canvas {
+		display: block;
+		max-width: 100%;
+		height: auto;
+	}
+</style>

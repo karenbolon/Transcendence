@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PongGame from "$lib/component/pong/PongGame.extra";
+	import PongGame from "$lib/component/pong/PongGame.svelte";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
 	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
@@ -115,13 +115,13 @@
 				// Not logged in or validation error — still fine, game works
 				// const data = await response.json();
 				console.warn("Match not saved:", data.errorKey || data.error);
-				saveErrorKey = data.errorKey ?? 'matches.errors.save_failed';
+				saveErrorKey = data.errorKey ?? 'errors.match_not_saved';
 				saveStatus = "error";
 			}
 		} catch (err) {
 			// Network error — game still works, just not saved
 			console.warn("Could not save match:", err);
-			saveErrorKey = 'matches.errors.save_failed';
+			saveErrorKey = 'matches.errors.errors.match_not_saved';
 			saveStatus = "error";
 		}
 
@@ -158,17 +158,17 @@
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
 		{#if gamePhase === "menu"}
-			<span class="status-text">{$_('matches.status.press_space_start')}</span>
+			<span class="status-text">{$_('matches.status.play')}</span>
 		{:else if gamePhase === "countdown"}
 			<span class="status-text">{$_('matches.status.get_ready')}</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
-				<span class="status-text">{$_('matches.status.play_again')}</span>
+				<span class="status-text">{$_('matches.status.play')}</span>
 				{#if saveStatus === "saving"}
 					<span class="save-indicator saving">
-						{$_('matches.status.saving')}</span>
+						{$_('common.saving')}</span>
 				{:else if saveStatus === "saved"}
 					<span class="save-indicator saved">
 						{#if saveMessageKey}
@@ -186,7 +186,7 @@
 						{#if saveErrorKey}
 							{$_(saveErrorKey)}
 						{:else}
-							{$_('matches.status.match_not_saved')}
+							{$_('errors.match_not_saved')}
 						{/if}
 					</span>
 				{/if}

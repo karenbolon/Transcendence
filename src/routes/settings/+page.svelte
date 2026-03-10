@@ -5,6 +5,7 @@
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
 	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
 	import { _, locale } from 'svelte-i18n';
+	import { setUserLanguage } from '$lib/utils/language_utils';
 
 	let { data }: { data: PageData } = $props();
 
@@ -26,9 +27,9 @@
 		await handleFormSubmit({
 			url: '/api/settings/password',
 			body: { currentPassword, newPassword },
-			errorMessage: $_('settings.security.password_change_failed'),
+			errorMessage: $_('error.password_change_failed'),
 			validate: () => {
-				if (!currentPassword || !newPassword || !confirmPassword) return $_('settings.common.all_fields_required');
+				if (!currentPassword || !newPassword || !confirmPassword) return $_('errors.all_fields_required');
 				return validatePassword(newPassword) || validateConfirmPassword(newPassword, confirmPassword) || undefined;
 			},
 			onSuccess: () => {
@@ -58,9 +59,9 @@
 		await handleFormSubmit({
 			url: '/api/settings/email',
 			body: { newEmail, password: emailPassword },
-			errorMessage: $_('settings.email.email_change_failed'),
+			errorMessage: $_('errors.email_change_failed'),
 			validate: () => {
-				if (!newEmail || !emailPassword) return $_('settings.common.all_fields_required');
+				if (!newEmail || !emailPassword) return $_('errors.all_fields_required');
 				return validateEmail(newEmail) || undefined;
 			},
 			onSuccess: (result) => {
@@ -97,15 +98,11 @@
 	];
 
 	function changeLanguage(lang: string) {
-		locale.set(lang);
-		localStorage.setItem('locale', lang);
-		
-		// Save to database as well
-		fetchJSON('/api/settings/language', 'PUT', { language: lang })
-			.catch(error => {
-				console.error('Failed to save language to database:', error);
-				// Continue anyway - localStorage will work for this session
-			});
+		// Use the centralized language utility
+		setUserLanguage(lang).catch(() => {
+			// Show user-friendly error if database save fails
+			alert('Failed to save language preference. Please try again.');
+		});
 	}
 //api keys
 
@@ -118,11 +115,11 @@
 	<section class="settings-card">
 		<h2 class="card-title">{$_('settings.account.title')}</h2>
 		<div class="info-row">
-			<span class="info-label"><strong>{$_('settings.account.username')}</strong></span>
+			<span class="info-label"><strong>{$_('common.username')}:</strong></span>
 			<span class="info-value">{data.username}</span>
 		</div>
 		<div class="info-row">
-			<span class="info-label"><strong>{$_('settings.account.email')}</strong></span>
+			<span class="info-label"><strong>{$_('common.email')}:</strong></span>
 			<span class="info-value">{data.email}</span>
 		</div>
 	</section>
@@ -152,7 +149,7 @@
 					<p class="msg msg--success">{passwordSuccess}</p>
 				{/if}
 				<button type="submit" class="btn btn--primary" disabled={savingPassword}>
-					{savingPassword ? $_('settings.security.saving') : $_('settings.security.update_password')}
+					{savingPassword ? $_('common.saving') : $_('settings.security.update_password')}
 				</button>
 			</form>
 		</div>
@@ -169,10 +166,10 @@
 						class="field-input" 
 						bind:value={newEmail} 
 						disabled={savingEmail} 
-						placeholder={$_('settings.email.placeholder')} />
+						placeholder={$_('common.email_pattern')} />
 				</div>
 				<div class="field">
-					<label class="field-label" for="email-password">{$_('settings.email.password')}</label>
+					<label class="field-label" for="email-password">{$_('common.password')}</label>
 					<!-- <input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" /> -->
 					<PasswordInput id="confirm-password" name="confirm-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
 				</div>
@@ -185,7 +182,7 @@
 				{/if}
 
 				<button type="submit" class="btn btn--primary" disabled={savingEmail}>
-					{savingEmail ? $_('settings.security.saving') : $_('settings.email.update_email')}
+					{savingEmail ? $_('common.saving') : $_('settings.email.update_email')}
 				</button>
 			</form>
 		</div>
@@ -227,6 +224,7 @@
 	<section class="settings-card">
 		<h2 class="card-title">{$_('settings.language.title')}</h2>
 
+		<!-- Option A: Compact buttons (current) -->
 		<div class="language-list">
 			{#each languages as lang}
 				<button
@@ -239,6 +237,20 @@
 				</button>
 			{/each}
 		</div>
+
+		<!-- Option B: Dropdown (uncomment to use instead)
+		<div class="language-dropdown-wrapper">
+			<select 
+				class="language-dropdown" 
+				value={$locale} 
+				onchange={(e) => changeLanguage(e.target.value)}
+			>
+				{#each languages as lang}
+					<option value={lang.code}>{lang.label}</option>
+				{/each}
+			</select>
+		</div>
+		-->
 	</section>
 
 	<!-- DANGER ZONE -->
@@ -517,22 +529,25 @@
 		}
 	}
 	.language-list {
-	display: flex;
-	gap: 0.75rem;
-	flex-wrap: wrap;
+		display: flex;
+		gap: 0.5rem;
+		/* Remove flex-wrap to keep on one line */
+		overflow-x: auto; /* Allow horizontal scroll on very small screens */
 	}
 
 	.language-btn {
-		padding: 0.65rem 1rem;
-		border-radius: 0.6rem;
+		padding: 0.5rem 0.75rem; /* Reduced padding */
+		border-radius: 0.5rem;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		background: rgba(255, 255, 255, 0.04);
 		color: #d1d5db;
 		font-family: inherit;
-		font-size: 0.9rem;
+		font-size: 0.85rem; /* Slightly smaller font */
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.15s;
+		white-space: nowrap; /* Prevent text wrapping */
+		flex-shrink: 0; /* Prevent buttons from shrinking */
 	}
 
 	.language-btn:hover {

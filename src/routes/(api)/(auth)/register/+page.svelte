@@ -63,7 +63,7 @@
 <div class="register-page flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
 	<div class="container">
 	<div class="text-center">
-		<h1 class="brand-name text-4xl mb-2">{$_('auth.register.title')}</h1>
+		<h1 class="brand-name text-4xl mb-2">{$_('common.signup')}</h1>
 		<p >{$_('auth.register.subtitle')}</p>
 	</div>
 
@@ -82,12 +82,12 @@
 		{/if}
 
 		<div class="form-group">
-			<label for="username">{$_('auth.fields.username')}</label>
+			<label for="username">{$_('common.username')}</label>
 			<input class="form-fill"
 				type="text"
 				id="username"
 				name="username"
-				placeholder={$_('auth.placeholders.register_username')}
+				placeholder={$_('common.register_username')}
 				minlength="3"
 				maxlength="20"
 				required
@@ -103,12 +103,12 @@
 		</div>
 
 		<div class="form-group">
-			<label for="email">{$_('auth.common.email')}</label>
+			<label for="email">{$_('common.email')}</label>
 			<input class="form-fill"
 				type="email"
 				id="email"
 				name="email"
-				placeholder={$_('auth.placeholders.register_email')}
+				placeholder={$_('common.email_pattern')}
 				required
 				bind:value={email}
 				onfocusout={() => touched.email = true}
@@ -122,11 +122,11 @@
 		</div>
 
 		<div class="form-group">
-			<label for="password">{$_('auth.fields.password')}</label>
+			<label for="password">{$_('common.password')}</label>
 			<PasswordInput
 				id="password"
 				name="password"
-				placeholder={$_('auth.placeholders.register_password')}
+				placeholder={$_('common.register_password')}
 				minlength={8}
 				required
 				bind:value={password}
@@ -143,11 +143,11 @@
 		</div>
 
 		<div class="form-group">
-			<label for="confirmPassword">{$_('auth.common.confirm_password')}</label>
+			<label for="confirmPassword">{$_('common.confirm_password')}</label>
 			<PasswordInput
 				id="confirmPassword"
 				name="confirmPassword"
-				placeholder={$_('auth.placeholders.register_confirm_password')}
+				placeholder={$_('common.confirm_password')}
 				required
 				bind:value={confirmPassword}
 				onfocusout={() => touched.confirmPassword = true}
@@ -174,16 +174,16 @@
 
 		<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 			{#if loading}
-				{$_('auth.register.submitting')}
+				{$_('common.signing_up')}
 			{:else}
-				{$_('auth.register.submit')}
+				{$_('common.signup')}
 			{/if}
 		</button>
 	</form>
 
 		<div class="text-center text-sm text-gray-400">
 			{$_('auth.register.have_account')}
-			<a href="/login" class="link">{$_('auth.register.login_link')}</a>
+			<a href="/login" class="link">{$_('common.login')}</a>
 		</div>
 
 		<!-- OAuth Section (Future) -->

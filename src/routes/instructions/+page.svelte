@@ -114,7 +114,7 @@
 		<div class="controls-grid">
 			<div class="control-card">
 				<div class="control-label">
-					<span class="tag p1">{_('instructions.controls.player1.tag')}</span> {_('instructions.controls.player1.side')}
+					<span class="tag p1">{_('common.player1')}</span> {_('instructions.controls.player_left')}
 				</div>
 				<div class="key-row">
 					<kbd class="key">W</kbd>
@@ -127,7 +127,7 @@
 			</div>
 			<div class="control-card">
 				<div class="control-label">
-					<span class="tag p2">{_('instructions.controls.player2.tag')}</span> {_('instructions.controls.player2.side')}
+					<span class="tag p2">{_('common.player2')}</span> {_('instructions.controls.player_right')}
 				</div>
 				<div class="key-row">
 					<kbd class="key">↑</kbd>

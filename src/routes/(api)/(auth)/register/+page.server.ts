@@ -28,14 +28,14 @@ export const actions: Actions = {
 
 		if (!acceptTerms) {
 			return fail(400, {
-				errorKey: 'auth.errors.accept_terms_required',
+				errorKey: 'errors.accept_terms_required',
 				errors: {} as FormErrors
 			});
 		}
 		if (password !== confirmPassword) {
 			return fail(400, {
 				errorKey: undefined,
-				errors: { confirmPassword: 'auth.errors.passwords_do_not_match' } as FormErrors
+				errors: { confirmPassword: 'errors.passwords_do_not_match' } as FormErrors
 			});
 		}
 
@@ -76,7 +76,7 @@ export const actions: Actions = {
 			console.error('Registration error:', err);
 
 			return fail(500, {
-				errorKey: 'auth.errors.server_error',
+				errorKey: 'errors.server_error',
 				errors: {} as FormErrors
 			});
 		}

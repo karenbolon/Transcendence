@@ -4,78 +4,75 @@
     "simple_title": "PONG",
     "description": "Play the classic Pong game online!"
   },
-  "nav": {
+  "common": {
     "home": "Home",
     "login": "Login",
-    "logout": "Logout"
-  },
-  "game": {
+    "logout": "Logout",
+    "title": "PONG",
+    "signup": "Sign up",
+    "signing_up": "Signing up...",
+    "username": "Username",
+    "username_enter": "Enter your username",
+    "register_username": "Choose a username",
+    "password_enter": "Enter your password",
+    "password": "Password",
+    "register_password": "Create a password",
+    "password_required": "Password is required to access your account",
+    "register_confirm_password": "Re-enter your password",
+    "logging_in": "Logging in...",
+    "email": "Email",
+    "email_pattern": "your.email@example.com",
+    "confirm_password": "Confirm password",
     "start": "Start game",
     "pause": "Pause",
-    "winner": "Winner: {name}"
+    "oauth_42": "🔗 42 Intra",
+    "oauth": "👤 OAuth",
+    "saving": "Saving...",
+    "play": "Play",
+    "player1": "Player 1",
+    "player2": "Player 2",
+    "games": "Games"
+  },
+  "errors": {
+    "username_taken": "Username already taken",
+    "email_taken": "Email is already taken",
+    "invalid_email": "Email is invalid",
+    "weak_password": "Your password is weak",
+    "incorrect_password": "Incorrect password",
+    "login_failed": "Login failed",
+    "email_required": "Please enter an email",
+    "all_fields_required": "Please fill in all fields",
+    "passwords_do_not_match": "Passwords do not match",
+    "accept_terms_required": "You must accept the Terms of Service and Privacy Policy",
+    "invalid_credentials": "Invalid username or password",
+    "server_error": "Something went wrong. Please try again.",
+    "email_change_failed": "Failed to change email.",
+    "match_not_saved": "Failed to save match (you must be logged in to save match)",
+    "invalid_json": "Invalid JSON",
+    "invalid_match": "Invalid match data",
+    "save_failed": "Failed to save match result",
+    "password_change_failed": "Failed to change password.",
+    "deletionFailed": "Failed to delete account."
   },
   "auth": {
-    "common": {
-      "email": "Email",
-      "confirm_password": "Confirm password"
-    },
     "login": {
-      "title": "Login",
       "subtitle": "Welcome back! Ready to play?",
-      "submit": "Login",
       "remember_me": "Remember me",
       "forgot_password": "Forgot password?",
       "no_account": "Don't have an account?",
-      "logging_in": "Logging in...",
-      "signup_link": "Sign up",
-      "continue_with": "Or continue with",
-      "oauth_42": "🔗 42 Intra",
-      "oauth": "👤 OAuth"
-    },
-    "fields": {
-      "username": "Username",
-      "password": "Password"
+      "continue_with": "Or continue with"
     },
     "register": {
-      "title": "Sign Up",
       "subtitle": "Join the game and start playing!",
       "success": "Account created! Redirecting...",
-      "submit": "Sign Up",
-      "submitting": "Signing up...",
       "have_account": "Already have an account?",
-      "login_link": "Login",
       "or_signup_with": "Or sign up with",
-      "oauth_42_coming": "🔗 42 Intra (Coming Soon)",
-      "oauth_coming": "👤 OAuth (Coming Soon)",
       "accept_terms_prefix": "I agree to the",
       "terms_link": "Terms of Service",
       "and": "and",
       "privacy_link": "Privacy Policy",
       "privacy_note": "We use your email and username to create and secure your accounts. No tracking or analytics cookies are used.",
       "password_hint": "Must be 8+ characters with uppercase, lowercase, and number"
-    },
-    "placeholders": {
-      "username": "Enter your username",
-      "password": "Enter your password",
-      "register_username": "Choose a username",
-      "register_email": "your.email@example.com",
-      "register_password": "Create a password",
-      "register_confirm_password": "Re-enter your password"
-    },
-    "errors": {
-      "username_required": "Enter your username",
-      "password_required": "Enter your password",
-      "username_taken": "Username already taken",
-      "email_taken": "Email is already taken",
-      "invalid_email": "Email is invalid",
-      "weak_password": "Your password is weak",
-      "login_failed": "Login failed",
-      "email_required": "Please enter an email",
-      "all_fields_required": "Please fill in all fields",
-      "passwords_do_not_match": "Passwords do not match",
-      "accept_terms_required": "You must accept the Terms of Service and Privacy Policy",
-      "invalid_credentials": "Invalid username or password",
-      "server_error": "Something went wrong. Please try again."
     }
   },
   "legal": {
@@ -274,33 +271,11 @@
       }
     }
   },
-  "account": {
-    "delete": {
-      "errors": {
-        "password_required": "Password is required to delete your account",
-        "incorrect_password": "Incorrect password"
-      }
-    }
-  },
   "matches": {
-    "labels": {
-      "player1": "Player 1",
-      "player2": "Player 2",
-      "win_score": "Win score"
-    },
     "status": {
-      "press_space_start": "Press SPACE to start",
+      "play": "Press SPACE to play",
       "get_ready": "Get ready...",
-      "play_again": "Press SPACE to play again",
-      "saving": "Saving match...",
-      "saved": "Match saved",
-      "match_not_saved": "Match not saved (not logged in?)"
-    },
-    "errors": {
-      "login_required": "You must be logged in to save match results",
-      "invalid_json": "Invalid JSON",
-      "invalid_match": "Invalid match data",
-      "save_failed": "Failed to save match result"
+      "saved": "Match saved"
     },
     "success": {
       "saved_match": "Match saved! {winnerName} wins {score}"
@@ -312,6 +287,25 @@
     }
   },
   "user_profile": {
+    "member": "Member since ",
+    "profile": "Edit Profile",
+    "settings": "Settings",
+    "unfriend": "Unfriend",
+    "message": "Message",
+    "sentRequest": "Request Sent",
+    "addFriend": "Add Friend",
+    "challenge": "Challenge",
+    "dashboard": {
+      "wins": "Wins",
+      "losses": "Losses",
+      "winRate": "Win Rate",
+      "milestonesTitle": "Milestones and Achievements",
+      "noAchievements": "No achievements yet. Play matches to unlock them!",
+      "matchHistoryTitle": "Match History",
+      "noMatchesTitle": "No matches yet!",
+      "noMatchesText": "Play your first game to see your match history here.",
+      "playFirstGame": "Play your first game"
+    },
     "achievements": {
       "title": "Achievements",
       "hint": "Tap any achievement for details",
@@ -370,9 +364,7 @@
   "settings": {
     "title": "Settings",
     "account": {
-      "title": "My Account",
-      "username": "Username:",
-      "email": "Email:"
+      "title": "My Account"
     },
     "security": {
       "title": "Security",
@@ -380,23 +372,15 @@
       "current_password": "Current Password",
       "new_password": "New Password",
       "confirm_new_password": "Confirm New Password",
-      "saving": "Saving...",
       "update_password": "Update Password",
-      "password_changed": "Password changed successfully.",
-      "password_change_failed": "Failed to change password."
+      "password_changed": "Password changed successfully."
     },
     "email": {
       "title": "Change Email",
       "current_email": "Current email:",
       "new_email": "New Email",
-      "password": "Password",
-      "placeholder": "new@email.com",
       "update_email": "Update Email",
-      "email_updated": "Email updated successfully.",
-      "email_change_failed": "Failed to change email."
-    },
-    "common": {
-      "all_fields_required": "All fields are required."
+      "email_updated": "Email updated successfully."
     },
     "notifications": {
       "title": "Notifications",
@@ -413,10 +397,14 @@
     "danger": {
       "title": "Danger Zone",
       "description": "Once you delete your account, there is no going back.",
-      "delete_account": "Delete Account"
-    }
+      "delete_account": "Delete Account",
+      "action": "This action is",
+      "action2": "permanent",
+      "action3": "Your account,profile, and stats will be removed. Your match history will be preserved for other players."
+    } 
   },
   "instructions": {
+    "title": "Instructions",
     "header": {
       "tag": "How to Play",
       "title_prefix": "Learn the",
@@ -426,14 +414,8 @@
     "controls": {
       "title": "Controls",
       "subtitle": "Different controls depending on the mode. In online play, everyone uses the same keys.",
-      "player1": {
-        "tag": "Player 1",
-        "side": "Left side"
-      },
-      "player2": {
-        "tag": "Player 2",
-        "side": "Right side (local only)"
-      },
+      "player_left": "Left side",
+      "player_right": "Right side (local only)",
       "move_up": "Move paddle up",
       "move_down": "Move paddle down"
     },
@@ -464,7 +446,6 @@
     "rules": {
       "title": "Rules",
       "subtitle": "Simple rules, fast games",
-
       "score_to_win": {
         "title": "Score to win",
         "body": "The ball bounces between paddles. Score a point when your opponent misses the ball."
@@ -537,25 +518,17 @@
   },
   "canvas_game": {
     "esc_quit": "ESC to quit",
-    "title": "PONG",
     "press_space": "PRESS SPACE",
     "controls_reminder": "Player 1: W / S          Player 2: ↑ / ↓",
     "game_over": "GAME OVER",
-    "wins_suffix": "Wins!",
-    "players": {
-      "player1": "Player 1",
-      "player2": "Player 2"
-    }
+    "wins_suffix": "Wins!"
   },
-  "pong_settings":  {
+  "pong_settings": {
     "game_mode": {
       "label": "Game mode",
       "local": "👥 Local PvP",
-      "computer": "🤖 vs Computer"
-    },
-    "player2": {
-      "label": "Player 2",
-      "placeholder": "Guest"
+      "computer": "🤖 vs Computer",
+      "guest": "Guest"
     },
     "win_score": {
       "label": "Points to win"
@@ -575,17 +548,137 @@
       "resources": "Resources",
       "follow_us": "Follow Us",
       "legal": "Legal",
-      "about": "About"
-    },
-    "links": {
-      "play": "Play",
-      "leaderboard": "Leaderboard",
-      "tournaments": "Tournaments",
-      "instructions": "Instructions",
-      "privacy": "Privacy Policy",
-      "terms": "Terms of Service",
       "our_team": "Our Team"
     },
     "copyright": "© {year} ft_transcendence™ — All rights reserved."
+  },
+  "leaderboard": {
+    "title": "Leaderboard"
+  },
+  "tournaments": {
+    "title": "Tournaments"
+  },
+  "friends": {
+    "title": "Friends"
+  },
+  "about": {
+    "title": "About",
+    "heroTitleLine1": "Built by students.",
+    "heroTitleLine2": "Powered by passion.",
+    "subtitleLine1": "ft_transcendence is the final project of the 42 core curriculum.",
+    "subtitleLine2": "A full-stack web application built from scratch as a team.",
+    "heroBadge": "42 Berlin · Final Project · 2025/2026",
+
+    "projectTitle": "About the Project",
+    "projectIntroLine1": "In this final project we chose to build a multiplayer Pong game.",
+    "projectIntroLine2": "With real-time gameplay, a modern and responsive user interface, and social features.",
+    "projectParagraph1": "We designed and built a full-stack web application from scratch, with authentication across frontend and backend, database integration, session management, and password hashing, all running inside containers to ensure scalability and reproducibility.",
+    "projectParagraph2a": "The frontend was developed using ",
+    "projectParagraph2b": ", providing a reactive and dynamic user experience.",
+    "projectParagraph2c": "The backend integrates ",
+    "projectParagraph2d": " with ",
+    "projectParagraph2e": " for type-safe database management.",
+    "projectParagraph3a": "Authentication is handled using ",
+    "projectParagraph3b": ", with password hashing secured via Argon2. Input validation and schema safety are enforced using ",
+    "projectParagraph3c": ".",
+    "projectParagraph4": "The entire application is containerized using Docker to ensure portability, isolation, and consistent deployment across environments.",
+    "goalLabel": "Our goal:",
+    "goalText": "make something that's not just functional, but genuinely fun to play and beautiful to look at. 🏓✨",
+
+    "techStackTitle": "Tech Stack",
+    "techSveltekit": "Frontend & Backend",
+    "techPostgresql": "Database",
+    "techDrizzle": "Database Toolkit",
+    "techDocker": "Containerization",
+    "techTypescript": "Type Safety",
+    "techLucia": "Authentication",
+
+    "teamTitle": "Meet the Team",
+    "teamSubtitle": "Four students, one goal: ship something we're proud of.",
+    "karenRole": "Product Owner · Frontend",
+    "jamesRole": "Developer · Backend",
+    "finnRole": "Developer · Backend",
+    "kellenRole": "Developer · Frontend",
+
+    "schoolDescription": "is a global network of tuition-free coding schools with a peer-to-peer learning model. There are no teachers, no lectures — students learn by building real projects and helping each other. Ft_transcendence is the capstone project of the common core, requiring a team to build the ultimate test of everything we've learned.",
+    "schoolFooter": "No teachers. No lectures. Just code, collaboration, and a whole lot of Pong."
+  },
+  "dashboard": {
+    "title": "Global Leaderboard",
+    "viewAll": "View all",
+    "noGames": "No games played yet",
+    "welcomeBack": "Welcome back,",
+    "readyMatch": "Ready for another match?",
+    "playNow": "Play Now",
+
+    "friendsLeaderboard": "Friends Leaderboard",
+    "friendsEmpty": "Add friends to see their rankings!",
+
+    "recentActivity": "Recent Activity",
+    "activityEmpty": "Play some games to see activity here!",
+    "you": "You",
+    "unlocked": "unlocked",
+    "beat": "beat",
+
+    "openTournaments": "Open Tournaments",
+    "browseAll": "Browse all",
+    "noOpenTournaments": "No open tournaments right now. Check back soon!",
+    "statusOpen": "Open",
+    "statusScheduled": "Scheduled",
+    "playersCount": "{playerCount} / {maxPlayers} players",
+    "joinTournament": "Join Tournament",
+    "full": "Full",
+
+    "quickPlay": "Quick Play",
+    "findMatch": "Find a Match",
+    "findMatchDesc": "Play against someone online",
+    "local1v1": "Local 1v1",
+    "local1v1Desc": "Same keyboard, two players",
+    "vsComputer": "vs Computer",
+    "vsComputerDesc": "Practice against the AI",
+
+    "statsLine": "{totalGames} games · {winRate}% win rate",
+    "winsShort": "{wins} W",
+    "activityAchievement": "{name} unlocked {achievement}",
+    "activityMatch": "{winner} beat {loser} {winnerScore}–{loserScore}"
+
+  },
+  "error_pages": {
+    "default_message": "An error occurred",
+    "actions": {
+      "go_home": "Go Home",
+      "go_back": "Go Back",
+      "retry": "Retry"
+    },
+    "404": {
+      "title": "Page Not Found",
+      "description": "Looks like this page doesn't exist. It's out of bounds!",
+      "footer": "The ball went out of bounds and we couldn't find it... 🏓"
+    },
+    "401": {
+      "title": "Not authenticated",
+      "description": "You need to be logged in to access this page.",
+      "footer": "Please log in to continue. 🔐"
+    },
+    "403": {
+      "title": "Access Denied",
+      "description": "You don't have permission to access this resource.",
+      "footer": "This area is off-limits. You need the right paddle to enter! 🔐"
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "Something went wrong on our end. We're working to fix it!",
+      "footer": "Our server missed the ball. Game over! 🎮"
+    },
+    "503": {
+      "title": "Under maintenance",
+      "description": "We're doing some upgrades. Please check back in a few minutes.",
+      "footer": "The server is taking a break. Come back soon! 🛠️"
+    },
+    "fallback": {
+      "title": "Error",
+      "description": "An unexpected error occurred.",
+      "footer": "Something unexpected happened in the game! 🕹️"
+    }
   }
 }

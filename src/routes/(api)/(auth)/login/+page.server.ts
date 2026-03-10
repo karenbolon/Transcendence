@@ -22,7 +22,7 @@ export const actions: Actions = {
 
 		if (!username || !password) {
 			return fail(400, {
-				errorKey: 'auth.errors.all_fields_required',
+				errorKey: 'errors.all_fields_required',
 				username
 			});
 		}
@@ -34,7 +34,7 @@ export const actions: Actions = {
 
 		if (!user || user.is_deleted) {
 			return fail(400, {
-				errorKey: 'auth.errors.invalid_credentials',
+				errorKey: 'errors.invalid_credentials',
 				username
 			});
 		}
@@ -46,7 +46,7 @@ export const actions: Actions = {
 
 		if (!validPassword) {
 			return fail(400, {
-				errorKey: 'auth.errors.invalid_credentials',
+				errorKey: 'errors.invalid_credentials',
 				username
 			});
 		}

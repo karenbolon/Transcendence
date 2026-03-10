@@ -1,4 +1,4 @@
-import { register, init, getLocaleFromNavigator, locale } from 'svelte-i18n';
+import { register, init, locale } from 'svelte-i18n';
 
 export const SUPPORTED_LOCALES = ['en', 'de', 'es', 'fr', 'it', 'pt'] as const;
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number];
@@ -21,17 +21,18 @@ export function normaliseLocale(input?: string | null): SupportedLocale {
 }
 
 export function detectInitialLocale(preferred?: string | null): SupportedLocale {
-	//preferred can be from server (cookie/header) or localStorage
+	//preferred can be from server (cookie/header)
 	if (preferred)
 		return normaliseLocale(preferred);
 
-	//navigator only exists in browser
+	//navigator and localStorage only exist in browser
 	if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('locale');
         if (stored) {
             return normaliseLocale(stored);
         }
-        const nav = getLocaleFromNavigator();
+        // Check browser's language preference
+        const nav = navigator.language || navigator.languages?.[0];
         return normaliseLocale(nav);
     }
     return FALLBACK_LOCALE;

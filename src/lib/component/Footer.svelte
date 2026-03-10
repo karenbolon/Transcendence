@@ -47,16 +47,16 @@
 						<h3>{$_('footer.sections.resources')}</h3>
 						{#if user}
 							<ul>
-								<li><a href="/play">{$_('footer.links.play')}</a></li>
-								<li><a href="/leaderboard">{$_('footer.links.leaderboard')}</a></li>
-								<li><a href="/tournaments">{$_('footer.links.tournaments')}</a></li>
-								<li><a href="/instructions">{$_('footer.links.instructions')}</a></li>
+								<li><a href="/play">{$_('common.play')}</a></li>
+								<li><a href="/leaderboard">{$_('leaderboard.title')}</a></li>
+								<li><a href="/tournaments">{$_('tournaments.title')}</a></li>
+								<li><a href="/instructions">{$_('instructions.title')}</a></li>
 							</ul>
 						{:else}
 							<ul>
-								<li><a href="/play">{$_('footer.links.play')}</a></li>
-								<li><a href="/instructions">{$_('footer.links.instructions')}</a></li>
-								<li><a href="/leaderboard">{$_('footer.links.leaderboard')}</a></li>
+								<li><a href="/play">{$_('common.play')}</a></li>
+								<li><a href="/instructions">{$_('instructions.title')}</a></li>
+								<li><a href="/leaderboard">{$_('leaderboard.title')}</a></li>
 							</ul>
 						{/if}
 					</div>
@@ -98,14 +98,14 @@
 				<div class="link-column">
 					<h3>{$_('footer.sections.legal')}</h3>
 					<ul>
-						<li><a href="/privacy">{$_('footer.links.privacy')}</a></li>
-						<li><a href="/terms">{$_('footer.links.terms')}</a></li>
+						<li><a href="/privacy">{$_('legal.privacy.title')}</a></li>
+						<li><a href="/terms">{$_('legal.terms.title')}</a></li>
 					</ul>
 				</div>
 				<div class="link-column">
-					<h3>{$_('footer.sections.about')}</h3>
+					<h3>{$_('about.title')}</h3>
 					<ul>
-						<li><a href="/about">{$_('footer.links.our_team')}</a></li>
+						<li><a href="/about">{$_('footer.sections.our_team')}</a></li>
 						<li>
 							<a href="https://42berlin.de" target="_blank" rel="noopener noreferrer">
 								42 Berlin

@@ -46,13 +46,13 @@
 
 	const uiText = $derived({
 		escQuit: $_("canvas_game.esc_quit"),
-		title: $_("canvas_game.title"),
+		title: $_("common.title"),
 		pressSpace: $_("canvas_game.press_space"),
 		controlsReminder: $_("canvas_game.controls_reminder"),
 		gameOver: $_("canvas_game.game_over"),
 		winsSuffix: $_("canvas_game.wins_suffix"),
-		player1: $_("canvas_game.players.player1"),
-		player2: $_("canvas_game.players.player2"),
+		player1: $_("common.player1"),
+		player2: $_("common.player2"),
 	});
 
 	function getInput(): InputState {

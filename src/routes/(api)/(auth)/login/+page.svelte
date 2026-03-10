@@ -8,8 +8,15 @@
 	let { form }: { form: LoginFormResult | null } = $props();
 	const loginError = $derived(form?.errorKey);
 	let loading = $state(false);
-	let username = $state(form?.username ?? '');
+	let username = $state('');
 	let password = $state('');
+
+	// Sync username with form data when form prop changes
+	$effect(() => {
+		if (form?.username) {
+			username = form.username;
+		}
+	});
 
 	let touched = $state({
 		username: false,
@@ -23,7 +30,7 @@
 
 	let passwordError = $derived.by(() => {
 		if (!touched.password || !password) return '';
-		if (password.length < 1) return $_('auth.errors.password_required');
+		if (password.length < 1) return $_('common.password_enter');
 		return '';
 	});
 
@@ -36,7 +43,7 @@
 <div class="flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
 	<div class="container">
 		<div class="text-center">
-			<h1 class="brand-name text-4xl mb-2">{$_('auth.login.title')}</h1>
+			<h1 class="brand-name text-4xl mb-2">{$_('common.login')}</h1>
 			<p >{$_('auth.login.subtitle')}</p>
 		</div>
 
@@ -54,12 +61,12 @@
 			{/if}
 
 			<div class="form-group">
-				<label for="username">{$_('auth.fields.username')}</label>
+				<label for="username">{$_('common.username')}</label>
 				<input class="form-fill"
 					type="text"
 					id="username"
 					name="username"
-					placeholder={$_('auth.placeholders.username')}
+					placeholder={$_('common.username_enter')}
 					required
 					bind:value={username}
 					onfocusout={() => touched.username = true}
@@ -70,11 +77,11 @@
 			</div>
 
 			<div class="form-group">
-				<label for="password">{$_('auth.fields.password')}</label>
+				<label for="password">{$_('common.password')}</label>
 				<PasswordInput
 					id="password"
 					name="password"
-					placeholder={$_('auth.placeholders.password')}
+					placeholder={$_('common.password_enter')}
 					bind:value={password}
 					onfocusout={() => touched.password = true}
 				/>
@@ -95,16 +102,16 @@
 
 			<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 				{#if loading}
-					{$_('auth.login.logging_in')}
+					{$_('common.logging_in')}
 				{:else}
-					{$_('auth.login.submit')}
+					{$_('common.login')}
 				{/if}
 			</button>
 		</form>
 
 		<div class="text-center text-sm text-gray-400">
 			{$_('auth.login.no_account')}
-			<a href="/register" class="link">{$_('auth.login.signup_link')}</a>
+			<a href="/register" class="link">{$_('common.signup')}</a>
 		</div>
 
 			<!-- coming soon -->
@@ -118,12 +125,12 @@
 			<button
 				type="button"
 				class="btn-secondary py-2 text-sm">
-				{$_('auth.login.oauth_42')}
+				{$_('common.oauth_42')}
 			</button>
 			<button
 			type="button"
 			class="btn-secondary py-2 text-sm">
-				{$_('auth.login.oauth')}
+				{$_('common.oauth')}
 			</button>
 		</div>
 	</div>

@@ -4,34 +4,42 @@
 	import Header from '$lib/component/Header.svelte';
 	import Footer from '$lib/component/Footer.svelte';
 	import { initI18n, detectInitialLocale, FALLBACK_LOCALE } from '$lib/i18n';
-	import { _, locale as localeStore, isLoading } from 'svelte-i18n';
+	import { _ , locale as localeStore, isLoading } from 'svelte-i18n';
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { setUserLanguage } from '$lib/utils/language_utils';
 
-	let { children, data } = $props<{ children: any; data?: { locale?: string } }>();
+	let { children, data } = $props<{ 
+		children: any; 
+		data?: { 
+			user?: any;
+			locale?: string; 
+		} 
+	}>();
 	
-	// Initialize with fallback first to prevent errors
+	// Always initialize with fallback to avoid hydration mismatch
 	initI18n(FALLBACK_LOCALE);
+	localeStore.set(FALLBACK_LOCALE);
 	
-	// Track if we've initialized with server data to prevent loops
-	let hasInitialized = false;
-	
-	// Reactively update locale when data changes, but respect localStorage choice
-	$effect(() => {
-		if (typeof window !== 'undefined' && !hasInitialized) {
-			// Check localStorage first - user's choice takes priority
-			const saved = localStorage.getItem('locale');
-			if (saved) {
-				const preferredLocale = detectInitialLocale(saved);
-				localeStore.set(preferredLocale);
-				hasInitialized = true;
-				return; // Exit early, don't use server data
+	// After component mounts, set the correct language preference
+	onMount(async () => {
+		// Priority: 1. Server data (database), 2. localStorage, 3. fallback
+		let preferredLocale = FALLBACK_LOCALE;
+		
+		if (data?.locale && data.locale !== FALLBACK_LOCALE) {
+			// Use database preference if available 
+			preferredLocale = data.locale;
+		} else {
+			// Fall back to localStorage if no database preference
+			const stored = localStorage.getItem('locale');
+			if (stored && stored !== 'null' && stored !== FALLBACK_LOCALE) {
+				preferredLocale = stored;
 			}
 		}
 		
-		// Use server data if available and not yet initialized
-		if (data?.locale && !hasInitialized) {
-			const serverLocale = detectInitialLocale(data.locale);
-			localeStore.set(serverLocale);
-			hasInitialized = true;
+		if (preferredLocale !== FALLBACK_LOCALE) {
+			// Set language but don't save to database (just loading existing preference)
+			await setUserLanguage(preferredLocale, false);
 		}
 	});
 </script>

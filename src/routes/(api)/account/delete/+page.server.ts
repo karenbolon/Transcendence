@@ -18,7 +18,7 @@ export const actions: Actions = {
 		const password = formData.get('password')?.toString() ?? '';
 
 		if (!password) {
-			return fail(400, { errorKey: 'account.delete.errors.password_required' });
+			return fail(400, { errorKey: 'common.password_required' });
 		}
 
 		// ── FETCH FULL USER (need password_hash) ───────────────────
@@ -35,7 +35,7 @@ export const actions: Actions = {
 		const valid = await verifyPassword(user.password_hash, password);
 		if (!valid) {
 			return fail(400, { 
-				errorKey: 'account.delete.errors.incorrect_password'
+				errorKey: 'errors.incorrect_password'
 			});
 		}
 

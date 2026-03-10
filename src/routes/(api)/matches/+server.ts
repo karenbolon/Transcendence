@@ -52,7 +52,7 @@ const matchResultSchema = z.object({
 export const POST: RequestHandler = async ({ request, locals }) => {
 
 	if (!locals.user) {
-		return json({ errorKey: 'matches.errors.login_required' }, { status: 401 });
+		return json({ errorKey: '.errors.match_not_saved' }, { status: 401 });
 	}
 
 	// ── PARSE + VALIDATE BODY ──────────────────────────────────
@@ -60,13 +60,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		body = await request.json();
 	} catch {
-		return json({ errorKey: 'matches.errors.invalid_json' }, { status: 400 });
+		return json({ errorKey: 'errors.invalid_json' }, { status: 400 });
 	}
 
 	const result = matchResultSchema.safeParse(body);
 	if (!result.success) {
 		return json({
-			errorKey: 'matches.errors.invalid_match',
+			errorKey: 'errors.invalid_match',
 			details: result.error.flatten().fieldErrors
 		}, { status: 400 });
 	}
@@ -159,6 +159,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	} catch (err) {
 		console.error('Failed to save match:', err);
-		return json({ errorKey: 'matches.errors.save_failed' }, { status: 500 });
+		return json({ errorKey: 'errors.match_not_saved' }, { status: 500 });
 	}
 };

@@ -60,11 +60,11 @@
 	<!-- Player 2 name (local mode only) -->
 	{#if gameMode === 'local'}
 		<div class="setting-row">
-			<span class="setting-label">{$isLoading ? 'Player 2 Name' : $_('pong_settings.player2.label')}</span>
+			<span class="setting-label">{$isLoading ? 'Player 2 Name' : $_('common.player2')}</span>
 			<input
 				class="name-input"
 				type="text"
-				placeholder={$isLoading ? 'Player 2' : $_('pong_settings.player2.placeholder')}
+				placeholder={$isLoading ? 'Player 2' : $_('pong_settings.game_mode.guest')}
 				maxlength="100"
 				value={player2Name}
 				oninput={(e) => onPlayer2NameChange(e.currentTarget.value)}

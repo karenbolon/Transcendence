@@ -5,6 +5,7 @@
 	import { formatJoinDate } from '$lib/utils/format_date';
 	import type { Progression, FriendshipStatus } from '$lib/types/progression';
 	import { DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
+	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		username: string;
@@ -70,7 +71,7 @@
 				<p class="banner-bio">{bio}</p>
 			{/if}
 
-			<p class="banner-member">Member since {formatJoinDate(createdAt)}</p>
+			<p class="banner-member">{$_('user_profile.member')} {formatJoinDate(createdAt)}</p>
 
 			<!-- {#if variant === 'own' && email}
 				<p class="banner-email">{email}</p>
@@ -80,23 +81,23 @@
 		<div class="banner-actions">
 			{#if variant === 'own'}
 				<button class="banner-btn banner-btn--primary" onclick={oneditprofile}>
-					✏️ Edit Profile
+					✏️ {$_('user_profile.profile')}
 				</button>
 				<a href="/settings" class="banner-btn">
-					⚙️ Settings
+					⚙️ {$_('user_profile.settings')}
 				</a>
 			{:else}
 				{#if isFriend}
-					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>Unfriend</button>
+					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>{$_('user_profile.unfriend')}</button>
 					{#if onmessage}
-						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 Message</button>
+						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 {$_('user_profile.message')}</button>
 					{/if}
 				{:else if friendshipStatus === 'pending'}
-					<button class="banner-btn banner-btn--pending" disabled>⏳ Request Sent</button>
+					<button class="banner-btn banner-btn--pending" disabled>⏳ {$_('user_profile.sentRequest')}</button>
 				{:else}
-					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 Add Friend</button>
+					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 {$_('user_profile.addFriend')}</button>
 				{/if}
-				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 Challenge</button>
+				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 {$_('user_profile.challenge')}</button>
 			{/if}
 		</div>
 	</div>

@@ -7,7 +7,19 @@
 
 import { beforeAll, afterAll } from 'vitest';
 import { db } from '../index';
-import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants } from '../schema';
+import { 
+	users, 
+	games, 
+	friendships, 
+	sessions, 
+	messages, 
+	tournaments, 
+	analytics, 
+	tournamentParticipants, 
+	achievements, 
+	player_progression, 
+	achievement_definitions 
+} from '../schema';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -17,7 +29,7 @@ async function cleanDatabase() {
 	console.log('🧹 Cleaning test database...');
 
 	// Delete in reverse dependency order
-	// Analytics → Messages → Sessions → Friendships → Games → Tournaments → Users
+	// Analytics → Messages → Sessions → Achievements → Player_progression → Friendships → Games → Tournaments → Users → Achievement_definitions
 	try {
 		await db.delete(analytics).execute();
 	} catch (e) {
@@ -34,6 +46,18 @@ async function cleanDatabase() {
 		await db.delete(sessions).execute();
 	} catch (e) {
 		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(achievements).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(player_progression).execute();
+	} catch (e) {
+		// Table might not exist yet
 	}
 
 	try {
@@ -62,6 +86,12 @@ async function cleanDatabase() {
 
 	try {
 		await db.delete(users).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(achievement_definitions).execute();
 	} catch (e) {
 		// Table might not exist yet
 	}

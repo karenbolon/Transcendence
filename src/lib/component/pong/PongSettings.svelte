@@ -1,5 +1,6 @@
 
 <script lang="ts">
+	import { _, isLoading } from 'svelte-i18n';
 	import type { SpeedPreset, GameMode } from './gameEngine';
 
 	type Props = {
@@ -13,25 +14,37 @@
 		onPlayer2NameChange: (name: string) => void;
 	};
 
-	let { gameMode, winScore, speedPreset, player2Name, onGameModeChange, onWinScoreChange, onSpeedChange, onPlayer2NameChange }: Props = $props();
+	let { 
+		gameMode, 
+		winScore, 
+		speedPreset, 
+		player2Name, 
+		onGameModeChange, 
+		onWinScoreChange, 
+		onSpeedChange, 
+		onPlayer2NameChange 
+	}: Props = $props();
 
-	const modeOptions: { key: GameMode; label: string }[] = [
-		{ key: 'local',    label: '👥 Local PvP' },
-		{ key: 'computer', label: '🤖 vs Computer' },
-	];
 	// Point options and speed presets defined here (display data only)
 	const pointOptions = [3, 5, 7, 11];
-	const speedOptions: { key: SpeedPreset; label: string }[] = [
-		{ key: 'chill',  label: '🐢 Chill' },
-		{ key: 'normal', label: '🏓 Normal' },
-		{ key: 'fast',   label: '🔥 Fast' },
-	];
+
+	// Derived reactive values for Svelte 5
+	const modeOptions = $derived([
+		{ key: 'local' as GameMode, label: $isLoading ? 'Local 1v1' : $_('pong_settings.game_mode.local') },
+		{ key: 'computer' as GameMode, label: $isLoading ? 'vs Computer' : $_('pong_settings.game_mode.computer') },
+	]);
+
+	const speedOptions = $derived([
+		{ key: 'chill' as SpeedPreset, label: $isLoading ? 'Chill' : $_('pong_settings.ball_speed.chill') },
+		{ key: 'normal' as SpeedPreset, label: $isLoading ? 'Normal' : $_('pong_settings.ball_speed.normal') },
+		{ key: 'fast' as SpeedPreset, label: $isLoading ? 'Fast' : $_('pong_settings.ball_speed.fast') },
+	]);
 </script>
 
 <div class="settings-panel">
 	<!-- Game mode -->
 	<div class="setting-row">
-		<span class="setting-label">Game mode</span>
+		<span class="setting-label">{$isLoading ? 'Game Mode' : $_('pong_settings.game_mode.label')}</span>
 		<div class="setting-options">
 			{#each modeOptions as mode}
 				<button
@@ -47,11 +60,11 @@
 	<!-- Player 2 name (local mode only) -->
 	{#if gameMode === 'local'}
 		<div class="setting-row">
-			<span class="setting-label">Player 2</span>
+			<span class="setting-label">{$isLoading ? 'Player 2 Name' : $_('common.player2')}</span>
 			<input
 				class="name-input"
 				type="text"
-				placeholder="Guest"
+				placeholder={$isLoading ? 'Player 2' : $_('pong_settings.game_mode.guest')}
 				maxlength="100"
 				value={player2Name}
 				oninput={(e) => onPlayer2NameChange(e.currentTarget.value)}
@@ -61,7 +74,7 @@
 
 	<!-- Points to win -->
 	<div class="setting-row">
-		<span class="setting-label">Points to win</span>
+		<span class="setting-label">{$isLoading ? 'Points to Win' : $_('pong_settings.win_score.label')}</span>
 		<div class="setting-options">
 			{#each pointOptions as points}
 				<button
@@ -77,7 +90,7 @@
 
 	<!-- Ball speed -->
 	<div class="setting-row">
-		<span class="setting-label">Ball speed</span>
+		<span class="setting-label">{$isLoading ? 'Ball Speed' : $_('pong_settings.ball_speed.label')}</span>
 		<div class="setting-options">
 			{#each speedOptions as preset}
 				<button

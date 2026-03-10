@@ -1,48 +1,49 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { _ } from 'svelte-i18n';
 
 	let statusCode = $derived($page.status || 500);
-	let errorMessage = $derived($page.error?.message || 'An error occurred');
+	let errorMessage = $derived($page.error?.message || $_('error_pages.default_message'));
 
-	const errorInfo: Record<number, { emoji: string; title: string; description: string; footer: string }> = {
+	let errorInfo = $derived.by(() => ({
 		404: {
 			emoji: '🎯',
-			title: 'Page Not Found',
-			description: "Looks like this page doesn't exist. It's out of bounds!",
-			footer: "The ball went out of bounds and we couldn't find it... 🏓"
+			title: $_('error_pages.404.title'),
+			description: $_('error_pages.404.description'),
+			footer: $_('error_pages.404.footer')
 		},
 		401: {
 			emoji: '🔒',
-			title: 'Not authenticated',
-			description: "You need to be logged in to access this page.",
-			footer: 'Please log in to continue. 🔐'
+			title: $_('error_pages.401.title'),
+			description: $_('error_pages.401.description'),
+			footer: $_('error_pages.401.footer')
 		},
 		403: {
 			emoji: '🚫',
-			title: 'Access Denied',
-			description: "You don't have permission to access this resource.",
-			footer: 'This area is off-limits. You need the right paddle to enter! 🔐'
+			title: $_('error_pages.403.title'),
+			description: $_('error_pages.403.description'),
+			footer: $_('error_pages.403.footer')
 		},
 		500: {
 			emoji: '💥',
-			title: 'Server Error',
-			description: "Something went wrong on our end. We're working to fix it!",
-			footer: 'Our server missed the ball. Game over! 🎮'
+			title: $_('error_pages.500.title'),
+			description: $_('error_pages.500.description'),
+			footer: $_('error_pages.500.footer')
 		},
 		503: {
 			emoji: '🔧',
-			title: 'Under maintenance',
-			description: "We're doing some upgrades. Please check back in a few minutes.",
-			footer: 'The server is taking a break. Come back soon! 🛠️'
+			title: $_('error_pages.503.title'),
+			description: $_('error_pages.503.description'),
+			footer: $_('error_pages.503.footer')
 		}
-	};
+	}));
 
-	const fallback = {
+	let fallback = $derived({
 		emoji: '⚠️',
-		title: 'Error',
-		description: 'An unexpected error occurred.',
-		footer: 'Something unexpected happened in the game! 🕹️'
-	};
+		title: $_('error_pages.fallback.title'),
+		description: $_('error_pages.fallback.description'),
+		footer: $_('error_pages.fallback.footer')
+	});
 
 	let info = $derived(errorInfo[statusCode] || fallback);
 </script>
@@ -66,13 +67,13 @@
 		{/if}
 
 		<div class="error-actions">
-			<a href="/" class="btn-login">🏠 Go Home</a>
+			<a href="/" class="btn-login">🏠 {$_('error_pages.actions.go_home')}</a>
 			<button onclick={() => window.history.back()} class="btn-signup">
-				Go Back
+				{$_('error_pages.actions.go_back')}
 			</button>
 			{#if statusCode === 500}
 				<button onclick={() => window.location.reload()} class="btn-signup">
-					Retry
+					{$_('error_pages.actions.retry')}
 				</button>
 			{/if}
 		</div>

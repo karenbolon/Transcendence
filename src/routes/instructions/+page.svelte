@@ -1,83 +1,94 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
+
 	const modes = [
 		{
 			icon: '🤝',
-			name: 'Local 1v1',
-			desc: 'Two players, one keyboard. Classic couch gaming. Player 1 uses W/S, Player 2 uses arrow keys.',
-			players: '👥 2 players, same device',
+			name: _('instructions.modes.local.name'),
+			desc: _('instructions.modes.local.desc'),
+			players: _('instructions.modes.local.players'),
 		},
 		{
 			icon: '🤖',
-			name: 'vs Computer',
-			desc: 'Practice against the AI. Great for warming up or learning the mechanics before going online.',
-			players: '👤 Solo practice',
+			name: _('instructions.modes.ai.name'),
+			desc: _('instructions.modes.ai.desc'),
+			players: _('instructions.modes.ai.players'),
 		},
 		{
 			icon: '🌐',
-			name: 'Online Multiplayer',
-			desc: 'Challenge players in real-time over WebSockets. Matchmake or invite friends directly from their profile.',
-			players: '🌍 2 players, online',
+			name: _('instructions.modes.online.name'),
+			desc: _('instructions.modes.online.desc'),
+			players: _('instructions.modes.online.players'),
 		},
 		{
 			icon: '🏟️',
-			name: 'Tournament',
-			desc: 'Bracket-style competition. Join open tournaments, climb the bracket, and claim the championship title.',
-			players: '🏆 4–8 players, bracket',
+			name: _('instructions.modes.tournament.name'),
+			desc: _('instructions.modes.tournament.desc'),
+			players: _('instructions.modes.tournament.players'),
 		},
 	];
 
 	const rules = [
 		{
-			text: '<strong>Score to win.</strong> The ball bounces between paddles. Score a point when your opponent misses the ball.',
+			title: _('instructions.rules.score_to_win.title'),
+			body: _('instructions.rules.score_to_win.body'),
 		},
 		{
-			text: '<strong>First to the target wins.</strong> Default is 5 points. Tournament matches may use different targets. Choose from 3, 5, 7, or 11 points.',
+			title: _('instructions.rules.first_to_target.title'),
+			body: _('instructions.rules.first_to_target.body'),
 		},
 		{
-			text: '<strong>Ball speeds up.</strong> Each rally makes the ball slightly faster. Longer rallies = more intense gameplay.',
+			title: _('instructions.rules.ball_speeds_up.title'),
+			body: _('instructions.rules.ball_speeds_up.body'),
 		},
 		{
-			text: '<strong>Angle control.</strong> Where the ball hits your paddle affects its bounce angle. Hit with the edge for sharper angles.',
+			title: _('instructions.rules.angle_control.title'),
+			body: _('instructions.rules.angle_control.body'),
 		},
 		{
-			text: '<strong>No pausing in online.</strong> Local and AI games can be paused. Online matches play continuously.',
+			title: _('instructions.rules.no_pause_online.title'),
+			body: _('instructions.rules.no_pause_online.body'),
 		},
 	];
 
 	const speeds = [
 		{
 			emoji: '🐢',
-			name: 'Chill',
-			desc: 'Relaxed speed. Perfect for beginners and casual play.',
+			name: _('instructions.speeds.chill.title'),
+			desc: _('instructions.speeds.chill.body'),
 		},
 		{
 			emoji: '🏓',
-			name: 'Normal',
-			desc: 'Standard competitive speed. The default for ranked and tournaments.',
+			name: _('instructions.speeds.normal.title'),
+			desc: _('instructions.speeds.normal.body'),
 		},
 		{
 			emoji: '🔥',
-			name: 'Fast',
-			desc: 'High-speed chaos. For experienced players looking for a challenge.',
+			name: _('instructions.speeds.fast.title'),
+			desc: _('instructions.speeds.fast.body'),
 		},
 	];
 
 	const tips = [
 		{
 			icon: '🎯',
-			text: '<strong>Use the edges.</strong> Hitting the ball with the edge of your paddle creates sharper angles that are harder to return.',
+			title: _('instructions.tips.edges.title'),
+			body: _('instructions.tips.edges.body'),
 		},
 		{
 			icon: '🧠',
-			text: "<strong>Anticipate, don't react.</strong> Watch the ball angle and start moving before it crosses the midline.",
+			title: _('instructions.tips.anticipate.title'),
+			body: _('instructions.tips.anticipate.body'),
 		},
 		{
 			icon: '🏃',
-			text: '<strong>Stay centered.</strong> After each return, move your paddle back toward the middle to cover more area.',
+			title: _('instructions.tips.center.title'),
+			body: _('instructions.tips.center.body'),
 		},
 		{
 			icon: '💪',
-			text: '<strong>Practice vs AI first.</strong> Computer mode is great for learning timing and paddle control before going online.',
+			title: _('instructions.tips.practice.title'),
+			body: _('instructions.tips.practice.body'),
 		},
 	];
 </script>
@@ -85,48 +96,46 @@
 <div class="instructions-page">
 	<!-- Header -->
 	<div class="page-header">
-		<div class="page-tag">📖 How to Play</div>
+		<div class="page-tag">📖 {_('instructions.header.tag')}</div>
 		<h1 class="page-title">
-			Learn the <span class="glow-text">basics</span>
+			{_('instructions.header.title_prefix')} <span class="glow-text">{_('instructions.header.title_highlight')}</span>
 		</h1>
 		<p class="page-sub">
-			Pong is simple to pick up but takes practice to master. Here's
-			everything you need to know.
+			{_('instructions.header.subtitle')}
 		</p>
 	</div>
 
 	<!-- Controls -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar accent"></span> Controls</h2>
+		<h2 class="section-title"><span class="title-bar accent"></span> {_('instructions.controls.title')}</h2>
 		<p class="section-sub">
-			Different controls depending on the mode. In online play, everyone
-			uses the same keys.
+			{_('instructions.controls.subtitle')}
 		</p>
 		<div class="controls-grid">
 			<div class="control-card">
 				<div class="control-label">
-					<span class="tag p1">Player 1</span> Left side
+					<span class="tag p1">{_('common.player1')}</span> {_('instructions.controls.player_left')}
 				</div>
 				<div class="key-row">
 					<kbd class="key">W</kbd>
-					<span class="key-desc">Move paddle up</span>
+					<span class="key-desc">{_('instructions.controls.move_up')}</span>
 				</div>
 				<div class="key-row">
 					<kbd class="key">S</kbd>
-					<span class="key-desc">Move paddle down</span>
+					<span class="key-desc">{_('instructions.controls.move_down')}</span>
 				</div>
 			</div>
 			<div class="control-card">
 				<div class="control-label">
-					<span class="tag p2">Player 2</span> Right side (local only)
+					<span class="tag p2">{_('common.player2')}</span> {_('instructions.controls.player_right')}
 				</div>
 				<div class="key-row">
 					<kbd class="key">↑</kbd>
-					<span class="key-desc">Move paddle up</span>
+					<span class="key-desc">{_('instructions.controls.move_up')}</span>
 				</div>
 				<div class="key-row">
 					<kbd class="key">↓</kbd>
-					<span class="key-desc">Move paddle down</span>
+					<span class="key-desc">{_('instructions.controls.move_down')}</span>
 				</div>
 			</div>
 		</div>
@@ -136,9 +145,9 @@
 
 	<!-- Game Modes -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar purple"></span> Game Modes</h2>
+		<h2 class="section-title"><span class="title-bar purple"></span> {_('instructions.modes.title')}</h2>
 		<p class="section-sub">
-			Four ways to play, from casual practice to competitive tournaments.
+			{_('instructions.modes.subtitle')}
 		</p>
 		<div class="modes-grid">
 			{#each modes as mode, i}
@@ -156,13 +165,15 @@
 
 	<!-- Rules -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar blue"></span> Rules</h2>
-		<p class="section-sub">Simple rules, fast games.</p>
+		<h2 class="section-title"><span class="title-bar blue"></span> {_('instructions.rules.title')}</h2>
+		<p class="section-sub">{_('instructions.rules.subtitle')}</p>
 		<div class="rules-list">
 			{#each rules as rule, i}
 				<div class="rule">
 					<div class="rule-num">{i + 1}</div>
-					<div class="rule-text">{@html rule.text}</div>
+					<div class="rule-text">
+						<strong>{rule.title}</strong> {rule.body}
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -172,8 +183,8 @@
 
 	<!-- Game Speeds -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar gold"></span> Game Speeds</h2>
-		<p class="section-sub">Choose your pace before each match.</p>
+		<h2 class="section-title"><span class="title-bar gold"></span> {_('instructions.game_speeds.title')}</h2>
+		<p class="section-sub">{_('instructions.game_speeds.body')}</p>
 		<div class="speed-grid">
 			{#each speeds as speed}
 				<div class="speed-card">
@@ -189,13 +200,13 @@
 
 	<!-- Tips -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar green"></span> Tips & Tricks</h2>
-		<p class="section-sub">Get better faster.</p>
+		<h2 class="section-title"><span class="title-bar green"></span> {_('instructions.tips.edges.title')}</h2>
+		<p class="section-sub">{_('instructions.tipa.edges.subtitle')}</p>
 		<div class="tips-grid">
 			{#each tips as tip}
 				<div class="tip">
 					<div class="tip-icon">{tip.icon}</div>
-					<div class="tip-text">{@html tip.text}</div>
+					<div class="tip-text"><strong>{tip.title}</strong> {tip.body}</div>
 				</div>
 			{/each}
 		</div>
@@ -205,24 +216,23 @@
 
 	<!-- Progression & XP -->
 	<section class="section">
-		<h2 class="section-title"><span class="title-bar orange"></span>Progression & XP</h2>
+		<h2 class="section-title"><span class="title-bar orange"></span>{_('instructions.progression.title')}</h2>
 		<div class="coming-soon-card">
 			<div class="coming-soon-icon">🚀</div>
-			<h3 class="coming-soon-title">Coming Soon</h3>
+			<h3 class="coming-soon-title">{_('instructions.progression.subtitle')}</h3>
 			<p class="coming-soon-desc">
-				Earn XP for every match, level up your profile, and unlock achievements.
-				The progression system is currently in development.
+				{_('instructions.progression.desc')}
 			</p>
 		</div>
 	</section>
 
 	<!-- CTA -->
 	<div class="inst-cta">
-		<div class="cta-title">Ready to play?</div>
+		<div class="cta-title">{_('instructions.play.title')}</div>
 		<div class="cta-sub">
-			Jump straight in — no account needed for local and AI games.
+			{_('instructions.play.subtitle')}
 		</div>
-		<a href="/play" class="btn-play">🎮 Play Now</a>
+		<a href="/play" class="btn-play">{_('instructions.play.desc')}</a>
 	</div>
 </div>
 

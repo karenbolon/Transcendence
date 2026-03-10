@@ -1,3 +1,7 @@
+<script lang="ts">
+	import { _ } from 'svelte-i18n';
+</script>
+
 <!-- Idea of how can look the About page. -->
 <!-- Have on mind that i haven incorporate everything, correctly until is compleately approve -->
 <div class="about-page">
@@ -6,88 +10,83 @@
 		<div class="page-header">
 			<div class="page-tag">Ft_transcendence</div>
 			<h1 class="page-title">
-				Built by students.<br />
-				<span class="glow-text">Powered by passion.</span>
+				{$_('about.heroTitleLine1')}<br />
+				<span class="glow-text">{$_('about.heroTitleLine2')}</span>
 			</h1>
 			<p class="page-sub">
-				ft_transcendence is the final project of the 42 core curriculum. <br>A
-				full-stack web application built from scratch as a team.
+				{$_('about.subtitleLine1')}
 			</p>
 			<div class="hero-badge">
-				<span>🎮</span> 42 Berlin · Final Project · 2025/2026
+				<span>🎮</span> {$_('about.heroBadge')}
 			</div>
 		</div>
 		<section class="section">
 			<h2 class="section-title">
 				<span class="title-bar accent"></span>
-				About the Project</h2>
+				{$_('about.projectTitle')}</h2>
 			<p class="text-gray-300 leading-relaxed">
-				In this final project we choose to build a multiplayer Pong game.<br>
-				With real-time gameplay, a modern and responsive user interface, and social features.<br>
+				{$_('about.projectIntroLine1')}<br>
+				{$_('about.projectIntroLine2')}<br>
 			</p>
 			<p>
 				<br>
-				We designed and built a full-stack web application from scratch, with double authentication in Frontend and Backend,
-				database integration, session management, and password hashing, all running inside containers to ensure scalability and reproducibility.
-				<br><br>
-				The frontend was developed using <strong>SvelteKit</strong>, providing a reactive and dynamic user experience.
-				The backend integrates <strong>PostgreSQL</strong> with <strong>Drizzle ORM</strong> for type-safe database management.
-				<br><br>
-				Authentication is handled using <strong>Lucia</strong>, with password hashing secured via Argon2.
-				Input validation and schema safety are enforced using <strong>Zod</strong>.
-				<br><br>
-				And the entire application is containerized using Docker to ensure portability, isolation, and consistent deployment across environments.
+				{$_('about.projectParagraph2a')} <strong>SvelteKit</strong>{$_('about.projectParagraph2b')}
+				{$_('about.projectParagraph2c')} <strong>PostgreSQL</strong>{$_('about.projectParagraph2d')} <strong>Drizzle ORM</strong>{$_('about.projectParagraph2e')}
+				<br /><br />
+				{$_('about.projectParagraph3a')} <strong>Lucia</strong>{$_('about.projectParagraph3b')}
+				<strong>Zod</strong>{$_('about.projectParagraph3c')}
+				<br /><br />
+				{$_('about.projectParagraph4')}
 			</p>
 			<p class="text-gray-300 leading-relaxed mt-4">
-				<strong>Our goal:</strong> make something that's not just functional, but genuinely
-				fun to play and beautiful to look at. 🏓✨
+				<strong>{$_('about.goalLabel')}</strong> {$_('about.goalText')}
 			</p>
 		</section>
 		<section class="section">
 			<h2 class="section-title">
 				<span class="title-bar blue"></span>
-				Tech Stack</h2>
+				{$_('about.techStackTitle')}</h2>
 			<div class="tech-grid">
 				<div class="tech-item s">
 					<span class="tech-icon">⚡</span>
 					<div>
 						<strong>SvelteKit</strong>
-						<p>Frontend & Backend</p>
+						<p>{$_('about.techSveltekit')}</p>
 					</div>
 				</div>
 				<div class="tech-item po">
 					<span class="tech-icon">🐘</span>
 					<div>
 						<strong>PostgreSQL</strong>
-						<p>Database</p>
+						<p>{$_('about.techPostgresql')}</p>
 					</div>
 				</div>
 				<div class="tech-item d">
 					<span class="tech-icon">💧</span>
 					<div>
 						<strong>Drizzle ORM</strong>
-						<p>Database Toolkit</p>
+						<p>{$_('about.techDrizzle')}</p>
 					</div>
 				</div>
 				<div class="tech-item c">
 					<span class="tech-icon">🐳</span>
 					<div>
 						<strong>Docker</strong>
-						<p>Containerization</p>
+						<p>{$_('about.techDocker')}</p>
 					</div>
 				</div>
 				<div class="tech-item t">
 					<span class="tech-icon">🔷</span>
 					<div>
 						<strong>TypeScript</strong>
-						<p>Type Safety</p>
+						<p>{$_('about.techTypescript')}</p>
 					</div>
 				</div>
 				<div class="tech-item l">
 					<span class="tech-icon">🔐</span>
 					<div>
 						<strong>Lucia + Argon2</strong>
-						<p>Authentication</p>
+						<p>{$_('about.techLucia')}</p>
 					</div>
 				</div>
 			</div>
@@ -97,9 +96,9 @@
 		<section class="section">
 			<h2 class="section-title">
 				<span class="title-bar purple"></span>
-				Meet the Team</h2>
+				{$_('about.teamTitle')}</h2>
 			<p class="section-sub">
-				Four students, one goal: ship something we're proud of.
+				{$_('about.teamSubtitle')}
 			</p>
 			<div class="team-grid">
 
@@ -107,7 +106,7 @@
 				<div class="team-card">
 					<div class="avatar">⚡</div>
 					<h3 class="member-name">Karen Bolon</h3>
-					<p class="member-role">Product Owner · Frontend</p>
+					<p class="member-role">{$_('about.karenRole')}</p>
 					<div class="member-links">
 						<a href="https://github.com/karenbolon" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
 							<!-- GitHub SVG -->
@@ -128,7 +127,7 @@
 				<div class="team-card">
 					<div class="avatar">🚀</div>
 					<h3 class="member-name">James Dyar</h3>
-					<p class="member-role">Developer · Backend</p>
+					<p class="member-role">{$_('about.jamesRole')}</p>
 					<div class="member-links">
 						<a href="https://github.com/allthetimeintheworld" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
 							<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
@@ -146,7 +145,7 @@
 				<div class="team-card">
 					<div class="avatar">🎮</div>
 					<h3 class="member-name">Finn Dunkel</h3>
-					<p class="member-role">Developer · Backend</p>
+					<p class="member-role">{$_('about.finnRole')}</p>
 					<div class="member-links">
 						<a href="https://github.com/finndark42" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
 							<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
@@ -161,7 +160,7 @@
 				<div class="team-card">
 					<div class="avatar">🎨</div>
 					<h3 class="member-name">Kellen Ramos</h3>
-					<p class="member-role">Developer · Frontend</p>
+					<p class="member-role">{$_('about.kellenRole')}</p>
 					<div class="member-links">
 						<a href="https://github.com/kellenr" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
 							<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
@@ -185,13 +184,10 @@
 				<h2 class="school-name"><strong>42 Berlin</strong></h2>
 				<p class="text-gray-300 leading-relaxed">
 					<a href="https://42berlin.de" target="_blank" rel="noopener noreferrer" class="accent-link"><strong>42</strong></a>
-					is a global network of tuition-free coding schools with a peer-to-peer learning model. <br>There are no teachers,
-					no lectures — students learn by building real projects and helping each other. Ft_transcendence is the capstone
-					project of the common core, that requires a team to build
-					the ultimate test of everything we've learned.
+					{$_('about.schoolDescription')}
 				</p>
 				<p class="text-gray-400 text-sm mt-4">
-					<br>No teachers. No lectures. Just code, collaboration, and a whole lot of Pong. 🏓
+					<br>{$_('about.schoolFooter')} 🏓
 				</p>
 			</div>
 		</section>

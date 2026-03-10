@@ -9,6 +9,9 @@ export const users = pgTable('users', {
 	password_hash: varchar('password_hash', { length: 255 }).notNull(), // Required [cite: 185]
 	avatar_url: varchar('avatar_url', { length: 255 }), // Required [cite: 296]
 	bio: text('bio'),
+	language: varchar('language', { length: 5 })
+		.notNull()
+		.default('en'),
 	is_online: boolean('is_online').default(false),
 	games_played: integer('games_played').default(0),
 	wins: integer('wins').default(0),

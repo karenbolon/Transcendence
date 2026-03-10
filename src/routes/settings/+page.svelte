@@ -4,6 +4,8 @@
 	import PasswordInput from '$lib/component/PasswordInput.svelte';
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
 	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
+	import { _, locale } from 'svelte-i18n';
+	import { setUserLanguage } from '$lib/utils/language_utils';
 
 	let { data }: { data: PageData } = $props();
 
@@ -25,13 +27,13 @@
 		await handleFormSubmit({
 			url: '/api/settings/password',
 			body: { currentPassword, newPassword },
-			errorMessage: 'Failed to change password.',
+			errorMessage: $_('error.password_change_failed'),
 			validate: () => {
-				if (!currentPassword || !newPassword || !confirmPassword) return 'All fields are required.';
+				if (!currentPassword || !newPassword || !confirmPassword) return $_('errors.all_fields_required');
 				return validatePassword(newPassword) || validateConfirmPassword(newPassword, confirmPassword) || undefined;
 			},
 			onSuccess: () => {
-				passwordSuccess = 'Password changed successfully.';
+				passwordSuccess = $_('settings.security.password_changed');
 				currentPassword = '';
 				newPassword = '';
 				confirmPassword = '';
@@ -57,13 +59,13 @@
 		await handleFormSubmit({
 			url: '/api/settings/email',
 			body: { newEmail, password: emailPassword },
-			errorMessage: 'Failed to change email.',
+			errorMessage: $_('errors.email_change_failed'),
 			validate: () => {
-				if (!newEmail || !emailPassword) return 'All fields are required.';
+				if (!newEmail || !emailPassword) return $_('errors.all_fields_required');
 				return validateEmail(newEmail) || undefined;
 			},
 			onSuccess: (result) => {
-				emailSuccess = 'Email updated successfully.';
+				emailSuccess = $_('settings.email.email_updated');
 				currentEmail = result.email as string;
 				newEmail = '';
 				emailPassword = '';
@@ -85,43 +87,59 @@
 			// Silently fail
 		}
 	}
+	
+	const languages = [
+		{ code: 'en', label: '🇬🇧 English' },
+		{ code: 'de', label: '🇩🇪 Deutsch' },
+		{ code: 'es', label: '🇪🇸 Español' },
+		{ code: 'fr', label: '🇫🇷 Français' },
+		{ code: 'it', label: '🇮🇹 Italiano' },
+		{ code: 'pt', label: '🇵🇹 Português' }
+	];
 
-	//api keys
+	function changeLanguage(lang: string) {
+		// Use the centralized language utility
+		setUserLanguage(lang).catch(() => {
+			// Show user-friendly error if database save fails
+			alert('Failed to save language preference. Please try again.');
+		});
+	}
+//api keys
 
 </script>
 
 <div class="settings-page">
-	<h1 class="page-title">Settings</h1>
+	<h1 class="page-title">{$_('settings.title')}</h1>
 
 	<!-- ── Account Info ──────────────────────────────── -->
 	<section class="settings-card">
-		<h2 class="card-title">My Account</h2>
+		<h2 class="card-title">{$_('settings.account.title')}</h2>
 		<div class="info-row">
-			<span class="info-label"><strong>Username:</strong></span>
+			<span class="info-label"><strong>{$_('common.username')}:</strong></span>
 			<span class="info-value">{data.username}</span>
 		</div>
 		<div class="info-row">
-			<span class="info-label"><strong>Email:</strong></span>
+			<span class="info-label"><strong>{$_('common.email')}:</strong></span>
 			<span class="info-value">{data.email}</span>
 		</div>
 	</section>
 
 	<section class="setting-card">
 		<div class="card-section">
-			<h2 class="card-title">Security</h2>
-			<h3 class="section-subtitle">Change Password</h3>
+			<h2 class="card-title">{$_('settings.security.title')}</h2>
+			<h3 class="section-subtitle">{$_('settings.security.change_password')}</h3>
 			<form class="settings-form" onsubmit={handlePasswordChange}>
 				<div class="field">
-					<label class="field-label" for="current-password">Current Password</label>
+					<label class="field-label" for="current-password">{$_('settings.security.current_password')}</label>
 					<PasswordInput id="current-password" name="current-password" bind:value={currentPassword} disabled={savingPassword} autocomplete="current-password" />
 
 				</div>
 				<div class="field">
-					<label class="field-label" for="new-password">New Password</label>
+					<label class="field-label" for="new-password">{$_('settings.security.new_password')}</label>
 					<PasswordInput id="new-password" name="new-password" bind:value={newPassword} disabled={savingPassword} autocomplete="new-password" />
 				</div>
 				<div class="field">
-					<label class="field-label" for="confirm-password">Confirm New Password</label>
+					<label class="field-label" for="confirm-password">{$_('settings.security.confirm_new_password')}</label>
 					<PasswordInput id="confirm-password" name="confirm-password" bind:value={confirmPassword} disabled={savingPassword} autocomplete="new-password" />
 				</div>
 				{#if passwordError}
@@ -131,21 +149,27 @@
 					<p class="msg msg--success">{passwordSuccess}</p>
 				{/if}
 				<button type="submit" class="btn btn--primary" disabled={savingPassword}>
-					{savingPassword ? 'Saving...' : 'Update Password'}
+					{savingPassword ? $_('common.saving') : $_('settings.security.update_password')}
 				</button>
 			</form>
 		</div>
 
 		<div class="card-section">
-			<h3 class="section-subtitle">Change Email</h3>
-			<p class="current-value">Current email: <strong>{currentEmail}</strong></p>
+			<h3 class="section-subtitle">{$_('settings.email.title')}</h3>
+			<p class="current-value">{$_('settings.email.current_email')}<strong>{currentEmail}</strong></p>
 			<form class="settings-form" onsubmit={handleEmailChange}>
 				<div class="field">
-					<label class="field-label" for="new-email">New Email</label>
-					<input id="new-email" type="email" class="field-input" bind:value={newEmail} disabled={savingEmail} placeholder="new@email.com" />
+					<label class="field-label" for="new-email">{$_('settings.email.new_email')}</label>
+					<input 
+						id="new-email" 
+						type="email" 
+						class="field-input" 
+						bind:value={newEmail} 
+						disabled={savingEmail} 
+						placeholder={$_('common.email_pattern')} />
 				</div>
 				<div class="field">
-					<label class="field-label" for="email-password">Password</label>
+					<label class="field-label" for="email-password">{$_('common.password')}</label>
 					<!-- <input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" /> -->
 					<PasswordInput id="confirm-password" name="confirm-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
 				</div>
@@ -158,7 +182,7 @@
 				{/if}
 
 				<button type="submit" class="btn btn--primary" disabled={savingEmail}>
-					{savingEmail ? 'Saving...' : 'Update Email'}
+					{savingEmail ? $_('common.saving') : $_('settings.email.update_email')}
 				</button>
 			</form>
 		</div>
@@ -167,41 +191,74 @@
 
 	<!-- NOTIFICATIONS -->
 	<section class="settings-card">
-		<h2 class="card-title">Notifications</h2>
+		<h2 class="card-title">{$_('settings.notifications.title')}</h2>
 
 		<div class="toggle-list">
 			<label class="toggle-row">
 				<div class="toggle-info">
-					<span class="toggle-name">Friend Requests</span>
-					<span class="toggle-desc">Get notified when someone sends you a friend request</span>
+					<span class="toggle-name">{$_('settings.notifications.friend_requests')}</span>
+					<span class="toggle-desc">{$_('settings.notifications.friend_requests_desc')}</span>
 				</div>
 				<input type="checkbox" class="toggle-switch" bind:checked={friendRequests} onchange={() => updateNotificationPref('friendRequests', friendRequests)} />
 			</label>
 
 			<label class="toggle-row">
 				<div class="toggle-info">
-					<span class="toggle-name">Game Invites</span>
-					<span class="toggle-desc">Get notified when someone challenges you to a game</span>
+					<span class="toggle-name">{$_('settings.notifications.game_invites')}</span>
+					<span class="toggle-desc">{$_('settings.notifications.game_invites_desc')}</span>
 				</div>
 				<input type="checkbox" class="toggle-switch" bind:checked={gameInvites} onchange={() => updateNotificationPref('gameInvites', gameInvites)} />
 			</label>
 
 			<label class="toggle-row">
 				<div class="toggle-info">
-					<span class="toggle-name">Match Results</span>
-					<span class="toggle-desc">Get notified about match outcomes from friends</span>
+					<span class="toggle-name">{$_('settings.notifications.match_results')}</span>
+					<span class="toggle-desc">{$_('settings.notifications.match_results_desc')}</span>
 				</div>
 				<input type="checkbox" class="toggle-switch" bind:checked={matchResults} onchange={() => updateNotificationPref('matchResults', matchResults)} />
 			</label>
 		</div>
 	</section>
 
+	<!-- Language Selector -->
+	<section class="settings-card">
+		<h2 class="card-title">{$_('settings.language.title')}</h2>
+
+		<!-- Option A: Compact buttons (current) -->
+		<div class="language-list">
+			{#each languages as lang}
+				<button
+					type="button"
+					class="language-btn"
+					class:active={$locale === lang.code}
+					onclick={() => changeLanguage(lang.code)}
+				>
+					{lang.label}
+				</button>
+			{/each}
+		</div>
+
+		<!-- Option B: Dropdown (uncomment to use instead)
+		<div class="language-dropdown-wrapper">
+			<select 
+				class="language-dropdown" 
+				value={$locale} 
+				onchange={(e) => changeLanguage(e.target.value)}
+			>
+				{#each languages as lang}
+					<option value={lang.code}>{lang.label}</option>
+				{/each}
+			</select>
+		</div>
+		-->
+	</section>
+
 	<!-- DANGER ZONE -->
 	<section class="settings-card danger">
-		<h2 class="card-title danger-title">Danger Zone</h2>
-		<p class="danger-desc">Once you delete your account, there is no going back.</p>
+		<h2 class="card-title danger-title">{$_('settings.danger.title')}</h2>
+		<p class="danger-desc">{$_('settings.danger.description')}</p>
 		<button class="btn btn--danger" onclick={() => showDeleteModal = true}>
-			Delete Account
+			{$_('settings.danger.delete_account')}
 		</button>
 	</section>
 
@@ -470,6 +527,38 @@
 		.settings-page {
 			padding: 1.5rem 1rem 3rem;
 		}
+	}
+	.language-list {
+		display: flex;
+		gap: 0.5rem;
+		/* Remove flex-wrap to keep on one line */
+		overflow-x: auto; /* Allow horizontal scroll on very small screens */
+	}
+
+	.language-btn {
+		padding: 0.5rem 0.75rem; /* Reduced padding */
+		border-radius: 0.5rem;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.04);
+		color: #d1d5db;
+		font-family: inherit;
+		font-size: 0.85rem; /* Slightly smaller font */
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s;
+		white-space: nowrap; /* Prevent text wrapping */
+		flex-shrink: 0; /* Prevent buttons from shrinking */
+	}
+
+	.language-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		border-color: rgba(255, 255, 255, 0.16);
+	}
+
+	.language-btn.active {
+		background: rgba(255, 107, 157, 0.12);
+		border-color: rgba(255, 107, 157, 0.35);
+		color: #ff6b9d;
 	}
 
 </style>

@@ -9,7 +9,7 @@
 
 <div
 	class="level-badge level-badge--{size}"
-	title="{milestone.title} — Level {level}"
+	title="{milestone.titleKey} — Level {level}"
 >
 	<span class="badge-icon">{milestone.icon}</span>
 	<span class="badge-level">{level}</span>

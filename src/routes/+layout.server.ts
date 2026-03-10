@@ -27,5 +27,6 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	return {
 		user: locals.user,
 		friends,
+		locale: locals.user.language ?? 'en'
 	};
 };

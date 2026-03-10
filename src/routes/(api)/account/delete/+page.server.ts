@@ -11,14 +11,14 @@ export const actions: Actions = {
 	default: async ({ request, locals, cookies }) => {
 		// ── AUTH GUARD ──────────────────────────────────────────────
 		if (!locals.user || !locals.session) {
-			redirect(302, '/login');
+			throw redirect(302, '/login');
 		}
 
 		const formData = await request.formData();
 		const password = formData.get('password')?.toString() ?? '';
 
 		if (!password) {
-			return fail(400, { error: 'Password is required to delete your account' });
+			return fail(400, { errorKey: 'common.password_required' });
 		}
 
 		// ── FETCH FULL USER (need password_hash) ───────────────────
@@ -28,13 +28,15 @@ export const actions: Actions = {
 			.where(eq(users.id, Number(locals.user.id)));
 
 		if (!user) {
-			redirect(302, '/login');
+			throw redirect(302, '/login');
 		}
 
 		// ── VERIFY PASSWORD ────────────────────────────────────────
 		const valid = await verifyPassword(user.password_hash, password);
 		if (!valid) {
-			return fail(400, { error: 'Incorrect password' });
+			return fail(400, { 
+				errorKey: 'errors.incorrect_password'
+			});
 		}
 
 		// ── SOFT DELETE + ANONYMIZE ─────────────────────────────────
@@ -62,6 +64,6 @@ export const actions: Actions = {
 		// ── CLEAR COOKIE ───────────────────────────────────────────
 		clearSessionCookie(cookies);
 
-		redirect(302, '/');
+		throw redirect(302, '/');
 	}
 };

@@ -195,16 +195,17 @@
 						<div class="empty-state">
 							<span class="empty-icon">😕</span>
 							<p>No players found</p>
-							<span class="empty-hint">Try a different username.</span>
+							<span class="empty-hint">Try a different name or username.</span>
 						</div>
 					{:else if !searching}
 						<div class="friend-list">
 							{#each searchResults as user}
 								<div class="friend-card">
 									<a href="/friends/{user.id}" class="friend-info">
-										<UserAvatar avatarUrl={user.avatar_url} username={user.username} size="md" />
+										<UserAvatar avatarUrl={user.avatar_url} username={user.username} displayName={user.name} size="md" />
 										<div class="friend-details">
-											<span class="friend-name">{user.username}</span>
+											<span class="friend-name">{user.name ?? user.username}</span>
+											<span class="card-handle">@{user.username.toLowerCase()}</span>
 											{#if user.relationship}
 												<span class="friend-status-badge {user.relationship}">
 													{user.relationship === 'accepted' ? 'Friends'
@@ -271,6 +272,11 @@
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button class="btn btn-challenge"><span class="btn-icon">👾</span> Challenge</button>
 										<button
+											class="btn btn-unfriend"
+											disabled={loading === `remove-${item.id}`}
+											onclick={() => friendAction('remove', item.id, 'Friend removed')}
+										><span class="btn-icon">👋</span> Unfriend</button>
+										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
 											onclick={() => friendAction('block', item.id, 'User blocked')}
@@ -299,6 +305,11 @@
 									</a>
 									<div class="friend-actions">
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
+										<button
+											class="btn btn-unfriend"
+											disabled={loading === `remove-${item.id}`}
+											onclick={() => friendAction('remove', item.id, 'Friend removed')}
+										><span class="btn-icon">👋</span> Unfriend</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
@@ -844,6 +855,12 @@
 		background: rgba(102, 166, 255, 0.12);
 		color: #66a6ff;
 		border-color: rgba(102, 166, 255, 0.2);
+	}
+
+	.btn-unfriend {
+		background: rgba(156, 163, 175, 0.12);
+		color: #9ca3af;
+		border-color: rgba(156, 163, 175, 0.2);
 	}
 
 	.btn-block {

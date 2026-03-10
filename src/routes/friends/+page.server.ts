@@ -80,8 +80,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			case 'blocked':
 				if (row.user_id === userId) {
 					blocked.push(item);    // I blocked them
+				} else {
+					// They blocked me — I still see them as a friend, but always offline
+					friends.push({ ...item, is_online: false });
 				}
-				// If they blocked me, don't show anything
 				break;
 		}
 	}

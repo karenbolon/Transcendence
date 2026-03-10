@@ -16,18 +16,22 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		return json({ results: [] });
 	}
 
-	// Search by username (case-insensitive)
+	// Search by username or name(case-insensitive)
 	const matchedUsers = await db
 		.select({
 			id: users.id,
 			username: users.username,
+			name: users.name,
 			avatar_url: users.avatar_url,
 			is_online: users.is_online,
 		})
 		.from(users)
 		.where(
 			and(
-				ilike(users.username, `%${query}%`),
+				or(
+					ilike(users.username, `%${query}%`),
+					ilike(users.name, `%${query}%`)
+				),
 				ne(users.id, userId),
 				eq(users.is_deleted, false)
 			)
@@ -36,7 +40,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	// Get relationship status for each result
 	const userIds = matchedUsers.map(u => u.id);
-	const relationshipMap: Record<number, { status: string; friendshipId: number }> = {};
+	const relationshipMap: Record<number, { status: string; friendshipId: number; blockedByMe: boolean }> = {};
 
 	if (userIds.length > 0) {
 		const rows = await db
@@ -52,19 +56,29 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		for (const row of rows) {
 			const otherId = row.user_id === userId ? row.friend_id : row.user_id;
 			if (userIds.includes(otherId)) {
-				relationshipMap[otherId] = { status: row.status, friendshipId: row.id };
+				relationshipMap[otherId] = {
+					status: row.status,
+					friendshipId: row.id,
+					blockedByMe: row.status === 'blocked' && row.user_id === userId, };
 			}
 		}
 	}
 
-	const results = matchedUsers.map(u => ({
-		id: u.id,
-		username: u.username,
-		avatar_url: u.avatar_url,
-		is_online: u.is_online,
-		relationship: relationshipMap[u.id]?.status ?? null,
-		friendshipId: relationshipMap[u.id]?.friendshipId ?? null,
-	}));
+	const results = matchedUsers.map(u => {
+		const rel = relationshipMap[u.id];
+		const theyBlockedMe = rel?.status === 'blocked' && !rel?.blockedByMe;
+
+		return {
+			id: u.id,
+			username: u.username,
+			name: u.name,
+			avatar_url: u.avatar_url,
+			// If they blocked me: show as offline, show as "friends" (not blocked)
+			is_online: theyBlockedMe ? false : u.is_online,
+			relationship: theyBlockedMe ? 'accepted' : (rel?.status ?? null),
+			friendshipId: theyBlockedMe ? (rel?.friendshipId ?? null) : (rel?.friendshipId ?? null),
+		};
+	});
 
 	return json({ results });
 };

@@ -49,26 +49,23 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			)
 		);
 
-	if (existing) {
-		if (existing.status === 'blocked' && existing.user_id === userId) {
-			return json({ error: 'User already blocked' }, { status: 409 });
-		}
-
-		// Update existing row: blocker is always user_id
-		await db
-			.update(friendships)
-			.set({ status: 'blocked', user_id: userId, friend_id: friendId })
-			.where(eq(friendships.id, existing.id));
-
-		return json({ message: 'User blocked' });
+	if (!existing) {
+		return json({ error: 'You can only block friends' }, { status: 400 });
 	}
 
-	// No existing row — create blocked row
-	await db.insert(friendships).values({
-		user_id: userId,
-		friend_id: friendId,
-		status: 'blocked',
-	});
+	if (existing.status === 'blocked' && existing.user_id === userId) {
+		return json({ error: 'User already blocked' }, { status: 409 });
+	}
+
+	if (existing.status !== 'accepted') {
+		return json({ error: 'You can only block friends' }, { status: 400 });
+	}
+
+	// Block: set blocker as user_id so only they can unblock
+	await db
+		.update(friendships)
+		.set({ status: 'blocked', user_id: userId, friend_id: friendId })
+		.where(eq(friendships.id, existing.id));
 
 	return json({ message: 'User blocked' });
 };

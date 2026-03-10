@@ -40,8 +40,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return json({ error: 'Block not found' }, { status: 404 });
 	}
 
-	// Delete the row entirely — they can send new requests
-	await db.delete(friendships).where(eq(friendships.id, row.id));
+	// Restore friendship — they were friends before blocking
+	await db
+		.update(friendships)
+		.set({ status: 'accepted' })
+		.where(eq(friendships.id, row.id));
 
 	return json({ message: 'User unblocked' });
 };

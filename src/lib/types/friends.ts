@@ -13,6 +13,7 @@ export type FriendItem = {
 export type SearchResult = {
 	id: number;
 	username: string;
+	name: string | null;
 	avatar_url: string | null;
 	is_online: boolean | null;
 	relationship: string | null;

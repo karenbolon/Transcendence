@@ -8,34 +8,8 @@ import {
 	validateRegistrationUniqueness
 } from '../db_valid';
 import { db } from '$lib/server/db';
-import { users, sessions, games, friendships } from '$lib/server/db/schema';
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🧹 Database cleanup helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(friendships).execute().catch(() => {});
-	await db.delete(games).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 👤 Helper to create a test user
-// ══════════════════════════════════════════════════════════════════════════════
-async function createTestUser(overrides: { username?: string; email?: string } = {}) {
-	const timestamp = Date.now();
-	const [user] = await db
-		.insert(users)
-		.values({
-			username: overrides.username ?? `testuser_${timestamp}`,
-			name: 'Test User',
-			email: overrides.email ?? `test_${timestamp}@example.com`,
-			password_hash: 'hashed_password'
-		})
-		.returning();
-	return user;
-}
+import { users } from '$lib/server/db/schema';
+import { cleanDatabase, createTestUser } from '$lib/server/db/test_db/test-utils';
 
 describe('Database Validation', () => {
 	// Clean before each test for isolation

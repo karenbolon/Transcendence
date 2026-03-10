@@ -148,22 +148,22 @@ describe('XP Calculation Logic (xp.ts)', () => {
 	describe('getMilestoneForLevel', () => {
 		it('should return "Seedling" for level 0', () => {
 			const milestone = getMilestoneForLevel(0);
-			expect(milestone.titleKey).toBe('Seedling');
+			expect(milestone.titleKey).toBe('user_profile.milestones.seedling');
 		});
 
 		it('should return "Flame" for level 10', () => {
 			const milestone = getMilestoneForLevel(10);
-			expect(milestone.titleKey).toBe('Flame');
+			expect(milestone.titleKey).toBe('user_profile.milestones.flame');
 		});
 
 		it('should return the "Legend" for level 40', () => {
 			const milestone = getMilestoneForLevel(40);
-			expect(milestone.titleKey).toBe('Legend'); // 40 >= 30, but < 50
+			expect(milestone.titleKey).toBe('user_profile.milestones.legend'); // 40 >= 30, but < 50
 		});
 
 		it('should return "Transcendent" for level 50+', () => {
 			const milestone = getMilestoneForLevel(100);
-			expect(milestone.titleKey).toBe('Transcendent');
+			expect(milestone.titleKey).toBe('user_profile.milestones.transcendent');
 		});
 	});
 });

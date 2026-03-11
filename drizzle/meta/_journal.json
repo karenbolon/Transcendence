@@ -29,6 +29,13 @@
       "when": 1772911846747,
       "tag": "0003_magenta_cammi",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773249828253,
+      "tag": "0004_long_roughhouse",
+      "breakpoints": true
     }
   ]
 }

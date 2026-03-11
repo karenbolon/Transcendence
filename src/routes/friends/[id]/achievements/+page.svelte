@@ -14,86 +14,86 @@
 	let selectedAchievement = $state<(typeof data.achievements)[number] | null>(null);
 
 	let filteredAchievements = $derived(
-			selectedCategory
-					? data.achievements.filter((a) => a.category === selectedCategory)
-					: data.achievements,
+		selectedCategory
+			? data.achievements.filter((a) => a.category === selectedCategory)
+			: data.achievements,
 	);
 
 	let completionPercent = $derived(
-			data.totalCount > 0
-					? Math.round((data.unlockedCount / data.totalCount) * 100)
-					: 0,
+		data.totalCount > 0
+			? Math.round((data.unlockedCount / data.totalCount) * 100)
+			: 0,
 	);
 </script>
 
 <div class="achievements-page">
 	<!-- Header -->
 	<section class="page-header">
-			<div class="header-top">
-					<h1 class="page-title">{data.friend.name ?? data.friend.username}'s Achievements</h1>
-					<LevelBadge level={data.progression?.level ?? 1} />
-			</div>
+		<div class="header-top">
+			<h1 class="page-title">{data.friend.name ?? data.friend.username}'s Achievements</h1>
+			<LevelBadge level={data.progression?.level ?? 1} />
+		</div>
 
-			<!-- Completion bar -->
-			<div class="completion-section">
-					<div class="completion-header">
-							<span class="completion-label">
-									{data.unlockedCount} / {data.totalCount} unlocked
-							</span>
-							<span class="completion-percent">{completionPercent}%</span>
-					</div>
-					<div class="completion-track">
-							<div class="completion-fill" style="width: {completionPercent}%"></div>
-					</div>
+		<!-- Completion bar -->
+		<div class="completion-section">
+			<div class="completion-header">
+				<span class="completion-label">
+					{data.unlockedCount} / {data.totalCount} unlocked
+				</span>
+				<span class="completion-percent">{completionPercent}%</span>
 			</div>
+			<div class="completion-track">
+				<div class="completion-fill" style="width: {completionPercent}%"></div>
+			</div>
+		</div>
 
-			<XpBar
-					currentXp={progression.currentXp}
-					xpToNextLevel={progression.xpToNextLevel}
-					level={progression.level}
-			/>
+		<XpBar
+			currentXp={progression.currentXp}
+			xpToNextLevel={progression.xpToNextLevel}
+			level={progression.level}
+		/>
 	</section>
 
 	<!-- Category Filter -->
 	<nav class="category-nav">
+		<button
+			class="category-btn"
+			class:active={selectedCategory === null}
+			onclick={() => (selectedCategory = null)}
+		>
+			All
+		</button>
+		{#each data.categories as cat}
 			<button
-					class="category-btn"
-					class:active={selectedCategory === null}
-					onclick={() => (selectedCategory = null)}
+				class="category-btn"
+				class:active={selectedCategory === cat}
+				onclick={() => (selectedCategory = cat)}
 			>
-					All
+				{CATEGORYLABELS[cat] ?? cat}
 			</button>
-			{#each data.categories as cat}
-					<button
-							class="category-btn"
-							class:active={selectedCategory === cat}
-							onclick={() => (selectedCategory = cat)}
-					>
-							{CATEGORYLABELS[cat] ?? cat}
-					</button>
-			{/each}
+		{/each}
 	</nav>
 
 	<p class="hint">Tap any achievement for details</p>
 
 	<!-- Achievement Grid -->
 	<div class="achievement-list">
-			{#each filteredAchievements as ach (ach.id)}
-					<AchievementCard
-							id={ach.id}
-							name={ach.name}
-							description={ach.description}
-							tier={ach.tier}
-							category={ach.category}
-							icon={ach.icon}
-							unlockedAt={ach.unlockedAt}
-							onclick={() => selectedAchievement = ach}
-					/>
-			{/each}
+		{#each filteredAchievements as ach (ach.id)}
+			<AchievementCard
+				id={ach.id}
+				name={ach.name}
+				description={ach.description}
+				tier={ach.tier}
+				category={ach.category}
+				icon={ach.icon}
+				unlockedAt={ach.unlockedAt}
+				onclick={() => selectedAchievement = ach}
+			/>
+		{/each}
 	</div>
 
 	{#if filteredAchievements.length === 0}
-			<p class="empty-state">No achievements in this category yet.</p>
+		<p class="empty-state">No achievements in this category yet.</p>
 	{/if}
 
 	<a href="/friends/{data.friend.id}" class="back-link">← Back to {data.friend.name ?? data.friend.username}'s Profile</a>
@@ -106,136 +106,136 @@
 
 <style>
 	.achievements-page {
-			max-width: 1200px;
-			width: 100%;
-			margin: 0 auto;
-			padding: 1.5rem 1rem;
-			display: flex;
-			flex-direction: column;
-			gap: 1.25rem;
+		max-width: 1200px;
+		width: 100%;
+		margin: 0 auto;
+		padding: 1.5rem 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
 	}
 
 	.page-header {
-			display: flex;
-			flex-direction: column;
-			gap: 0.75rem;
-			margin: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin: 2rem;
 	}
 
 	.header-top {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 	}
 
 	.page-title {
-			font-size: 1.5rem;
-			font-weight: 700;
-			color: #f3f4f6;
-			margin: 0;
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: #f3f4f6;
+		margin: 0;
 	}
 
 	.completion-section {
-			display: flex;
-			flex-direction: column;
-			gap: 0.3rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
 	}
 
 	.completion-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 
 	.completion-label {
-			font-size: 0.75rem;
-			color: #9ca3af;
+		font-size: 0.75rem;
+		color: #9ca3af;
 	}
 
 	.completion-percent {
-			font-size: 0.75rem;
-			font-weight: 600;
-			color: #ff6b9d;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #ff6b9d;
 	}
 
 	.completion-track {
-			width: 100%;
-			height: 6px;
-			background: rgba(255, 255, 255, 0.06);
-			border-radius: 3px;
-			overflow: hidden;
+		width: 100%;
+		height: 6px;
+		background: rgba(255, 255, 255, 0.06);
+		border-radius: 3px;
+		overflow: hidden;
 	}
 
 	.completion-fill {
-			height: 100%;
-			background: linear-gradient(90deg, #4ade80, #22d3ee);
-			border-radius: 3px;
-			transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+		height: 100%;
+		background: linear-gradient(90deg, #4ade80, #22d3ee);
+		border-radius: 3px;
+		transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.category-nav {
-			display: flex;
-			gap: 0.35rem;
-			flex-wrap: wrap;
+		display: flex;
+		gap: 0.35rem;
+		flex-wrap: wrap;
 	}
 
 	.category-btn {
-			padding: 0.35rem 0.75rem;
-			border-radius: 999px;
-			border: 1px solid rgba(255, 255, 255, 0.08);
-			background: rgba(255, 255, 255, 0.03);
-			color: #9ca3af;
-			font-family: inherit;
-			font-size: 0.75rem;
-			cursor: pointer;
-			transition: all 0.15s ease;
+		padding: 0.35rem 0.75rem;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.03);
+		color: #9ca3af;
+		font-family: inherit;
+		font-size: 0.75rem;
+		cursor: pointer;
+		transition: all 0.15s ease;
 	}
 
 	.category-btn:hover {
-			background: rgba(255, 255, 255, 0.08);
-			color: #d1d5db;
+	background: rgba(255, 255, 255, 0.08);
+	color: #d1d5db;
 	}
 
 	.category-btn.active {
-			background: rgba(255, 107, 157, 0.1);
-			border-color: rgba(255, 107, 157, 0.3);
-			color: #ff6b9d;
+		background: rgba(255, 107, 157, 0.1);
+		border-color: rgba(255, 107, 157, 0.3);
+		color: #ff6b9d;
 	}
 
 	.hint {
-			font-size: 0.7rem;
-			color: #4b5563;
-			text-align: center;
-			font-style: italic;
+		font-size: 0.7rem;
+		color: #4b5563;
+		text-align: center;
+		font-style: italic;
 	}
 
 	.achievement-list {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-			gap: 0.6rem;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+		gap: 0.6rem;
 	}
 
 	@media (max-width: 480px) {
-			.achievement-list {
-					grid-template-columns: repeat(2, 1fr);
-			}
+		.achievement-list {
+			grid-template-columns: repeat(2, 1fr);
+		}
 	}
 
 	.empty-state {
-			text-align: center;
-			color: #6b7280;
-			font-size: 0.85rem;
-			padding: 2rem;
+		text-align: center;
+		color: #6b7280;
+		font-size: 0.85rem;
+		padding: 2rem;
 	}
 
 	.back-link {
-			color: #6b7280;
-			font-size: 0.8rem;
-			text-decoration: none;
-			text-align: center;
+		color: #6b7280;
+		font-size: 0.8rem;
+		text-decoration: none;
+		text-align: center;
 	}
 
 	.back-link:hover {
-			color: #ff6b9d;
+		color: #ff6b9d;
 	}
 </style>

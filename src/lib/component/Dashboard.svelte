@@ -16,9 +16,9 @@
 	<div class="welcome-row">
 		<div>
 			<h1 class="welcome-title">
-				{$_('dashboard.welcomeBack')} <span class="accent">{user.displayName || user.username} 👋</span>
+				{user.totalGames > 0 ? $_('dashboard.welcomeBack') : $_('dashboard.welcome')} <span class="accent">{user.displayName || user.username} 👋</span>
 			</h1>
-			<p class="welcome-sub">{$_('dashboard.readyMatch')}</p>
+			<p class="welcome-sub">{user.totalGames > 0 ? $_('dashboard.readyMatch') : $_('dashboard.readyFirst')}</p>
 		</div>
 		<a href="/play" class="btn-play">🎮 {$_('dashboard.playNow')}</a>
 	</div>

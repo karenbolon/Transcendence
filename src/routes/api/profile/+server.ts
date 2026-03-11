@@ -64,7 +64,7 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 			});
 
 		// Check for onboarding achievements
-	// 	const progressionResult = await checkOnboardingAchievements(userId);
+		// 	const progressionResult = await checkOnboardingAchievements(userId);
 
 		return json({
 			user: {

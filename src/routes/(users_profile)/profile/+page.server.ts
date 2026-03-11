@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			)
 		)
 		.orderBy(desc(games.created_at))
-		.limit(20);
+		.limit(5);
 
 	// ── CALCULATE STATS ────────────────────────────────────────
 	// let wins = 0;

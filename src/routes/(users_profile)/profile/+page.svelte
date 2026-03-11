@@ -111,7 +111,11 @@
 	     MATCH HISTORY
 	═══════════════════════════════════════════════════════════ -->
 	<section class="match-history">
-		<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
+    <h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
+		{#if data.matches.length > 0}
+			<a href="/match-history" class="view-all-link">View all</a>
+		{/if}
+		
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">
@@ -417,34 +421,18 @@
 		}
 	}
 
-	/* ═════════════════════════════════════════════════
-	   PROGRESSION SECTION
-	   ═════════════════════════════════════════════════ */
-	/* .progression-section {
-		padding: 1rem;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.06);
-		border-radius: 0.75rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
+	.view-all-link {
+		font-size: 0.8rem;
+		color: #ff6b9d;
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.15s;
 	}
 
-	.progression-header {
-		display: flex;
-		justify-content: center;
+	.view-all-link:hover {
+		color: #ff8db5;
+		text-decoration: underline;
 	}
-
-	.progression-stats {
-		display: flex;
-		gap: 1rem;
-		justify-content: center;
-	}
-
-	.mini-stat {
-		font-size: 0.75rem;
-		color: #6b7280;
-	} */
 
 	/* ═════════════════════════════════════════════════
 	   ACHIEVEMENTS SECTION

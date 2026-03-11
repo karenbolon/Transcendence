@@ -2,34 +2,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { lucia } from '../lucia';
 import { db } from '$lib/server/db/index';
-import { users, sessions } from '$lib/server/db/schema';
-import type { User } from '$lib/server/db/schema';
+import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🧹 Clean database helper (inline for auth tests)
-// ══════════════════════════════════════════════════════════════════════════════
-async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => { });
-	await db.delete(users).execute().catch(() => { });
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 👤 Create test user helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function createTestUser(): Promise<User> {
-	const timestamp = Date.now();
-	const [user] = await db
-		.insert(users)
-		.values({
-			username: `testuser_${timestamp}`,
-			name: 'Test User',
-			email: `test_${timestamp}@example.com`,
-			password_hash: 'dummy_hash_for_testing'
-		})
-		.returning();
-	return user;
-}
+import { cleanDatabase, createTestUser } from '$lib/server/db/test_db/test-utils';
 
 describe('Lucia Auth Setup', () => {
 	// ══════════════════════════════════════════════════════════════════════════
@@ -78,7 +53,7 @@ describe('Lucia Auth Setup', () => {
 		expect(result.user).toBeDefined();
 		expect(result.session?.id).toBe(session.id);
 		expect(result.user?.id).toBe(user.id);
-		expect(result.user?.username).toContain('testuser_');
+		expect(result.user?.username).toContain('user_');
 
 		console.log('✅ Session validated:', {
 			sessionId: result.session?.id.substring(0, 10) + '...',

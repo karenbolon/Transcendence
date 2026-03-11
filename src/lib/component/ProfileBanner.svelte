@@ -87,17 +87,17 @@
 					⚙️ {$_('user_profile.settings')}
 				</a>
 			{:else}
+				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 {$_('user_profile.challenge')}</button>
 				{#if isFriend}
-					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>{$_('user_profile.unfriend')}</button>
 					{#if onmessage}
 						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 {$_('user_profile.message')}</button>
 					{/if}
+					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>{$_('user_profile.unfriend')}</button>
 				{:else if friendshipStatus === 'pending'}
 					<button class="banner-btn banner-btn--pending" disabled>⏳ {$_('user_profile.sentRequest')}</button>
 				{:else}
 					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 {$_('user_profile.addFriend')}</button>
 				{/if}
-				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 {$_('user_profile.challenge')}</button>
 			{/if}
 		</div>
 	</div>

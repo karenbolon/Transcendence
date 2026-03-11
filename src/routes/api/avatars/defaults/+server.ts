@@ -18,7 +18,8 @@ function getDefaultsDir(): string {
 export const GET: RequestHandler = async () => {
 	try {
 		const dir = getDefaultsDir();
-		const urls: string[] = [];
+		const groups: Record<string, string[]> = {}
+		// const urls: string[] = [];
 
 		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 			if (entry.isDirectory()) {
@@ -26,16 +27,23 @@ export const GET: RequestHandler = async () => {
 				const files = fs.readdirSync(subdir)
 					.filter((f) => /\.(svg|png|jpg|jpeg|webp)$/i.test(f))
 					.sort();
-				for (const f of files) {
-					urls.push(`/avatars/defaults/${entry.name}/${f}`);
+
+				if (files.length > 0) {
+					groups[entry.name] = files.map(f => `/avatars/defaults/${entry.name}/${f}`);
 				}
+				// for (const f of files) {
+				// 	urls.push(`/avatars/defaults/${entry.name}/${f}`);
+				// }
 			} else if (/\.(svg|png|jpg|jpeg|webp)$/i.test(entry.name)) {
-				urls.push(`/avatars/defaults/${entry.name}`);
+				// urls.push(`/avatars/defaults/${entry.name}`);
+				// Loose files go into "general"
+				if (!groups['general']) groups['general'] = [];
+				groups['general'].push(`/avatars/defaults/${entry.name}`);
 			}
 		}
 
-		return json(urls);
+		return json(groups);
 	} catch {
-		return json([]);
+		return json({});
 	}
 };

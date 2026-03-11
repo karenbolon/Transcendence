@@ -57,8 +57,16 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		// Delete previous uploads for this user
 		try {
 			const files = await readdir(uploadDir);
-			const oldFiles = files.filter(f => f.startsWith(`${userId}-`));
-			await Promise.all(oldFiles.map(f => unlink(join(uploadDir, f))));
+			const userFiles = files
+				.filter(f => f.startsWith(`${userId}-`))
+				.sort(); //filenames use timestamps, so sorting = oldest first
+
+			// If user already has 2 uploads, delete the oldest one(s) to make room
+			// If we prefer just one change 2 to 1
+			while (userFiles.length >= 2) {
+				const oldest = userFiles.shift()!;
+				await unlink(join(uploadDir, oldest));
+			}
 		} catch {
 			// Ignore cleanup errors
 		}

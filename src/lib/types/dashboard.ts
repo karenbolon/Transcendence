@@ -45,7 +45,7 @@ export type Tournament = {
 };
 
 export type DashboardProps = {
-	user: { id: number; username: string; displayName: string | null; avatarUrl: string | null };
+	user: { id: number; username: string; displayName: string | null; avatarUrl: string | null; totalGames: number };
 	globalLeaderboard: LeaderboardPlayer[];
 	friendsLeaderboard: LeaderboardPlayer[];
 	activityFeed: ActivityItem[];

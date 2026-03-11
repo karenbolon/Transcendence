@@ -8,34 +8,8 @@ import {
 	validateRegistrationUniqueness
 } from '../db_valid';
 import { db } from '$lib/server/db';
-import { users, sessions, games, friendships } from '$lib/server/db/schema';
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 🧹 Database cleanup helper
-// ══════════════════════════════════════════════════════════════════════════════
-async function cleanDatabase() {
-	await db.delete(sessions).execute().catch(() => {});
-	await db.delete(friendships).execute().catch(() => {});
-	await db.delete(games).execute().catch(() => {});
-	await db.delete(users).execute().catch(() => {});
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 👤 Helper to create a test user
-// ══════════════════════════════════════════════════════════════════════════════
-async function createTestUser(overrides: { username?: string; email?: string } = {}) {
-	const timestamp = Date.now();
-	const [user] = await db
-		.insert(users)
-		.values({
-			username: overrides.username ?? `testuser_${timestamp}`,
-			name: 'Test User',
-			email: overrides.email ?? `test_${timestamp}@example.com`,
-			password_hash: 'hashed_password'
-		})
-		.returning();
-	return user;
-}
+import { users } from '$lib/server/db/schema';
+import { cleanDatabase, createTestUser } from '$lib/server/db/test_db/test-utils';
 
 describe('Database Validation', () => {
 	// Clean before each test for isolation
@@ -59,14 +33,12 @@ describe('Database Validation', () => {
 			expect(result).toBe(true);
 		});
 
-		it('should be case-sensitive', async () => {
+		it('should be case-insensitive', async () => {
 			await createTestUser({ username: 'Alice' });
 
-			// Depending on your DB collation, this might differ
-			// PostgreSQL is case-sensitive by default
 			expect(await isUsernameTaken('Alice')).toBe(true);
-			expect(await isUsernameTaken('alice')).toBe(false);
-			expect(await isUsernameTaken('ALICE')).toBe(false);
+			expect(await isUsernameTaken('alice')).toBe(true);
+			expect(await isUsernameTaken('ALICE')).toBe(true);
 		});
 	});
 
@@ -86,12 +58,12 @@ describe('Database Validation', () => {
 			expect(result).toBe(true);
 		});
 
-		it('should be case-sensitive for email', async () => {
+		it('should be case-insensitive for email', async () => {
 			await createTestUser({ email: 'Alice@Example.com' });
 
-			// PostgreSQL is case-sensitive by default
 			expect(await isEmailTaken('Alice@Example.com')).toBe(true);
-			expect(await isEmailTaken('alice@example.com')).toBe(false);
+			expect(await isEmailTaken('alice@example.com')).toBe(true);
+			expect(await isEmailTaken('ALICE@EXAMPLE.COM')).toBe(true);
 		});
 	});
 

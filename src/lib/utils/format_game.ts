@@ -50,3 +50,13 @@ export function formatTournamentFormat(format: string): string {
 export function calcWinRate(wins: number, total: number): number {
 	return total > 0 ? Math.round((wins / total) * 100) : 0;
 };
+
+/** Game mode to emoji */
+export function modeEmoji(mode: string): string {
+	switch (mode) {
+		case 'local': return '👥 Local';
+		case 'online': return '🌐 Online';
+		case 'computer': return '🤖 Computer';
+		default: return '';
+	}
+}

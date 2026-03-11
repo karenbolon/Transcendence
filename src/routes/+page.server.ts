@@ -240,6 +240,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			username: locals.user.username,
 			displayName: locals.user.name,
 			avatarUrl: locals.user.avatar_url ?? null,
+			totalGames: userWins[userId]?.total ?? 0,
 		},
 		globalLeaderboard,
 		friendsLeaderboard,

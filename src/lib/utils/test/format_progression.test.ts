@@ -5,59 +5,63 @@ describe('getStreakInfo', () => {
 	it('should return fire for 5+ streak', () => {
 		const info = getStreakInfo(5);
 		expect(info.emoji).toBe('💫');
-		expect(info.label).toBe('5 wins');
+		expect(info.labelKey).toBe('user_profile.streak.wins');
+		expect(info.count).toBe(5);
 	});
 
 	it('should return fire for 3-4 streak', () => {
 		const info = getStreakInfo(3);
 		expect(info.emoji).toBe('🔥');
-		expect(info.label).toBe('3 wins');
+		expect(info.labelKey).toBe('user_profile.streak.wins');
+		expect(info.count).toBe(3);
 	});
 
 	it('should return bolt for 1-2 streak', () => {
 		const info = getStreakInfo(1);
 		expect(info.emoji).toBe('⚡');
-		expect(info.label).toBe('1 win');
+		expect(info.labelKey).toBe('user_profile.streak.wins');
+		expect(info.count).toBe(1);
 	});
 
 	it('should return ice for 0 streak', () => {
 		const info = getStreakInfo(0);
 		expect(info.emoji).toContain('❄️');
-		expect(info.label).toBe('0 wins');
+		expect(info.labelKey).toBe('user_profile.streak.wins');
+		expect(info.count).toBe(0);
 	});
 
-	it('should handle singular win label', () => {
-		expect(getStreakInfo(1).label).toBe('1 win');
-		expect(getStreakInfo(2).label).toBe('2 wins');
+	it('should return correct count', () => {
+		expect(getStreakInfo(1).count).toBe(1);
+		expect(getStreakInfo(2).count).toBe(2);
 	});
 });
 
 describe('getMilestone', () => {
 	it('should return Transcendent for level 50+', () => {
-		expect(getMilestone(50).title).toBe('Transcendent');
-		expect(getMilestone(99).title).toBe('Transcendent');
+		expect(getMilestone(50).titleKey).toBe('user_profile.milestones.transcendent');
+		expect(getMilestone(99).titleKey).toBe('user_profile.milestones.transcendent');
 	});
 
 	it('should return Legend for level 30-49', () => {
-		expect(getMilestone(30).title).toBe('Legend');
-		expect(getMilestone(49).title).toBe('Legend');
+		expect(getMilestone(30).titleKey).toBe('user_profile.milestones.legend');
+		expect(getMilestone(49).titleKey).toBe('user_profile.milestones.legend');
 	});
 
 	it('should return Diamond for level 20-29', () => {
-		expect(getMilestone(20).title).toBe('Diamond');
+		expect(getMilestone(20).titleKey).toBe('user_profile.milestones.diamond');
 	});
 
 	it('should return Flame for level 10-19', () => {
-		expect(getMilestone(10).title).toBe('Flame');
+		expect(getMilestone(10).titleKey).toBe('user_profile.milestones.flame');
 	});
 
 	it('should return Spark for level 5-9', () => {
-		expect(getMilestone(5).title).toBe('Spark');
+		expect(getMilestone(5).titleKey).toBe('user_profile.milestones.spark');
 	});
 
 	it('should return Seedling for level 0-4', () => {
-		expect(getMilestone(0).title).toBe('Seedling');
-		expect(getMilestone(4).title).toBe('Seedling');
+		expect(getMilestone(0).titleKey).toBe('user_profile.milestones.seedling');
+		expect(getMilestone(4).titleKey).toBe('user_profile.milestones.seedling');
 	});
 });
 
@@ -83,24 +87,24 @@ describe('xpPercent', () => {
 
 describe('getTierColor', () => {
 	it('should return legendary for level 50+', () => {
-		expect(getTierColor(50).label).toBe('legendary');
+		expect(getTierColor(50).labelKey).toBe('user_profile.tiers.legendary');
 	});
 
 	it('should return epic for level 30-49', () => {
-		expect(getTierColor(30).label).toBe('epic');
+		expect(getTierColor(30).labelKey).toBe('user_profile.tiers.epic');
 	});
 
 	it('should return gold for level 20-29', () => {
-		expect(getTierColor(20).label).toBe('gold');
+		expect(getTierColor(20).labelKey).toBe('user_profile.tiers.gold');
 	});
 
 	it('should return silver for level 10-19', () => {
-		expect(getTierColor(10).label).toBe('silver');
+		expect(getTierColor(10).labelKey).toBe('user_profile.tiers.silver');
 	});
 
 	it('should return bronze for level 0-9', () => {
-		expect(getTierColor(0).label).toBe('bronze');
-		expect(getTierColor(9).label).toBe('bronze');
+		expect(getTierColor(0).labelKey).toBe('user_profile.tiers.bronze');
+		expect(getTierColor(9).labelKey).toBe('user_profile.tiers.bronze');
 	});
 
 	it('should return from and to colors', () => {

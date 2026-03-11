@@ -607,8 +607,10 @@
     "title": "Global Leaderboard",
     "viewAll": "View all",
     "noGames": "No games played yet",
+    "welcome": "Welcome,",
     "welcomeBack": "Welcome back,",
     "readyMatch": "Ready for another match?",
+    "readyFirst": "Ready for your first match?",
     "playNow": "Play Now",
 
     "friendsLeaderboard": "Friends Leaderboard",

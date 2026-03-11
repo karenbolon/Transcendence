@@ -412,14 +412,10 @@ describe('Friends API Endpoints', () => {
 	// ════════════════════════════════════════════════════════════════════════
 
 	describe('POST /api/friends/block', () => {
-		it('should block a user with no existing relationship', async () => {
+		it('should reject blocking a user with no existing relationship', async () => {
 			const res = await blockHandler(mockPostEvent(alice.id, { friendId: bob.id }));
 			const { status } = await parseResponse(res);
-			expect(status).toBe(200);
-
-			const row = await getFriendship(alice.id, bob.id);
-			expect(row!.status).toBe('blocked');
-			expect(row!.user_id).toBe(alice.id);
+			expect(status).toBe(400);
 		});
 
 		it('should block and unfriend an existing friend', async () => {
@@ -464,11 +460,24 @@ describe('Friends API Endpoints', () => {
 			expect(status).toBe(404);
 		});
 
-		it('should block a user who sent us a pending request', async () => {
+		it('should only allow blocking accepted friends', async () => {
+			// Pending request — can't block
 			await db.insert(friendships).values({
 				user_id: bob.id,
 				friend_id: alice.id,
 				status: 'pending',
+			});
+
+			const res = await blockHandler(mockPostEvent(alice.id, { friendId: bob.id }));
+			const { status } = await parseResponse(res);
+			expect(status).toBe(400);
+		});
+
+		it('should block an accepted friend', async () => {
+			await db.insert(friendships).values({
+				user_id: alice.id,
+				friend_id: bob.id,
+				status: 'accepted',
 			});
 
 			const res = await blockHandler(mockPostEvent(alice.id, { friendId: bob.id }));
@@ -486,7 +495,7 @@ describe('Friends API Endpoints', () => {
 	// ════════════════════════════════════════════════════════════════════════
 
 	describe('POST /api/friends/unblock', () => {
-		it('should unblock a blocked user', async () => {
+		it('should unblock and restore friendship', async () => {
 			await db.insert(friendships).values({
 				user_id: alice.id,
 				friend_id: bob.id,
@@ -497,9 +506,10 @@ describe('Friends API Endpoints', () => {
 			const { status } = await parseResponse(res);
 			expect(status).toBe(200);
 
-			// Row should be fully deleted
+			// Row should be restored to accepted
 			const row = await getFriendship(alice.id, bob.id);
-			expect(row).toBeNull();
+			expect(row).not.toBeNull();
+			expect(row!.status).toBe('accepted');
 		});
 
 		it('should not allow the blocked user to unblock themselves', async () => {
@@ -521,7 +531,7 @@ describe('Friends API Endpoints', () => {
 			expect(status).toBe(404);
 		});
 
-		it('should allow re-requesting after unblock', async () => {
+		it('should restore friendship after unblock (no re-request needed)', async () => {
 			await db.insert(friendships).values({
 				user_id: alice.id,
 				friend_id: bob.id,
@@ -531,11 +541,10 @@ describe('Friends API Endpoints', () => {
 			// Alice unblocks Bob
 			await unblockHandler(mockPostEvent(alice.id, { friendId: bob.id }));
 
-			// Bob can now send a friend request
-			const res = await requestHandler(mockPostEvent(bob.id, { friendId: alice.id }));
-			const { status, data } = await parseResponse(res);
-			expect(status).toBe(200);
-			expect(data.status).toBe('pending');
+			// They should be friends again
+			const row = await getFriendship(alice.id, bob.id);
+			expect(row).not.toBeNull();
+			expect(row!.status).toBe('accepted');
 		});
 	});
 
@@ -636,23 +645,20 @@ describe('Friends API Endpoints', () => {
 			expect(row!.status).toBe('accepted');
 		});
 
-		it('request → block → unblock → re-request', async () => {
-			// Alice sends request
+		it('accept → block → unblock → friends again', async () => {
+			// Alice sends request, Bob accepts
 			await requestHandler(mockPostEvent(alice.id, { friendId: bob.id }));
+			await acceptHandler(mockPostEvent(bob.id, { friendId: alice.id }));
 
 			// Bob blocks Alice
 			await blockHandler(mockPostEvent(bob.id, { friendId: alice.id }));
+			let row = await getFriendship(bob.id, alice.id);
+			expect(row!.status).toBe('blocked');
 
-			// Alice can't send request (blocked)
-			let res = await requestHandler(mockPostEvent(alice.id, { friendId: bob.id }));
-			expect((await parseResponse(res)).status).toBe(403);
-
-			// Bob unblocks
+			// Bob unblocks — friendship restored
 			await unblockHandler(mockPostEvent(bob.id, { friendId: alice.id }));
-
-			// Alice can send again
-			res = await requestHandler(mockPostEvent(alice.id, { friendId: bob.id }));
-			expect((await parseResponse(res)).data.status).toBe('pending');
+			row = await getFriendship(bob.id, alice.id);
+			expect(row!.status).toBe('accepted');
 		});
 
 		it('mutual request → auto-accept', async () => {

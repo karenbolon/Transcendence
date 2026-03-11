@@ -9,7 +9,7 @@
 	let searchQuery = $state('');
 	let searchResults: SearchResult[] = $state([]);
 	let searching = $state(false);
-	let activeTab = $state('requests');
+	let activeTab = $state('friends');
 	let toast = $state('');
 	let loading = $state('');
 
@@ -208,10 +208,13 @@
 											<span class="card-handle">@{user.username.toLowerCase()}</span>
 											{#if user.relationship}
 												<span class="friend-status-badge {user.relationship}">
-													{user.relationship === 'accepted' ? 'Friends'
-														: user.relationship === 'pending' ? 'Pending'
-														: user.relationship === 'blocked' ? 'Blocked'
-														: ''}
+													{#if user.relationship === 'accepted'}
+														✓ Friends
+													{:else if user.relationship === 'pending'}
+														⏳ Pending
+													{:else if user.relationship === 'blocked'}
+														✕ Blocked
+													{/if}
 												</span>
 											{/if}
 										</div>
@@ -269,18 +272,18 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button class="btn btn-challenge"><span class="btn-icon">👾</span> Challenge</button>
-										<button
-											class="btn btn-unfriend"
-											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										><span class="btn-icon">👋</span> Unfriend</button>
+										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
 											onclick={() => friendAction('block', item.id, 'User blocked')}
 										><span class="btn-icon">🚫</span> Block</button>
+										<button
+											class="btn btn-unfriend"
+											disabled={loading === `remove-${item.id}`}
+											onclick={() => friendAction('remove', item.id, 'Friend removed')}
+										>Unfriend</button>
 									</div>
 								</div>
 							{/each}
@@ -306,15 +309,15 @@
 									<div class="friend-actions">
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
-											class="btn btn-unfriend"
-											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										><span class="btn-icon">👋</span> Unfriend</button>
-										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
 											onclick={() => friendAction('block', item.id, 'User blocked')}
 										><span class="btn-icon">🚫</span> Block</button>
+										<button
+											class="btn btn-unfriend"
+											disabled={loading === `remove-${item.id}`}
+											onclick={() => friendAction('remove', item.id, 'Friend removed')}
+										>Unfriend</button>
 									</div>
 								</div>
 							{/each}
@@ -765,14 +768,34 @@
 
 /* ===== Relationship badge in search results ===== */
 	.friend-status-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		font-size: 0.65rem;
+		font-weight: 700;
 		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		padding: 0.15rem 0.5rem;
+		border-radius: 999px;
+		margin-top: 0.2rem;
+		width: fit-content;
 	}
 
-	.friend-status-badge.accepted { color: #22c55e; }
-	.friend-status-badge.pending { color: #eab308; }
-	.friend-status-badge.blocked { color: #ef4444; }
+	.friend-status-badge.accepted {
+		color: #22c55e;
+		background: rgba(34, 197, 94, 0.12);
+		border: 1px solid rgba(34, 197, 94, 0.25);
+	}
+	.friend-status-badge.pending {
+		color: #eab308;
+		background: rgba(234, 179, 8, 0.12);
+		border: 1px solid rgba(234, 179, 8, 0.25);
+	}
+	.friend-status-badge.blocked {
+		color: #ef4444;
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.25);
+	}
 
 /* ===== Action buttons ===== */
 	.friend-actions {

@@ -76,8 +76,8 @@
 		// Determine Player 2's display name
 		const p2DisplayName =
 			gameMode === "computer"
-				? "Computer"
-				: player2Name.trim() || "Guest";
+				? $_("common.computer")
+				: player2Name.trim() || $_("common.guest");
 
 		try {
 			const response = await fetch("/matches", {

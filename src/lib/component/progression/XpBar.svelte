@@ -1,16 +1,18 @@
 <script lang="ts">
 	import type { Progression } from '$lib/types/progression';
 	import { xpPercent } from "$lib/utils/format_progression";
+	import { _, isLoading } from 'svelte-i18n';
 
 	let { currentXp, xpToNextLevel, level }: Progression = $props();
 
 	let percentage = $derived(xpPercent(currentXp, xpToNextLevel));
 </script>
 
+{#if !$isLoading}
 <div class="xp-bar-container">
 	<div class="xp-bar-header">
-		<span class="xp-label">Level {level}</span>
-		<span class="xp-numbers">{currentXp.toLocaleString()} / {xpToNextLevel.toLocaleString()} XP</span>
+		<span class="xp-label">{$_('user_profile.level.label', { values: { level } })}</span>
+		<span class="xp-numbers">{$_('user_profile.level.xp_progress', { values: { currentXp: currentXp.toLocaleString(), xpToNextLevel: xpToNextLevel.toLocaleString() } })}</span>
 
 	</div>
 	<div class="xp-bar-track">
@@ -20,8 +22,9 @@
 			{/if}
 		</div>
 	</div>
-	<span class="xp-next">Level {level + 1}</span>
+	<span class="xp-next">{$_('user_profile.level.label', { values: { level: level + 1 } })}</span>
 </div>
+{/if}
 
 <style>
 	.xp-bar-container {

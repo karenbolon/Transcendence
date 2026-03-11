@@ -83,11 +83,9 @@
 								{player.name || player.username}
 								{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
 							</span>
-							<span class="podium-wins">{player.wins} wins</span>
+							<span class="podium-wins">{$_('dashboard.winsShort', { values: { wins: player.wins } })}</span>
 							<div class="podium-stats">
-								<span class="podium-games">{player.totalGames} games</span>
-								<span class="podium-sep">·</span>
-								<span class="podium-rate">{player.winRate}%</span>
+								<span class="podium-games">{$_('dashboard.statsLine', { values: { totalGames: player.totalGames, winRate: player.winRate } })}</span>
 							</div>
 						</a>
 					{/if}
@@ -100,9 +98,9 @@
 			<div class="table-header">
 				<span class="col-rank">#</span>
 				<span class="col-player">Player</span>
-				<span class="col-games">Games</span>
-				<span class="col-wins">Wins</span>
-				<span class="col-losses">Losses</span>
+				<span class="col-games">{$_('common.games')}</span>
+				<span class="col-wins">{$_('user_profile.dashboard.wins')}</span>
+				<span class="col-losses">{$_('user_profile.dashboard.losses')}</span>
 				<span class="col-rate">Win %</span>
 			</div>
 

@@ -1,3 +1,6 @@
+import { _ } from 'svelte-i18n';
+import { get } from 'svelte/store';
+
 /** Format a date as relative time ("2m ago", "3d ago") or short date */
 export function formatDate(date: Date | string): string {
 	const d = new Date(date);
@@ -7,10 +10,13 @@ export function formatDate(date: Date | string): string {
 	const diffHours = Math.floor(diffMs / 3600000);
 	const diffDays = Math.floor(diffMs / 86400000);
 
-	if (diffMins < 1) return 'Just now';
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
+	// Get the current translate function
+	const translate = get(_);
+
+	if (diffMins < 1) return translate('time.just_now');
+	if (diffMins < 60) return translate('time.minutes_ago', { values: { minutes: diffMins } });
+	if (diffHours < 24) return translate('time.hours_ago', { values: { hours: diffHours } });
+	if (diffDays < 7) return translate('time.days_ago', { values: { days: diffDays } });
 
 	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };

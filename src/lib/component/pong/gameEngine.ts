@@ -329,7 +329,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 			state.reachedDeuce = true;
 		}
 
-		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
+		const scorer = settings.gameMode === 'computer' ? 'computer' : 'player2';
 		if (state.score2 >= settings.winScore) {
 			endGame(state, scorer);
 		} else {
@@ -350,7 +350,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		}
 
 		if (state.score1 >= settings.winScore) {
-			endGame(state, 'Player 1');
+			endGame(state, 'player1');
 		} else {
 			state.scorePause = SCORE_PAUSE_DURATION;
 			resetBall(state, settings);

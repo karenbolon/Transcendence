@@ -6,7 +6,7 @@ import { eq, and } from 'drizzle-orm';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
-		return json({ error: 'Not authenticated' }, { status: 401 });
+		return json({ errorKey: 'errors.not_authenticated' }, { status: 401 });
 	}
 
 	const userId = Number(locals.user.id);
@@ -15,13 +15,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	try {
 		body = await request.json();
 	} catch {
-		return json({ error: 'Invalid JSON body' }, { status: 400 });
+		return json({ errorKey: 'errors.invalid_json_body' }, { status: 400 });
 	}
 
 	const { friendId } = body as { friendId: number };
 
-	if (!friendId || typeof friendId !== 'number') {
-		return json({ error: 'friendId is required' }, { status: 400 });
+	if (typeof friendId !== 'number' || Number.isNaN(friendId)) {
+		return json({ errorKey: 'errors.friendId' }, { status: 400 });
 	}
 
 	// Only the RECEIVER (friend_id) can accept
@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		);
 
 	if (!row) {
-		return json({ error: 'No pending request found' }, { status: 404 });
+		return json({ errorKey: 'errors.noPending'}, { status: 404 });
 	}
 
 	await db
@@ -45,5 +45,5 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		.set({ status: 'accepted' })
 		.where(eq(friendships.id, row.id));
 
-	return json({ message: 'Friend request accepted' });
+	return json({ messageKey: 'friend.acceptedDesc' });
 };

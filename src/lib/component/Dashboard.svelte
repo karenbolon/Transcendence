@@ -47,10 +47,10 @@
 						<div class="podium-info">
 							<div class="podium-name">{player.displayName || player.username}</div>
 							<div class="podium-stat">
-								{player.totalGames} games · {player.winRate}% win rate
+							{$_('dashboard.statsLine', { values: { totalGames: player.totalGames, winRate: player.winRate } })}
 							</div>
 						</div>
-						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>
+						<span class="podium-wins rank-{i + 1}">{$_('dashboard.winsShort', { values: { wins: player.wins } })}</span>
 					</a>
 				{:else}
 					<div class="empty-mini">{$_('dashboard.noGames')}</div>
@@ -80,10 +80,10 @@
 						<div class="podium-info">
 							<div class="podium-name">{player.displayName || player.username}</div>
 							<div class="podium-stat">
-								{player.totalGames} games · {player.winRate}% win rate
+								{$_('dashboard.statsLine', { values: { totalGames: player.totalGames, winRate: player.winRate } })}
 							</div>
 						</div>
-						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>
+						<span class="podium-wins rank-{i + 1}">{$_('dashboard.winsShort', { values: { wins: player.wins } })}</span>
 					</a>
 				{:else}
 					<div class="empty-mini">{$_('dashboard.friendsEmpty')}</div>

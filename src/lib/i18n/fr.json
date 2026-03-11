@@ -31,7 +31,21 @@
     "play": "Jouer",
     "player1": "Joueur 1",
     "player2": "Joueur 2",
-    "games": "Parties"
+    "games": "Parties",
+    "vs": "vs",
+    "computer": "Ordinateur",
+    "guest": "Invité"
+  },
+  "game_modes": {
+    "local": "PvP Local",
+    "computer": "vs Ordinateur",
+    "online": "En ligne"
+  },
+  "time": {
+    "just_now": "À l'instant",
+    "minutes_ago": "il y a {minutes}m",
+    "hours_ago": "il y a {hours}h",
+    "days_ago": "il y a {days}j"
   },
   "errors": {
     "username_taken": "Nom d'utilisateur déjà utilisé",
@@ -52,7 +66,16 @@
     "invalid_match": "Données de partie invalides",
     "save_failed": "Impossible d'enregistrer le résultat de la partie",
     "password_change_failed": "Impossible de modifier le mot de passe.",
-    "deletionFailed": "Impossible de supprimer le compte."
+    "deletionFailed": "Impossible de supprimer le compte.",
+    "not_authenticated": "Non authentifié",
+    "invalid_json_body": "Corps JSON invalide",
+    "friendId": "friendId est requis",
+    "noPending": "Aucune demande en attente trouvée"
+  },
+  "friend": {
+    "pending": "en attente",
+    "accepted": "acceptée",
+    "acceptedDesc": "Demande d’ami acceptée"
   },
   "auth": {
     "login": {
@@ -302,6 +325,7 @@
       "winRate": "Taux de victoire",
       "milestonesTitle": "Étapes et Succès",
       "noAchievements": "Aucun succès pour l’instant. Jouez des parties pour les débloquer !",
+      "noAchievementsYet": "Aucun succès pour l’instant.",
       "matchHistoryTitle": "Historique des parties",
       "noMatchesTitle": "Aucune partie pour l’instant !",
       "noMatchesText": "Jouez votre première partie pour voir votre historique ici.",
@@ -352,16 +376,84 @@
     },
     "level": {
       "label": "Niveau {level}",
+      "short": "NIV",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
       "no_xp": "0 XP gagnée",
       "level_label": "Niveau",
       "lvl": "NIV"
+    },
+    "level_up_modal": {
+      "level_up": "Montée de Niveau !",
+      "match_complete": "Match Terminé",
+      "total": "Total",
+      "continue": "Continuer"
+    },
+    "xp_bonuses": {
+      "base": "Base",
+      "shutout": "Blanchissage",
+      "win_streak": "Série de Victoires",
+      "comeback": "Remontée",
+      "speed_bonus": "Bonus de Vitesse"
     },
     "badges": {
       "recent": "Badges récents",
       "view_all": "{count} obtenus · Voir tout →",
       "more": "plus",
       "locked": "???"
+    },
+    "achievement_names": {
+      "shutout_bronze": "Blanchissage",
+      "shutout_silver": "Artiste du blanchissage",
+      "streak_bronze": "Série chaude",
+      "streak_silver": "En feu",
+      "streak_gold": "Inarrêtable",
+      "points_bronze": "Collectionneur de points",
+      "points_silver": "Tireur d'élite",
+      "points_gold": "Machine à points",
+      "first_match": "Premier match",
+      "first_victory": "Première victoire",
+      "first_defeat": "Première défaite",
+      "profile_avatar": "Visage du jeu",
+      "profile_bio": "Exprimez-vous",
+      "social_first_friend": "Premier ami",
+      "social_circle": "Cercle social",
+      "pvp_first_match": "Premier match PvP",
+      "pvp_first_win": "Première victoire PvP",
+      "night_owl": "Oiseau de nuit",
+      "veteran_bronze": "Vétéran",
+      "veteran_silver": "Joueur expérimenté",
+      "veteran_gold": "Légende",
+      "comeback_bronze": "Enfant du retour",
+      "comeback_silver": "N'abandonne jamais",
+      "speed_demon": "Démon de la vitesse",
+      "marathon": "Match marathon"
+    },
+    "achievement_descriptions": {
+      "shutout_bronze": "Gagnez un match où votre adversaire ne marque aucun point",
+      "shutout_silver": "Gagnez 10 matchs avec blanchissage",
+      "streak_bronze": "Gagnez 3 matchs d'affilée",
+      "streak_silver": "Gagnez 7 matchs d'affilée",
+      "streak_gold": "Gagnez 15 matchs d'affilée",
+      "points_bronze": "Marquez 50 points en carrière",
+      "points_silver": "Marquez 200 points en carrière",
+      "points_gold": "Marquez 500 points en carrière",
+      "first_match": "Terminez un match",
+      "first_victory": "Gagnez votre premier match",
+      "first_defeat": "Perdez votre premier match",
+      "profile_avatar": "Téléchargez ou sélectionnez un avatar",
+      "profile_bio": "Écrivez une biographie",
+      "social_first_friend": "Ajoutez votre premier ami",
+      "social_circle": "Ayez 5 amis acceptés",
+      "pvp_first_match": "Jouez votre premier match en ligne",
+      "pvp_first_win": "Gagnez votre premier match en ligne",
+      "night_owl": "Jouez un match après minuit",
+      "veteran_bronze": "Jouez 10 matchs",
+      "veteran_silver": "Jouez 50 matchs",
+      "veteran_gold": "Jouez 100 matchs",
+      "comeback_bronze": "Gagnez après avoir été mené de 3+ points",
+      "comeback_silver": "Gagnez 5 matchs de retour",
+      "speed_demon": "Gagnez un match en vitesse rapide",
+      "marathon": "Jouez un match durant plus de 5 minutes"
     }
   },
   "settings": {
@@ -561,9 +653,6 @@
   "tournaments": {
     "title": "Tournois"
   },
-  "friends": {
-    "title": "Amis"
-  },
   "about": {
     "title": "À propos",
     "heroTitleLine1": "Créé par des étudiants.",
@@ -610,8 +699,10 @@
     "title": "Classement Global",
     "viewAll": "Voir tout",
     "noGames": "Aucune partie jouée pour le moment",
+    "welcome": "Bienvenue,",
     "welcomeBack": "Bon retour,",
     "readyMatch": "Prêt pour un autre match ?",
+    "readyFirst": "Prêt pour votre premier match ?",
     "playNow": "Jouer maintenant",
     "friendsLeaderboard": "Classement des amis",
     "friendsEmpty": "Ajoutez des amis pour voir leur classement !",
@@ -677,5 +768,79 @@
       "description": "Une erreur inattendue s'est produite.",
       "footer": "Quelque chose d'inattendu s'est produit dans le jeu ! 🕹️"
     }
+  },
+  "friends": {
+    "title": "Amis",
+    "stats": {
+      "subtitle": "amis",
+      "online": "en ligne"
+    },
+    "all": {
+      "title": "Tous les amis",
+      "online_section": "EN LIGNE",
+      "offline_section": "HORS LIGNE"
+    },
+    "find": {
+      "title": "Trouver des amis",
+      "empty_title": "Recherchez des utilisateurs à ajouter comme amis",
+      "empty_hint": "Tapez au moins 2 caractères pour rechercher.",
+      "none_found": "Aucun joueur trouvé",
+      "none_found_hint": "Essayez un autre nom ou nom d'utilisateur."
+    },
+    "tabs": {
+      "requests": "Demandes",
+      "sent": "Envoyées"
+    },
+    "activity": {
+      "playing": "En jeu",
+      "away": "Absent",
+      "online": "En ligne",
+      "offline": "Hors ligne"
+    },
+    "search": {
+      "placeholder": "Rechercher des utilisateurs...",
+      "searching": "Recherche...",
+      "results": "{count} résultat(s) pour \"{query}\"",
+      "no_matches": "Aucun résultat pour",
+      "try_different": "Essayez un autre nom ou consultez l'onglet Trouver des amis."
+    },
+    "empty": {
+      "no_friends": "Pas encore d'amis. Recherchez des utilisateurs à ajouter !",
+      "no_requests": "Aucune demande en attente",
+      "no_sent": "Aucune demande envoyée",
+      "no_blocked": "Aucun utilisateur bloqué"
+    },
+    "status": {
+      "friends": "✓ Amis",
+      "pending": "⏳ En attente",
+      "blocked": "✕ Bloqué"
+    },
+    "actions": {
+      "add_friend": "Ajouter un ami",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "cancel": "Annuler",
+      "block": "Bloquer",
+      "unblock": "Débloquer",
+      "unfriend": "Retirer des amis",
+      "challenge": "Défier",
+      "message": "Message",
+      "request_sent": "Demande d’ami envoyée",
+      "friend_added": "Ami ajouté !",
+      "request_declined": "Demande refusée",
+      "request_cancelled": "Demande annulée",
+      "user_blocked": "Utilisateur bloqué",
+      "user_unblocked": "Utilisateur débloqué",
+      "friend_removed": "Ami supprimé"
+    }
+  },
+  "avatar": {
+    "myAvatars": "Mes avatars",
+    "collection": "Collection",
+    "unlockable": "Déverrouillable",
+    "default": "Par défaut",
+    "upload": "Téléverser",
+    "unlocked": "Déverrouillé",
+    "description": "Complétez des succès pour débloquer des avatars spéciaux"
   }
 }

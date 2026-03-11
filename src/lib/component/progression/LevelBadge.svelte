@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getMilestone } from '$lib/utils/format_progression';
 	import type { LevelSizeProps } from '$lib/types/progression';
+	import { _ } from 'svelte-i18n';
 
 	let { level, size = "md" }: LevelSizeProps = $props();
 
@@ -9,7 +10,7 @@
 
 <div
 	class="level-badge level-badge--{size}"
-	title="{milestone.titleKey} — Level {level}"
+	title="{milestone.titleKey} — {$_('level.label', { values: { level } })}"
 >
 	<span class="badge-icon">{milestone.icon}</span>
 	<span class="badge-level">{level}</span>

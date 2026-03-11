@@ -31,7 +31,21 @@
     "play": "Gioca",
     "player1": "Giocatore 1",
     "player2": "Giocatore 2",
-    "games": "Partite"
+    "games": "Partite",
+    "vs": "vs",
+    "computer": "Computer",
+    "guest": "Ospite"
+  },
+  "game_modes": {
+    "local": "PvP Locale",
+    "computer": "vs Computer",
+    "online": "Online"
+  },
+  "time": {
+    "just_now": "Proprio ora",
+    "minutes_ago": "{minutes}m fa",
+    "hours_ago": "{hours}h fa",
+    "days_ago": "{days}g fa"
   },
   "errors": {
     "username_taken": "Nome utente già in uso",
@@ -52,7 +66,16 @@
     "invalid_match": "Dati della partita non validi",
     "save_failed": "Impossibile salvare il risultato della partita",
     "password_change_failed": "Impossibile cambiare la password.",
-    "deletionFailed": "Impossibile eliminare l’account."
+    "deletionFailed": "Impossibile eliminare l’account.",
+    "not_authenticated": "Non autenticato",
+    "invalid_json_body": "Corpo JSON non valido",
+    "friendId": "friendId è obbligatorio",
+    "noPending": "Nessuna richiesta in sospeso trovata"
+  },
+  "friend": {
+    "pending": "in sospeso",
+    "accepted": "accettata",
+    "acceptedDesc": "Richiesta di amicizia accettata"
   },
   "auth": {
     "login": {
@@ -302,6 +325,7 @@
       "winRate": "Percentuale di vittorie",
       "milestonesTitle": "Traguardi e Obiettivi",
       "noAchievements": "Nessun obiettivo ancora. Gioca delle partite per sbloccarli!",
+      "noAchievementsYet": "Nessun obiettivo ancora.",
       "matchHistoryTitle": "Cronologia partite",
       "noMatchesTitle": "Nessuna partita ancora!",
       "noMatchesText": "Gioca la tua prima partita per vedere qui la cronologia.",
@@ -352,17 +376,83 @@
     },
     "level": {
       "label": "Livello {level}",
+      "short": "LIV",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
       "no_xp": "0 XP guadagnati",
       "level_label": "Livello",
       "lvl": "LIV"
     },
+    "level_up_modal": {
+      "level_up": "Salito di Livello!",
+      "match_complete": "Partita Completata",
+      "total": "Totale",
+      "continue": "Continua"
+    },
+    "xp_bonuses": {
+      "base": "Base",
+      "shutout": "Porta Inviolata",
+      "win_streak": "Serie di Vittorie",
+      "comeback": "Rimonta",
+      "speed_bonus": "Bonus Velocità"
+    },
     "badges": {
       "recent": "Badge recenti",
       "view_all": "{count} ottenuti · Vedi tutti →",
       "more": "altro",
-      "locked": "???"
-    }
+      "locked": "???"    },
+    "achievement_names": {
+      "shutout_bronze": "Porta a zero",
+      "shutout_silver": "Artista del shutout",
+      "streak_bronze": "Striscia calda",
+      "streak_silver": "In fiamme",
+      "streak_gold": "Inarrestabile",
+      "points_bronze": "Collezionista di punti",
+      "points_silver": "Tiratore scelto",
+      "points_gold": "Macchina da punti",
+      "first_match": "Prima partita",
+      "first_victory": "Prima vittoria",
+      "first_defeat": "Prima sconfitta",
+      "profile_avatar": "Volto del gioco",
+      "profile_bio": "Esprimiti",
+      "social_first_friend": "Primo amico",
+      "social_circle": "Cerchia sociale",
+      "pvp_first_match": "Prima partita PvP",
+      "pvp_first_win": "Prima vittoria PvP",
+      "night_owl": "Gufo notturno",
+      "veteran_bronze": "Veterano",
+      "veteran_silver": "Giocatore esperto",
+      "veteran_gold": "Leggenda",
+      "comeback_bronze": "Ragazzo del comeback",
+      "comeback_silver": "Non arrenderti mai",
+      "speed_demon": "Demone della velocità",
+      "marathon": "Partita maratona"
+    },
+    "achievement_descriptions": {
+      "shutout_bronze": "Vinci una partita dove il tuo avversario segna 0 punti",
+      "shutout_silver": "Vinci 10 partite shutout",
+      "streak_bronze": "Vinci 3 partite di fila",
+      "streak_silver": "Vinci 7 partite di fila",
+      "streak_gold": "Vinci 15 partite di fila",
+      "points_bronze": "Segna 50 punti in carriera",
+      "points_silver": "Segna 200 punti in carriera",
+      "points_gold": "Segna 500 punti in carriera",
+      "first_match": "Completa una partita",
+      "first_victory": "Vinci la tua prima partita",
+      "first_defeat": "Perdi la tua prima partita",
+      "profile_avatar": "Carica o seleziona un avatar",
+      "profile_bio": "Scrivi una biografia",
+      "social_first_friend": "Aggiungi il tuo primo amico",
+      "social_circle": "Avere 5 amici accettati",
+      "pvp_first_match": "Gioca la tua prima partita online",
+      "pvp_first_win": "Vinci la tua prima partita online",
+      "night_owl": "Gioca una partita dopo mezzanotte",
+      "veteran_bronze": "Gioca 10 partite",
+      "veteran_silver": "Gioca 50 partite",
+      "veteran_gold": "Gioca 100 partite",
+      "comeback_bronze": "Vinci dopo essere stato sotto di 3+ punti",
+      "comeback_silver": "Vinci 5 partite di comeback",
+      "speed_demon": "Vinci una partita a velocità alta",
+      "marathon": "Gioca una partita che dura più di 5 minuti"    }
   },
   "settings": {
     "title": "Impostazioni",
@@ -561,9 +651,6 @@
   "tournaments": {
     "title": "Tornei"
   },
-  "friends": {
-    "title": "Amici"
-  },
   "about": {
     "title": "Chi siamo",
     "heroTitleLine1": "Creato da studenti.",
@@ -610,8 +697,10 @@
     "title": "Classifica Globale",
     "viewAll": "Vedi tutto",
     "noGames": "Nessuna partita giocata finora",
+    "welcome": "Benvenuto,",
     "welcomeBack": "Bentornato,",
-    "readyMatch": "Pronto per un’altra partita?",
+    "readyMatch": "Pronto per un'altra partita?",
+    "readyFirst": "Pronto per la tua prima partita?",
     "playNow": "Gioca ora",
     "friendsLeaderboard": "Classifica amici",
     "friendsEmpty": "Aggiungi amici per vedere le loro classifiche!",
@@ -677,6 +766,80 @@
       "description": "Si è verificato un errore imprevisto.",
       "footer": "Qualcosa di inaspettato è successo nel gioco! 🕹️"
     }
+  },
+  "friends": {
+    "title": "Amici",
+    "stats": {
+      "subtitle": "amici",
+      "online": "online"
+    },
+    "all": {
+      "title": "Tutti gli amici",
+      "online_section": "ONLINE",
+      "offline_section": "OFFLINE"
+    },
+    "find": {
+      "title": "Trova amici",
+      "empty_title": "Cerca utenti da aggiungere come amici",
+      "empty_hint": "Digita almeno 2 caratteri per cercare.",
+      "none_found": "Nessun giocatore trovato",
+      "none_found_hint": "Prova un nome o un username diverso."
+    },
+    "tabs": {
+      "requests": "Richieste",
+      "sent": "Inviate"
+    },
+    "activity": {
+      "playing": "In partita",
+      "away": "Assente",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "search": {
+      "placeholder": "Cerca utenti...",
+      "searching": "Ricerca...",
+      "results": "{count} risultato(i) per \"{query}\"",
+      "no_matches": "Nessun risultato per",
+      "try_different": "Prova un nome diverso o controlla la scheda Trova amici."
+    },
+    "empty": {
+      "no_friends": "Nessun amico ancora. Cerca utenti da aggiungere!",
+      "no_requests": "Nessuna richiesta in sospeso",
+      "no_sent": "Nessuna richiesta inviata",
+      "no_blocked": "Nessun utente bloccato"
+    },
+    "status": {
+      "friends": "✓ Amici",
+      "pending": "⏳ In attesa",
+      "blocked": "✕ Bloccato"
+    },
+    "actions": {
+      "add_friend": "Aggiungi amico",
+      "accept": "Accetta",
+      "decline": "Rifiuta",
+      "cancel": "Annulla",
+      "block": "Blocca",
+      "unblock": "Sblocca",
+      "unfriend": "Rimuovi amico",
+      "challenge": "Sfida",
+      "message": "Messaggio",
+      "request_sent": "Richiesta di amicizia inviata",
+      "friend_added": "Amico aggiunto!",
+      "request_declined": "Richiesta rifiutata",
+      "request_cancelled": "Richiesta annullata",
+      "user_blocked": "Utente bloccato",
+      "user_unblocked": "Utente sbloccato",
+      "friend_removed": "Amico rimosso"
+    }
+  },
+  "avatar": {
+    "myAvatars": "I miei avatar",
+    "collection": "Collezione",
+    "unlockable": "Sbloccabile",
+    "default": "Predefinito",
+    "upload": "Carica",
+    "unlocked": "Sbloccato",
+    "description": "Completa gli obiettivi per sbloccare avatar speciali"
   }
 }
  

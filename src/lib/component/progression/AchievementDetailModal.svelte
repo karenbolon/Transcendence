@@ -2,6 +2,7 @@
 	import { formatJoinDate } from "$lib/utils/format_date";
 	import { XP_REWARDS, TIER_COLORS, RARITY_PERCENT, capitalize } from '$lib/utils/format_progression';
 	import type { Achievement } from '$lib/types/progression';
+	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		achievement: Achievement | null;
@@ -18,6 +19,10 @@
 		TIER_COLORS[achievement?.tier ?? 'bronze'] ?? '#7a7a9e',
 	);
 	let tierLabel = $derived(achievement ? capitalize(achievement.tier) : '');
+
+	// Use translation keys if available, fallback to raw database values
+	let translatedName = $derived(achievement ? $_(`user_profile.achievement_names.${achievement.id}`, { default: achievement.name }) : '');
+	let translatedDescription = $derived(achievement ? $_(`user_profile.achievement_descriptions.${achievement.id}`, { default: achievement.description }) : '');
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
@@ -45,9 +50,9 @@
 					{achievement.icon}
 				</span>
 				<div class="modal-name" class:locked-name={!earned}>
-					{achievement.name}
+					{translatedName}
 				</div>
-				<div class="modal-desc">{achievement.description}</div>
+				<div class="modal-desc">{translatedDescription}</div>
 			</div>
 
 			<!-- Body -->

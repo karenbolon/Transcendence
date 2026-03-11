@@ -3,6 +3,7 @@
 	import { formatDate, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji, formatMode, modeEmoji } from '$lib/utils/format_game';
 	import type { PageData } from './$types';
+	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -82,14 +83,14 @@
 			class:active={data.gameMode === 'online'}
 			onclick={() => filterByMode('online')}
 		>
-			🌐 Online
+			🌐 {$_('game_modes.online')}
 		</button>
 		<button
 			class="game-tab"
 			class:active={data.gameMode === 'computer'}
 			onclick={() => filterByMode('computer')}
 		>
-			🤖 Computer
+			🤖 {$_('game_modes.computer')}
 		</button>
 	</div>
 
@@ -110,14 +111,14 @@
 				class:active={data.result === 'wins'}
 				onclick={() => filterByResult('wins')}
 			>
-				Wins
+				{$_('user_profile.dashboard.wins')}
 			</button>
 			<button
 				class="filter-btn filter-losses"
 				class:active={data.result === 'losses'}
 				onclick={() => filterByResult('losses')}
 			>
-				Losses
+				{$_('user_profile.dashboard.losses')}
 			</button>
 		</div>
 

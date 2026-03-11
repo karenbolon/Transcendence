@@ -31,7 +31,21 @@
     "play": "Play",
     "player1": "Player 1",
     "player2": "Player 2",
-    "games": "Games"
+    "games": "Games",
+    "vs": "vs",
+    "computer": "Computer",
+    "guest": "Guest"
+  },
+  "game_modes": {
+    "local": "Local PvP",
+    "computer": "vs Computer", 
+    "online": "Online"
+  },
+  "time": {
+    "just_now": "Just now",
+    "minutes_ago": "{minutes}m ago",
+    "hours_ago": "{hours}h ago", 
+    "days_ago": "{days}d ago"
   },
   "errors": {
     "username_taken": "Username already taken",
@@ -52,7 +66,26 @@
     "invalid_match": "Invalid match data",
     "save_failed": "Failed to save match result",
     "password_change_failed": "Failed to change password.",
-    "deletionFailed": "Failed to delete account."
+    "deletionFailed": "Failed to delete account.",
+    "not_authenticated": "Not authenticated",
+    "invalid_json_body": "Invalid JSON body",
+    "friendId": "friendId is required",
+    "noPending": "No pending request found"
+  },
+  "friend": {
+    "pending": "pending",
+    "accepted": "accepted",
+    "acceptedDesc": "Friend request accepted",
+    "blocked": "blocked",
+    "actions": {
+      "request_sent": "Friend request sent",
+      "blocked": "User blocked",
+      "removed": "Friend removed",
+      "added": "Friend added!",
+      "declined": "Request declined",
+      "cancelled": "Request cancelled",
+      "unblocked": "User unblocked"
+    }
   },
   "auth": {
     "login": {
@@ -301,6 +334,7 @@
       "winRate": "Win Rate",
       "milestonesTitle": "Milestones and Achievements",
       "noAchievements": "No achievements yet. Play matches to unlock them!",
+      "noAchievementsYet": "No achievements yet.",
       "matchHistoryTitle": "Match History",
       "noMatchesTitle": "No matches yet!",
       "noMatchesText": "Play your first game to see your match history here.",
@@ -309,7 +343,8 @@
     "achievements": {
       "title": "Achievements",
       "hint": "Tap any achievement for details",
-      "empty": "No achievements in this category yet."
+      "empty": "No achievements in this category yet.",
+      "new": "New Achievements"
     },
     "labels": {
       "unlocked": "unlocked",
@@ -351,14 +386,84 @@
     },
     "level": {
       "label": "Level {level}",
+      "short": "LVL",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
-      "no_xp": "0 XP earned"
+      "no_xp": "0 XP earned",
+      "level_label": "Level",
+      "lvl": "LVL"
+    },
+    "level_up_modal": {
+      "level_up": "Level Up!",
+      "match_complete": "Match Complete",
+      "total": "Total",
+      "continue": "Continue"
+    },
+    "xp_bonuses": {
+      "base": "Base",
+      "shutout": "Shutout",
+      "win_streak": "Win Streak",
+      "comeback": "Comeback",
+      "speed_bonus": "Speed Bonus"
     },
     "badges": {
       "recent": "Recent Badges",
       "view_all": "{count} earned · View all →",
       "more": "more",
       "locked": "???"
+    },
+    "achievement_names": {
+      "shutout_bronze": "Shutout",
+      "shutout_silver": "Shutout Artist",
+      "streak_bronze": "Hot Streak",
+      "streak_silver": "On Fire", 
+      "streak_gold": "Unstoppable",
+      "points_bronze": "Point Collector",
+      "points_silver": "Sharpshooter",
+      "points_gold": "Point Machine",
+      "first_match": "First Match",
+      "first_victory": "First Victory",
+      "first_defeat": "First Defeat",
+      "profile_avatar": "Face of the Game",
+      "profile_bio": "Express Yourself",
+      "social_first_friend": "First Friend",
+      "social_circle": "Social Circle",
+      "pvp_first_match": "First PvP Match",
+      "pvp_first_win": "First PvP Win",
+      "night_owl": "Night Owl",
+      "veteran_bronze": "Veteran",
+      "veteran_silver": "Seasoned Player",
+      "veteran_gold": "Legend",
+      "comeback_bronze": "Comeback Kid",
+      "comeback_silver": "Never Give Up",
+      "speed_demon": "Speed Demon",
+      "marathon": "Marathon Match"
+    },
+    "achievement_descriptions": {
+      "shutout_bronze": "Win a match where your opponent scores 0 points",
+      "shutout_silver": "Win 10 shutout matches",
+      "streak_bronze": "Win 3 matches in a row",
+      "streak_silver": "Win 7 matches in a row",
+      "streak_gold": "Win 15 matches in a row",
+      "points_bronze": "Score 50 career points",
+      "points_silver": "Score 200 career points", 
+      "points_gold": "Score 500 career points",
+      "first_match": "Finish one match",
+      "first_victory": "Win your first match",
+      "first_defeat": "Lose your first match",
+      "profile_avatar": "Upload or select an avatar",
+      "profile_bio": "Write a bio",
+      "social_first_friend": "Add your first friend",
+      "social_circle": "Have 5 accepted friends",
+      "pvp_first_match": "Play your first online match",
+      "pvp_first_win": "Win your first online match",
+      "night_owl": "Play a match after midnight",
+      "veteran_bronze": "Play 10 matches",
+      "veteran_silver": "Play 50 matches",
+      "veteran_gold": "Play 100 matches",
+      "comeback_bronze": "Win after being down by 3+ points",
+      "comeback_silver": "Win 5 comeback matches",
+      "speed_demon": "Win a match on fast speed",
+      "marathon": "Play a match lasting over 5 minutes"
     }
   },
   "settings": {
@@ -558,9 +663,6 @@
   "tournaments": {
     "title": "Tournaments"
   },
-  "friends": {
-    "title": "Friends"
-  },
   "about": {
     "title": "About",
     "heroTitleLine1": "Built by students.",
@@ -682,5 +784,80 @@
       "description": "An unexpected error occurred.",
       "footer": "Something unexpected happened in the game! 🕹️"
     }
+  },
+  "friends": {
+    "title": "Friends",
+    "stats": {
+      "subtitle": "friends",
+      "online": "online"
+    },
+    "all": {
+      "title": "All Friends",
+      "online_section": "ONLINE",
+      "offline_section": "OFFLINE"
+    },
+    "find": {
+      "title": "Find Friends",
+      "empty_title": "Search for users to add as friends",
+      "empty_hint": "Type at least 2 characters to search.",
+      "none_found": "No players found",
+      "none_found_hint": "Try a different name or username."
+    },
+    "tabs": {
+      "requests": "Requests",
+      "sent": "Sent",
+      "blocked": "Blocked"
+    },
+    "activity": {
+      "playing": "In Game",
+      "away": "Away",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "search": {
+      "placeholder": "Search users...",
+      "searching": "Searching...",
+      "results": "{count} result(s) for \"{query}\"",
+      "no_matches": "No matches for",
+      "try_different": "Try a different name or check the Find Friends tab."
+    },
+    "empty": {
+      "no_friends": "No friends yet. Search for users to add!",
+      "no_requests": "No pending requests",
+      "no_sent": "No sent requests", 
+      "no_blocked": "No blocked users"
+    },
+    "status": {
+      "friends": "✓ Friends",
+      "pending": "⏳ Pending", 
+      "blocked": "✕ Blocked"
+    },
+    "actions": {
+      "add_friend": "Add Friend",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel": "Cancel",
+      "block": "Block",
+      "unblock": "Unblock", 
+      "unfriend": "Unfriend",
+      "challenge": "Challenge",
+      "message": "Message",
+      "request_sent": "Friend request sent",
+      "friend_added": "Friend added!",
+      "request_declined": "Request declined", 
+      "request_cancelled": "Request cancelled",
+      "user_blocked": "User blocked",
+      "user_unblocked": "User unblocked",
+      "friend_removed": "Friend removed"
+    }
+  },
+  "avatar": {
+    "myAvatars": "My Avatars",
+    "collection": "Collection",
+    "unlockable": "Unlockable",
+    "default": "Default",
+    "upload": "Upload",
+    "unlocked": "Unlocked",
+    "description": "Complete achievements to unlock special avatars"
   }
 }

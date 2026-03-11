@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
+
 	// type UnlockableAvatar = {
 	// 	id: string;
 	// 	url: string;
@@ -60,21 +62,21 @@
 				class:active={activeTab === 'mine'}
 				onclick={() => { activeTab = 'mine'; }}
 		>
-				My Avatars
+				$_{'avatar.myAvatars'}
 		</button>
 		<button
 				class="tab"
 				class:active={activeTab === 'collection'}
 				onclick={() => { activeTab = 'collection'; }}
 		>
-				Collection
+				$_{'avatar.collection'}
 		</button>
 		<button
 				class="tab"
 				class:active={activeTab === 'unlockable'}
 				onclick={() => { activeTab = 'unlockable'; }}
 		>
-				Unlockable
+				$_{'avatar.unlockable'}
 		</button>
 	</div>
 
@@ -88,7 +90,7 @@
 					onclick={() => onselect(null)}
 				>
 					<span class="initials-badge">{name.charAt(0).toUpperCase()}</span>
-					<span class="av-label">Default</span>
+					<span class="av-label">$_{'avatar.default'}</span>
 				</button>
 				{#each uploadedAvatars as url (url)}
 					<div class="upload-wrapper">
@@ -117,7 +119,7 @@
 						hidden
 					/>
 					<span class="upload-icon">+</span>
-					<span class="upload-text">Upload</span>
+					<span class="upload-text">$_{'avatar.upload'}</span>
 				</label>
 			</div>
 		<!-- Collection -->
@@ -141,7 +143,7 @@
 				<!-- Unlock section -->
 				 {#if unlockedAvatars.length > 0}
 					<!-- how many unlock you have  -->
-					<div class="section-divider">✅ Unlocked ({unlockedAvatars.length})</div>
+					<div class="section-divider">✅ $_{'avatar.unlocked'} ({unlockedAvatars.length})</div>
 					<div class="section-row">
 						{#each lockableAvatars as avatar (avatar.url)}
 							<div class="locked-wrapper" title={avatar.label}>
@@ -175,7 +177,7 @@
 					</div>
 				{/if}
 				{#if unlockedAvatars.length === 0 && lockableAvatars.length === 0}
-						<p class="tab-hint">Complete achievements to unlock special avatars</p>
+						<p class="tab-hint">$_{'avatar.description'}</p>
 				{/if}
 			</div>
 		{/if}

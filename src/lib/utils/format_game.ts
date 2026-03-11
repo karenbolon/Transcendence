@@ -1,9 +1,14 @@
+import { _ } from 'svelte-i18n';
+import { get } from 'svelte/store';
+
 /** Format game mode code for display */
 export function formatMode(mode: string): string {
+	const translate = get(_);
+	
 	switch (mode) {
-		case 'local': return 'Local PvP';
-		case 'computer': return 'vs Computer';
-		case 'online': return 'Online';
+		case 'local': return translate('game_modes.local');
+		case 'computer': return translate('game_modes.computer');
+		case 'online': return translate('game_modes.online');
 		default: return mode;
 	}
 };

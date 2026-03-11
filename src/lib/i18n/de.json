@@ -31,7 +31,21 @@
     "play": "Spielen",
     "player1": "Spieler 1",
     "player2": "Spieler 2",
-    "games": "Spiele"
+    "games": "Spiele",
+    "vs": "vs",
+    "computer": "Computer",
+    "guest": "Gast"
+  },
+  "game_modes": {
+    "local": "Lokales PvP",
+    "computer": "vs Computer",
+    "online": "Online"
+  },
+  "time": {
+    "just_now": "Gerade eben",
+    "minutes_ago": "vor {minutes}m",
+    "hours_ago": "vor {hours}h",
+    "days_ago": "vor {days}t"
   },
   "errors": {
     "username_taken": "Benutzername bereits vergeben",
@@ -52,7 +66,16 @@
     "invalid_match": "Ungültige Spieldaten",
     "save_failed": "Speichern des Spielergebnisses fehlgeschlagen",
     "password_change_failed": "Änderung des Passworts fehlgeschlagen.",
-    "deletionFailed": "Konto konnte nicht gelöscht werden."
+    "deletionFailed": "Konto konnte nicht gelöscht werden.",
+    "not_authenticated": "Nicht authentifiziert",
+    "invalid_json_body": "Ungültiger JSON-Body",
+    "friendId": "friendId ist erforderlich",
+    "noPending": "Keine ausstehende Anfrage gefunden"
+  },
+  "friend": {
+    "pending": "ausstehend",
+    "accepted": "akzeptiert",
+    "acceptedDesc": "Freundschaftsanfrage angenommen"
   },
   "auth": {
     "login": {
@@ -302,6 +325,7 @@
       "winRate": "Siegquote",
       "milestonesTitle": "Meilensteine und Erfolge",
       "noAchievements": "Noch keine Erfolge. Spiele Matches, um sie freizuschalten!",
+      "noAchievementsYet": "Noch keine Erfolge.",
       "matchHistoryTitle": "Spielverlauf",
       "noMatchesTitle": "Noch keine Spiele!",
       "noMatchesText": "Spiele dein erstes Spiel, um hier deinen Spielverlauf zu sehen.",
@@ -351,18 +375,84 @@
       "best": "Beste Serie"
     },
     "level": {
-      "label": "Level {level}",
+      "label": "Stufe {level}",
+      "short": "ST",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
-      "no_xp": "0 XP verdient",
-      "level_label": "Level",
-      "lvl": "LVL"
+      "no_xp": "0 XP erhalten",
+      "level_label": "Stufe",
+      "lvl": "ST"
+    },
+    "level_up_modal": {
+      "level_up": "Stufenaufstieg!",
+      "match_complete": "Spiel Beendet",
+      "total": "Gesamt",
+      "continue": "Weiter"
+    },
+    "xp_bonuses": {
+      "base": "Basis",
+      "shutout": "Zu Null",
+      "win_streak": "Siegesserie",
+      "comeback": "Comeback",
+      "speed_bonus": "Geschwindigkeits-Bonus"
     },
     "badges": {
       "recent": "Neueste Abzeichen",
       "view_all": "{count} erhalten · Alle anzeigen →",
       "more": "mehr",
-      "locked": "???"
-    }
+      "locked": "???"    },
+    "achievement_names": {
+      "shutout_bronze": "Zu Null",
+      "shutout_silver": "Shutout-Künstler",
+      "streak_bronze": "Heiße Serie",
+      "streak_silver": "In Flammen",
+      "streak_gold": "Unaufhaltbar",
+      "points_bronze": "Punktesammler",
+      "points_silver": "Scharfschütze",
+      "points_gold": "Punktemaschine",
+      "first_match": "Erstes Spiel",
+      "first_victory": "Erster Sieg",
+      "first_defeat": "Erste Niederlage",
+      "profile_avatar": "Gesicht des Spiels",
+      "profile_bio": "Drücke dich aus",
+      "social_first_friend": "Erster Freund",
+      "social_circle": "Sozialer Kreis",
+      "pvp_first_match": "Erstes PvP-Spiel",
+      "pvp_first_win": "Erster PvP-Sieg",
+      "night_owl": "Nachteule",
+      "veteran_bronze": "Veteran",
+      "veteran_silver": "Erfahrener Spieler",
+      "veteran_gold": "Legende",
+      "comeback_bronze": "Comeback-Kid",
+      "comeback_silver": "Gib niemals auf",
+      "speed_demon": "Geschwindigkeitsdämon",
+      "marathon": "Marathon-Spiel"
+    },
+    "achievement_descriptions": {
+      "shutout_bronze": "Gewinne ein Spiel, in dem dein Gegner 0 Punkte erzielt",
+      "shutout_silver": "Gewinne 10 Shutout-Spiele",
+      "streak_bronze": "Gewinne 3 Spiele in Folge",
+      "streak_silver": "Gewinne 7 Spiele in Folge",
+      "streak_gold": "Gewinne 15 Spiele in Folge",
+      "points_bronze": "Erzielen Sie 50 Karrierepunkte",
+      "points_silver": "Erzielen Sie 200 Karrierepunkte",
+      "points_gold": "Erzielen Sie 500 Karrierepunkte",
+      "first_match": "Beende ein Spiel",
+      "first_victory": "Gewinne dein erstes Spiel",
+      "first_defeat": "Verliere dein erstes Spiel",
+      "profile_avatar": "Lade einen Avatar hoch oder wähle einen aus",
+      "profile_bio": "Schreibe eine Biografie",
+      "social_first_friend": "Füge deinen ersten Freund hinzu",
+      "social_circle": "Habe 5 akzeptierte Freunde",
+      "pvp_first_match": "Spiele dein erstes Online-Spiel",
+      "pvp_first_win": "Gewinne dein erstes Online-Spiel",
+      "night_owl": "Spiele ein Spiel nach Mitternacht",
+      "veteran_bronze": "Spiele 10 Spiele",
+      "veteran_silver": "Spiele 50 Spiele",
+      "veteran_gold": "Spiele 100 Spiele",
+      "comeback_bronze": "Gewinne, nachdem du mit 3+ Punkten zurücklagst",
+      "comeback_silver": "Gewinne 5 Comeback-Spiele",
+      "speed_demon": "Gewinne ein Spiel bei hoher Geschwindigkeit",
+      "marathon": "Spiele ein Spiel, das über 5 Minuten dauert"    }
   },
   "settings": {
     "title": "Einstellungen",
@@ -561,9 +651,6 @@
   "tournaments": {
     "title": "Turniere"
   },
-  "friends": {
-    "title": "Freunde"
-  },
   "about": {
     "title": "Über uns",
     "heroTitleLine1": "Von Studierenden entwickelt.",
@@ -610,8 +697,10 @@
     "title": "Globale Rangliste",
     "viewAll": "Alle anzeigen",
     "noGames": "Noch keine Spiele gespielt",
+    "welcome": "Willkommen,",
     "welcomeBack": "Willkommen zurück,",
-    "readyMatch": "Bereit für ein weiteres Match?",
+    "readyMatch": "Bereit für ein weiteres Spiel?",
+    "readyFirst": "Bereit für Ihr erstes Spiel?",
     "playNow": "Jetzt spielen",
     "friendsLeaderboard": "Freundes-Rangliste",
     "friendsEmpty": "Füge Freunde hinzu, um ihre Platzierungen zu sehen!",
@@ -677,5 +766,79 @@
       "description": "Ein unerwarteter Fehler ist aufgetreten.",
       "footer": "Im Spiel ist etwas Unerwartetes passiert! 🕹️"
     }
+  },
+  "friends": {
+    "title": "Freunde",
+    "stats": {
+      "subtitle": "Freunde",
+      "online": "online"
+    },
+    "all": {
+      "title": "Alle Freunde",
+      "online_section": "ONLINE",
+      "offline_section": "OFFLINE"
+    },
+    "find": {
+      "title": "Freunde finden",
+      "empty_title": "Suche nach Nutzern, um sie als Freunde hinzuzufügen",
+      "empty_hint": "Gib mindestens 2 Zeichen ein, um zu suchen.",
+      "none_found": "Keine Spieler gefunden",
+      "none_found_hint": "Versuche einen anderen Namen oder Benutzernamen."
+    },
+    "tabs": {
+      "requests": "Anfragen",
+      "sent": "Gesendet"
+    },
+    "activity": {
+      "playing": "Im Spiel",
+      "away": "Abwesend",
+      "online": "Online",
+      "offline": "Offline"
+    },
+        "search": {
+      "placeholder": "Nutzer suchen...",
+      "searching": "Suche...",
+      "results": "{count} Ergebnis(se) für \"{query}\"",
+      "no_matches": "Keine Treffer für",
+      "try_different": "Versuche einen anderen Namen oder überprüfe den Tab „Freunde finden“."
+    },
+    "empty": {
+      "no_friends": "Noch keine Freunde. Suche nach Nutzern, um Freunde hinzuzufügen!",
+      "no_requests": "Keine ausstehenden Anfragen",
+      "no_sent": "Keine gesendeten Anfragen",
+      "no_blocked": "Keine blockierten Nutzer"
+    },
+    "status": {
+      "friends": "✓ Freunde",
+      "pending": "⏳ Ausstehend",
+      "blocked": "✕ Blockiert"
+    },
+    "actions": {
+      "add_friend": "Freund hinzufügen",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "cancel": "Abbrechen",
+      "block": "Blockieren",
+      "unblock": "Entblocken",
+      "unfriend": "Freund entfernen",
+      "challenge": "Herausfordern",
+      "message": "Nachricht",
+      "request_sent": "Freundschaftsanfrage gesendet",
+      "friend_added": "Freund hinzugefügt!",
+      "request_declined": "Anfrage abgelehnt",
+      "request_cancelled": "Anfrage zurückgezogen",
+      "user_blocked": "Nutzer blockiert",
+      "user_unblocked": "Nutzer entblockt",
+      "friend_removed": "Freund entfernt"
+    }
+  },
+  "avatar": {
+    "myAvatars": "Meine Avatare",
+    "collection": "Sammlung",
+    "unlockable": "Freischaltbar",
+    "default": "Standard",
+    "upload": "Hochladen",
+    "unlocked": "Freigeschaltet",
+    "description": "Schließe Erfolge ab, um spezielle Avatare freizuschalten"
   }
 }

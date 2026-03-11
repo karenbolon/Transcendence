@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { XP_REWARDS } from '$lib/utils/format_progression';
 	import type { Achievement } from '$lib/types/progression';
+	import { _ } from 'svelte-i18n';
 
 	type Props = Achievement & {
 		onclick?: () => void;
@@ -8,6 +9,7 @@
 	};
 
 	let {
+		id,
 		name,
 		description,
 		tier,
@@ -25,6 +27,10 @@
 	// let isUnlocked = $derived(!!unlockedAt);
 
 	let xp = $derived(XP_REWARDS[tier] ?? 50);
+
+	// Use translation keys if available, fallback to raw database values
+	let translatedName = $derived($_(`user_profile.achievement_names.${id}`, { default: name }));
+	let translatedDescription = $derived($_(`user_profile.achievement_descriptions.${id}`, { default: description }));
 </script>
 
 <button
@@ -49,8 +55,8 @@
 
 	<!-- Info -->
 	<div class="card-info">
-		<span class="card-name">{earned ? name : '???'}</span>
-		<span class="card-desc">{earned ? description : 'Keep playing to unlock'}</span>
+		<span class="card-name">{earned ? translatedName : '???'}</span>
+		<span class="card-desc">{earned ? translatedDescription : 'Keep playing to unlock'}</span>
 	</div>
 
 	<!-- Footer — only on Large -->

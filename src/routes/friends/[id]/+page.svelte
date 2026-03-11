@@ -6,6 +6,7 @@
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';;
+	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -61,7 +62,7 @@
 			<div class="h2h-card" onclick={() => showH2hModal = true}>
 				<div class="h2h-header">
 					<h2 class="section-title">Head to Head</h2>
-					<span class="h2h-badge">{data.headToHead.total} games</span>
+					<span class="h2h-badge">{data.headToHead.total} {$_('common.games')}</span>
 				</div>
 				<div class="h2h-versus">
 					<div class="h2h-player you">
@@ -73,7 +74,7 @@
 						<span class="h2h-wins you-wins">{data.headToHead.yourWins}</span>
 						<div class="h2h-divider">
 							<div class="h2h-dash"></div>
-							<span class="h2h-vs">vs</span>
+							<span class="h2h-vs">{$_('common.vs')}</span>
 							<div class="h2h-dash"></div>
 						</div>
 						<span class="h2h-wins them-wins">{data.headToHead.theirWins}</span>
@@ -107,15 +108,15 @@
 	<section class="stats-grid">
 		<div class="stat-card total">
 			<span class="stat-value">{data.stats.totalGames}</span>
-			<span class="stat-label">Games</span>
+			<span class="stat-label">{$_('common.games')}</span>
 		</div>
 		<div class="stat-card wins">
 			<span class="stat-value">{data.stats.wins}</span>
-			<span class="stat-label">Wins</span>
+			<span class="stat-label">{$_('user_profile.dashboard.wins')}</span>
 		</div>
 		<div class="stat-card losses">
 			<span class="stat-value">{data.stats.losses}</span>
-			<span class="stat-label">Losses</span>
+			<span class="stat-label">{$_('user_profile.dashboard.losses')}</span>
 		</div>
 		<div class="stat-card rate">
 			<div class="rate-ring">
@@ -126,7 +127,7 @@
 				</svg>
 				<span class="rate-number">{data.stats.winRate}%</span>
 			</div>
-			<span class="stat-label">Win Rate</span>
+			<span class="stat-label">{$_('user_profile.dashboard.winRate')}</span>
 		</div>
 	</section>
 
@@ -145,17 +146,17 @@
 				viewAllHref="/friends/{data.friend.id}/achievements"
 			/>
 		{:else}
-			<p class="empty-achievements">No achievements yet.</p>
+			<p class="empty-achievements">{$_('user_profile.dashboard.noAchievementsYet')}</p>
 		{/if}
 	</section>
 
 	<!-- Match History -->
 	<section class="match-history">
-		<h2 class="section-title">Match History</h2>
+		<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">
-				<p>No matches played yet.</p>
+				<p>{$_('user_profile.dashboard.noMatchesText')}</p>
 			</div>
 		{:else}
 			<div class="matches-list">

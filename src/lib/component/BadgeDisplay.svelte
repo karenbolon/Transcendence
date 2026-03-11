@@ -60,7 +60,7 @@
 					<span class="milestone-value">{$_('user_profile.level.label', { values: { level } })}</span>
 					{#if progression}
 						<span class="milestone-sub">
-							{$_('user_profile.level.xp_progress', {
+							{$_('level.xp_progress', {
 								values: {
 									currentXp: progression.currentXp.toLocaleString(),
 									xpToNextLevel: progression.xpToNextLevel.toLocaleString()

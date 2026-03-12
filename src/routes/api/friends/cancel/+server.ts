@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { friendships } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { emitToUser } from '$lib/server/socket/emitters';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -42,5 +43,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	await db.delete(friendships).where(eq(friendships.id, row.id));
 
+	// Notify the receiver so their "Requests" tab updates
+	emitToUser(friendId, 'friend:removed', { fromUserId: userId });
 	return json({ message: 'Friend request cancelled' });
 };

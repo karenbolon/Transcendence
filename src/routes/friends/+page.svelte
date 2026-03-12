@@ -1,8 +1,22 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
+	import { addToast } from '$lib/stores/toast.svelte';
+	import { getSocket } from '$lib/stores/socket.svelte';
+
+	function challengeUser(friendId: number, username: string) {
+		const socket = getSocket();
+		if (!socket?.connected) {
+			addToast('Not connected to server', 'error');
+			return;
+		}
+		socket.emit('game:invite', { friendId });
+		addToast(`Challenge sent to ${username}!`, 'info');
+	}
+
 
 	let { data } = $props();
 
@@ -10,7 +24,7 @@
 	let searchResults: SearchResult[] = $state([]);
 	let searching = $state(false);
 	let activeTab = $state('friends');
-	let toast = $state('');
+	// let toast = $state('');
 	let loading = $state('');
 
 	// Derived counts
@@ -38,9 +52,8 @@
 	let showSearch = $derived(activeTab === 'find' && searchQuery.trim().length >= 2);
 
 	// Toast helper
-	function showToast(message: string) {
-		toast = message;
-		setTimeout(() => { toast = ''; }, 3000);
+	function showToast(message: string, success = true) {
+		addToast(message, success ? 'success' : 'error');
 	}
 
 	// API search helper (used by input handler and tab switch)
@@ -100,14 +113,49 @@
 				}
 			} else {
 				const err = await res.json();
-				showToast(err.error || 'Something went wrong');
+				showToast(err.error || 'Something went wrong', false);
 			}
 		} catch {
-			showToast('Network error');
+			showToast('Network error', false);
 		} finally {
 			loading = '';
 		}
 	}
+
+	// Socket listeners — refresh friends data in real-time
+	let cleanupSocket: (() => void) | null = null;
+
+	onMount(() => {
+		const socket = getSocket();
+		if (!socket) return;
+
+		const onRefresh = () => {
+			invalidateAll();
+			// Re-run search if on Find tab with active query
+			if (activeTab === 'find' && searchQuery.trim().length >= 2) {
+				triggerSearch(searchQuery.trim());
+			}
+		};
+
+		socket.on('friend:request', onRefresh);
+		socket.on('friend:accepted', onRefresh);
+		socket.on('friend:removed', onRefresh);
+		socket.on('friend:online', onRefresh);
+		socket.on('friend:offline', onRefresh);
+
+		cleanupSocket = () => {
+			socket.off('friend:request', onRefresh);
+			socket.off('friend:accepted', onRefresh);
+			socket.off('friend:removed', onRefresh);
+			socket.off('friend:online', onRefresh);
+			socket.off('friend:offline', onRefresh);
+		};
+	});
+
+	onDestroy(() => {
+		cleanupSocket?.();
+	});
+
 </script>
 
 <div class="friends-page">
@@ -227,7 +275,7 @@
 												onclick={() => friendAction('request', user.id, 'Friend request sent')}
 											>Add Friend</button>
 										{/if}
-										<button class="btn btn-challenge"><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => challengeUser(user.id, user.username)}><span class="btn-icon">👾</span> Challenge</button>
 									</div>
 								</div>
 							{/each}
@@ -272,7 +320,7 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-challenge"><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => challengeUser(item.id, item.username)}><span class="btn-icon">👾</span> Challenge</button>
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
@@ -439,9 +487,6 @@
 	</div>
 </div>
 
-{#if toast}
-	<div class="toast">{toast}</div>
-{/if}
 
 <style>
 /* ===== Page container ===== */
@@ -890,34 +935,6 @@
 		background: rgba(239, 68, 68, 0.12);
 		color: #ef4444;
 		border-color: rgba(239, 68, 68, 0.2);
-	}
-
-/* ===== Toast ===== */
-	.toast {
-		position: fixed;
-		bottom: 1.5rem;
-		left: 50%;
-		transform: translateX(-50%);
-		background: var(--card, #16213e);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: #e5e5e5;
-		padding: 0.65rem 1.25rem;
-		border-radius: 0.6rem;
-		font-size: 0.85rem;
-		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-		z-index: 100;
-		animation: toast-in 0.3s ease;
-	}
-
-	@keyframes toast-in {
-		from {
-			opacity: 0;
-			transform: translateX(-50%) translateY(0.5rem);
-		}
-		to {
-			opacity: 1;
-			transform: translateX(-50%) translateY(0);
-		}
 	}
 
 /* ===== Responsive ===== */

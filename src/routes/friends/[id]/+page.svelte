@@ -5,7 +5,9 @@
 	import { speedEmoji, formatMode } from '$lib/utils/format_game';
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
-	import HeadtoHead from '$lib/component/HeadtoHead.svelte';;
+	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
+	import { getSocket } from '$lib/stores/socket.svelte';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -23,6 +25,16 @@
 			// Reload to update friendship status
 			window.location.reload();
 		}
+	}
+
+	function handleChallenge() {
+		const socket = getSocket();
+		if (!socket?.connected) {
+			addToast('Not connected to server', 'error');
+			return;
+		}
+		socket.emit('game:invite', { friendId: data.friend.id });
+		addToast(`Challenge sent to ${data.friend.name ?? data.friend.username}!`, 'info');
 	}
 
 	async function handleUnfriend() {
@@ -51,6 +63,7 @@
 		progression={data.progression}
 		onaddfriend={handleAddFriend}
 		onunfriend={handleUnfriend}
+		onchallenge={handleChallenge}
 	/>
 
 	<!-- Head-to-Head -->

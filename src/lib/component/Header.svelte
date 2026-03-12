@@ -43,7 +43,7 @@
 		<nav class="header-nav">
 			<a href="/" class="brand" onclick={closeDropdown}>
 				<img src={logo} alt="PONG logo" class="brand-logo" />
-				<span class="brand-name">{$_('common.title')}</span>
+				<span class="brand-name">PONG</span>
 			</a>
 
 			<div class="nav-links">

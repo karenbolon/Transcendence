@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
+
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
@@ -122,9 +122,10 @@
 	}
 
 	// Socket listeners — refresh friends data in real-time
-	let cleanupSocket: (() => void) | null = null;
+	// Use $effect so it re-runs when the socket becomes available
+	// (layout's onMount creates the socket AFTER child components mount)
 	const friendEvents = ['friend:request', 'friend:accepted', 'friend:removed', 'friend:online', 'friend:offline'];
-	onMount(() => {
+	$effect(() => {
 		const socket = getSocket();
 		if (!socket) return;
 
@@ -138,13 +139,9 @@
 
 		friendEvents.forEach(event => socket.on(event, onRefresh));
 
-		cleanupSocket = () => {
+		return () => {
 			friendEvents.forEach(event => socket.off(event, onRefresh));
 		};
-	});
-
-	onDestroy(() => {
-		cleanupSocket?.();
 	});
 
 </script>

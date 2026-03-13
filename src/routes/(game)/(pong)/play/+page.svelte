@@ -2,15 +2,12 @@
 	import PongGame from "$lib/component/pong/PongGame.svelte";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
-	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
-	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import {
 		SPEED_CONFIGS,
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
 	} from "$lib/component/pong/gameEngine";
-	import { _ } from 'svelte-i18n';
 
 	let gameMode = $state<GameMode>("local");
 	let winScore = $state(5);
@@ -43,35 +40,14 @@
 	});
 
 	let saveStatus = $state<"idle" | "saving" | "saved" | "error">("idle");
-	let saveMessageKey = $state<string | null>(null);
-	let saveMessageParams = $state<Record<string, string> | null>(null);
-	let saveErrorKey = $state<string | null>(null);
-
-	// Progression state for level-up modal
-	let showLevelUpModal = $state(false);
-	let progressionResult = $state<{
-		xpEarned: number;
-		bonuses: { name: string; amount: number }[];
-		oldLevel: number;
-		newLevel: number;
-		currentXp: number;
-		xpForNextLevel: number;
-		newAchievements: NewAchievement[];
-	} | null>(null);
 
 	async function handleGameOver(result: {
 		score1: number;
 		score2: number;
 		winner: "player1" | "player2";
 		durationSeconds: number;
-		ballReturns: number;
-		maxDeficit: number;
-		reachedDeuce: boolean;
 	}) {
 		saveStatus = "saving";
-		saveMessageKey = null;
-		saveMessageParams = null;
-		saveErrorKey = null;
 
 		// Determine Player 2's display name
 		const p2DisplayName =
@@ -92,51 +68,32 @@
 					winScore,
 					speedPreset,
 					durationSeconds: result.durationSeconds,
-					ballReturns: result.ballReturns,
-					maxDeficit: result.maxDeficit,
-					reachedDeuce: result.reachedDeuce,
 				}),
 			});
 
-			const data = await response.json();
-
 			if (response.ok) {
 				saveStatus = "saved";
-				saveMessageKey = data.messageKey ?? null;
-				saveMessageParams = data.messageParams ?? null;
-				// const data = await response.json();
-
-				// Show progression modal after every match
-				if (data.progression) {
-					progressionResult = data.progression;
-					showLevelUpModal = true;
-				}
 			} else {
 				// Not logged in or validation error — still fine, game works
-				// const data = await response.json();
-				console.warn("Match not saved:", data.errorKey || data.error);
-				saveErrorKey = data.errorKey ?? 'errors.match_not_saved';
+				const data = await response.json();
+				console.warn("Match not saved:", data.error);
 				saveStatus = "error";
 			}
 		} catch (err) {
 			// Network error — game still works, just not saved
 			console.warn("Could not save match:", err);
-			saveErrorKey = 'matches.errors.errors.match_not_saved';
 			saveStatus = "error";
 		}
 
 		// Reset status after a few seconds
 		setTimeout(() => {
 			saveStatus = "idle";
-			saveMessageKey = null;
-			saveMessageParams = null;
-			saveErrorKey = null;
 		}, 3000);
 	}
 </script>
 
 <div class="game-container">
-	<h1 class="game-title">{$_('meta.simple_title')}</h1>
+	<h1 class="game-title">PONG</h1>
 
 	<!-- Settings — only visible during menu -->
 	{#if gamePhase === "menu"}
@@ -158,59 +115,27 @@
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
 		{#if gamePhase === "menu"}
-			<span class="status-text">{$_('matches.status.play')}</span>
+			<span class="status-text">Press SPACE to start</span>
 		{:else if gamePhase === "countdown"}
-			<span class="status-text">{$_('matches.status.get_ready')}</span>
+			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
-				<span class="status-text">{$_('matches.status.play')}</span>
+				<span class="status-text">Press SPACE to play again</span>
 				{#if saveStatus === "saving"}
-					<span class="save-indicator saving">
-						{$_('common.saving')}</span>
+					<span class="save-indicator saving">Saving match...</span>
 				{:else if saveStatus === "saved"}
-					<span class="save-indicator saved">
-						{#if saveMessageKey}
-							✓ {$_(saveMessageKey, saveMessageParams ?? {})}
-						{:else}
-							✓ {$_('matches.status.saved')}
-		{/if}</span>
-					{#if progressionResult}
-						<span class="xp-indicator"
-							>+{progressionResult.xpEarned} XP</span
-						>
-					{/if}
+					<span class="save-indicator saved">✓ Match saved</span>
 				{:else if saveStatus === "error"}
-					<span class="save-indicator error">
-						{#if saveErrorKey}
-							{$_(saveErrorKey)}
-						{:else}
-							{$_('errors.match_not_saved')}
-						{/if}
-					</span>
+					<span class="save-indicator error"
+						>Match not saved (not logged in?)</span
+					>
 				{/if}
 			</div>
 		{/if}
 	</div>
 </div>
-
-<!-- Level-Up / Achievement Modal -->
-{#if showLevelUpModal && progressionResult}
-	<LevelUpModal
-		xpEarned={progressionResult.xpEarned}
-		bonuses={progressionResult.bonuses}
-		oldLevel={progressionResult.oldLevel}
-		newLevel={progressionResult.newLevel}
-		currentXp={progressionResult.currentXp}
-		xpForNextLevel={progressionResult.xpForNextLevel}
-		newAchievements={progressionResult.newAchievements}
-		onClose={() => {
-			showLevelUpModal = false;
-			progressionResult = null;
-		}}
-	/>
-{/if}
 
 <style>
 	.game-container {
@@ -255,23 +180,5 @@
 	.save-indicator.error {
 		color: #9ca3af;
 		font-style: italic;
-	}
-
-	.xp-indicator {
-		color: #ff6b9d;
-		font-size: 0.85rem;
-		font-weight: 600;
-		animation: xpPop 0.3s ease-out;
-	}
-
-	@keyframes xpPop {
-		from {
-			transform: scale(0.5);
-			opacity: 0;
-		}
-		to {
-			transform: scale(1);
-			opacity: 1;
-		}
 	}
 </style>

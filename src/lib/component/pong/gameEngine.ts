@@ -33,11 +33,6 @@ export interface GameState {
 	scorePause: number;
 	scoreFlash: 'left' | 'right' | null;
 	scoreFlashTimer: number;
-
-	// Progression tracking
-	ballReturns: number;     // total paddle hits this match
-	maxDeficit: number;      // biggest point deficit player 1 faced
-	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
 }
 
 export interface InputState {
@@ -60,9 +55,9 @@ export type GameMode = 'local' | 'computer';
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
-	chill: { ballSpeed: 200, maxBallSpeed: 400 },
-	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast: { ballSpeed: 650, maxBallSpeed: 1000 },
+	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
+	normal: { ballSpeed: 500, maxBallSpeed: 600 },
+	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
 export const CANVAS_WIDTH = 800;
@@ -70,11 +65,11 @@ export const CANVAS_HEIGHT = 500;
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_OFFSET = 30;
-export const PADDLE_SPEED = 400;
+export const PADDLE_SPEED = 500;
 export const BALL_RADIUS = 8;
-export const BALL_SPEED_INCREMENT = 20;
-export const MAX_BOUNCE_ANGLE = 0.75;
-export const SCORE_PAUSE_DURATION = 0.8;
+export const BALL_SPEED_INCREMENT = 30;
+export const MAX_BOUNCE_ANGLE = 0.89;
+export const SCORE_PAUSE_DURATION = 0.9;
 
 export function createGameState(): GameState {
 	return {
@@ -95,9 +90,6 @@ export function createGameState(): GameState {
 		scorePause: 0,
 		scoreFlash: null,
 		scoreFlashTimer: 0,
-		ballReturns: 0,
-		maxDeficit: 0,
-		reachedDeuce: false,
 	};
 }
 
@@ -137,9 +129,6 @@ export function returnToMenu(state: GameState): void {
 	state.scoreFlash = null;
 	state.scoreFlashTimer = 0;
 	state.scorePause = 0;
-	state.ballReturns = 0;
-	state.maxDeficit = 0;
-	state.reachedDeuce = false;
 	resetPositions(state);
 }
 
@@ -192,7 +181,7 @@ export function update(
 function updateCountdown(state: GameState, dt: number, input: InputState): void {
 	state.countdownTimer -= dt;
 
-	if (state.countdownTimer > 3) state.countdownDisplay = '3';
+	if (state.countdownTimer > 3)      state.countdownDisplay = '3';
 	else if (state.countdownTimer > 2) state.countdownDisplay = '2';
 	else if (state.countdownTimer > 1) state.countdownDisplay = '1';
 	else if (state.countdownTimer > 0) state.countdownDisplay = 'GO!';
@@ -247,9 +236,9 @@ function updatePlaying(
 }
 
 function movePaddles(state: GameState, dt: number, input: InputState): void {
-	if (input.paddle1Up) state.paddle1Y -= PADDLE_SPEED * dt;
+	if (input.paddle1Up)   state.paddle1Y -= PADDLE_SPEED * dt;
 	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up) state.paddle2Y -= PADDLE_SPEED * dt;
+	if (input.paddle2Up)   state.paddle2Y -= PADDLE_SPEED * dt;
 	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
 
 	// Clamp to canvas bounds
@@ -266,7 +255,6 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
 		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
 	) {
-		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle1Y, 1, settings);
 	}
 
@@ -279,7 +267,6 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
 		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
 	) {
-		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle2Y, -1, settings);
 	}
 }
@@ -320,15 +307,6 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
 
-		// Track max deficit for player 1
-		const deficit = state.score2 - state.score1;
-		if (deficit > state.maxDeficit) state.maxDeficit = deficit;
-
-		// Check deuce
-		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
-			state.reachedDeuce = true;
-		}
-
 		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
 		if (state.score2 >= settings.winScore) {
 			endGame(state, scorer);
@@ -344,11 +322,6 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
 
-		// Check deuce
-		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
-			state.reachedDeuce = true;
-		}
-
 		if (state.score1 >= settings.winScore) {
 			endGame(state, 'Player 1');
 		} else {
@@ -358,34 +331,64 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
+/**
+ * Fuzzy Logic AI Controller for Computer Paddle
+ * 
+ * Implements prediction-based targeting with smooth movement:
+ * 1. Fuzzification: Predict ball trajectory including wall bounces
+ * 2. Inference: Determine target position based on ball approach state
+ * 3. Defuzzification: Apply dead zone tolerance for smooth movement
+ */
 export function computeComputerInput(state: GameState): InputState {
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
-	const deadZone = 20;
-
-	const ballApproaching = state.ballVX > 0;
-
-	let moveUp = false;
-	let moveDown = false;
-
-	if (ballApproaching) {
-		// Ball coming toward us → track it
-		if (state.ballY < paddleCenter - deadZone) {
-			moveUp = true;
-		} else if (state.ballY > paddleCenter + deadZone) {
-			moveDown = true;
+	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
+	
+	let targetY: number;
+	
+	// Rule 1: Ball approaching → Use predictive tracking
+	if (state.ballVX > 0) {
+		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+		const distanceToPaddle = paddleX - state.ballX;
+		const timeToReach = distanceToPaddle / state.ballVX;
+		
+		// Predict future ball position
+		let predictedY = state.ballY + (state.ballVY * timeToReach);
+		
+		// Simulate wall bounces with safety limit (prevent infinite loops)
+		let bounces = 0;
+		const maxBounces = 10; // Safety limit
+		
+		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
+			if (predictedY < 0) {
+				predictedY = Math.abs(predictedY);
+			} else if (predictedY > CANVAS_HEIGHT) {
+				predictedY = 2 * CANVAS_HEIGHT - predictedY;
+			}
+			bounces++;
 		}
-	} else {
-		// Ball moving away → drift toward center
-		const canvasCenter = CANVAS_HEIGHT / 2;
-		if (paddleCenter < canvasCenter - 30) {
-			moveDown = true;
-		} else if (paddleCenter > canvasCenter + 30) {
-			moveUp = true;
-		}
+		
+		// Clamp if still out of bounds (safety fallback)
+		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+		
+		targetY = predictedY;
+	} 
+	// Rule 2: Ball moving away → Return to center (defensive positioning)
+	else {
+		targetY = CANVAS_HEIGHT / 2;
 	}
+	
+	// Defuzzification: Constrain target to valid paddle bounds
+	targetY = Math.max(
+		PADDLE_HEIGHT / 2,
+		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2, targetY)
+	);
+	
+	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
+	const moveUp = targetY < paddleCenter - deadZone;
+	const moveDown = targetY > paddleCenter + deadZone;
 
 	return {
-		paddle1Up: false,    // Computer doesn't control paddle 1
+		paddle1Up: false,
 		paddle1Down: false,
 		paddle2Up: moveUp,
 		paddle2Down: moveDown,

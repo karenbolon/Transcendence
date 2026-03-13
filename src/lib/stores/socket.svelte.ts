@@ -10,7 +10,6 @@ export function connectSocket() {
 		path: '/socket.io',
 		withCredentials: true,
 		autoConnect: true,
-		transports: ['websocket'],
 	});
 
 	socket.on('connect', () => {
@@ -49,3 +48,8 @@ export function getSocket(): Socket | null {
 export function isConnected(): boolean {
 	return connected;
 }
+
+/** Reactive object — use `socketState.connected` in templates for reliable reactivity */
+// export const socketState = {
+// 	get connected() { return connected; }
+// };

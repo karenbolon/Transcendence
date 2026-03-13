@@ -25,5 +25,5 @@ if [ -n "$DATABASE_URL" ]; then
   npx drizzle-kit migrate
 fi
 
-echo "Starting SvelteKit server on port 3000..."
-node build
+echo "Starting SvelteKit server with Socket.IO on port 3000..."
+node server.js

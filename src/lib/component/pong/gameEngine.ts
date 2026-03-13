@@ -15,6 +15,15 @@ export interface GameState {
 	ballVY: number;
 	currentBallSpeed: number;
 
+	// Ball spin — continuous curve applied to ballVY each frame
+	ballSpin: number;
+	// Ball rotation angle — visual only, accumulated from spin
+	ballRotation: number;
+
+	// Paddle velocities — tracked to impart spin on contact
+	paddle1VY: number;
+	paddle2VY: number;
+
 	// Scores
 	score1: number;
 	score2: number;
@@ -33,11 +42,6 @@ export interface GameState {
 	scorePause: number;
 	scoreFlash: 'left' | 'right' | null;
 	scoreFlashTimer: number;
-
-	// Progression tracking
-	ballReturns: number;     // total paddle hits this match
-	maxDeficit: number;      // biggest point deficit player 1 faced
-	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
 }
 
 export interface InputState {
@@ -60,9 +64,9 @@ export type GameMode = 'local' | 'computer';
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
-	chill: { ballSpeed: 200, maxBallSpeed: 400 },
-	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast: { ballSpeed: 650, maxBallSpeed: 1000 },
+	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
+	normal: { ballSpeed: 500, maxBallSpeed: 600 },
+	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
 export const CANVAS_WIDTH = 800;
@@ -70,11 +74,14 @@ export const CANVAS_HEIGHT = 500;
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_OFFSET = 30;
-export const PADDLE_SPEED = 400;
+export const PADDLE_SPEED = 500;
 export const BALL_RADIUS = 8;
-export const BALL_SPEED_INCREMENT = 20;
-export const MAX_BOUNCE_ANGLE = 0.75;
-export const SCORE_PAUSE_DURATION = 0.8;
+export const BALL_SPEED_INCREMENT = 30;
+export const MAX_BOUNCE_ANGLE = 0.89;
+export const SCORE_PAUSE_DURATION = 0.9;
+export const SPIN_FACTOR = 0.6;       // How much paddle velocity transfers to spin
+export const SPIN_ACCELERATION = 800;  // How strongly spin curves the ball (px/s²)
+export const SPIN_DECAY = 0.97;        // Spin fades slightly each frame (friction)
 
 export function createGameState(): GameState {
 	return {
@@ -86,6 +93,10 @@ export function createGameState(): GameState {
 		ballVX: 0,
 		ballVY: 0,
 		currentBallSpeed: 0,
+		ballSpin: 0,
+		ballRotation: 0,
+		paddle1VY: 0,
+		paddle2VY: 0,
 		score1: 0,
 		score2: 0,
 		winner: '',
@@ -95,9 +106,6 @@ export function createGameState(): GameState {
 		scorePause: 0,
 		scoreFlash: null,
 		scoreFlashTimer: 0,
-		ballReturns: 0,
-		maxDeficit: 0,
-		reachedDeuce: false,
 	};
 }
 
@@ -137,9 +145,6 @@ export function returnToMenu(state: GameState): void {
 	state.scoreFlash = null;
 	state.scoreFlashTimer = 0;
 	state.scorePause = 0;
-	state.ballReturns = 0;
-	state.maxDeficit = 0;
-	state.reachedDeuce = false;
 	resetPositions(state);
 }
 
@@ -151,6 +156,10 @@ function resetPositions(state: GameState): void {
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.ballVX = 0;
 	state.ballVY = 0;
+	state.ballSpin = 0;
+	state.ballRotation = 0;
+	state.paddle1VY = 0;
+	state.paddle2VY = 0;
 }
 
 /** Reset ball to center (between points, not full reset) */
@@ -158,6 +167,7 @@ function resetBall(state: GameState, settings: GameSettings): void {
 	state.ballX = CANVAS_WIDTH / 2;
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.currentBallSpeed = settings.ballSpeed;
+	state.ballSpin = 0;
 	const direction = Math.random() > 0.5 ? 1 : -1;
 	state.ballVX = settings.ballSpeed * direction;
 	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
@@ -192,7 +202,7 @@ export function update(
 function updateCountdown(state: GameState, dt: number, input: InputState): void {
 	state.countdownTimer -= dt;
 
-	if (state.countdownTimer > 3) state.countdownDisplay = '3';
+	if (state.countdownTimer > 3)      state.countdownDisplay = '3';
 	else if (state.countdownTimer > 2) state.countdownDisplay = '2';
 	else if (state.countdownTimer > 1) state.countdownDisplay = '1';
 	else if (state.countdownTimer > 0) state.countdownDisplay = 'GO!';
@@ -225,6 +235,16 @@ function updatePlaying(
 	// Move paddles
 	movePaddles(state, dt, input);
 
+	// Apply spin: curves the ball trajectory over time
+	state.ballVY += state.ballSpin * SPIN_ACCELERATION * dt;
+	state.ballSpin *= SPIN_DECAY;
+
+	// Dampen tiny spin values to zero
+	if (Math.abs(state.ballSpin) < 0.001) state.ballSpin = 0;
+
+	// Update visual rotation
+	state.ballRotation += state.ballSpin * 15 * dt;
+
 	// Move ball
 	state.ballX += state.ballVX * dt;
 	state.ballY += state.ballVY * dt;
@@ -247,14 +267,21 @@ function updatePlaying(
 }
 
 function movePaddles(state: GameState, dt: number, input: InputState): void {
-	if (input.paddle1Up) state.paddle1Y -= PADDLE_SPEED * dt;
+	const prevP1Y = state.paddle1Y;
+	const prevP2Y = state.paddle2Y;
+
+	if (input.paddle1Up)   state.paddle1Y -= PADDLE_SPEED * dt;
 	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up) state.paddle2Y -= PADDLE_SPEED * dt;
+	if (input.paddle2Up)   state.paddle2Y -= PADDLE_SPEED * dt;
 	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
 
 	// Clamp to canvas bounds
 	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle1Y));
 	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle2Y));
+
+	// Track paddle velocities for spin calculation
+	state.paddle1VY = dt > 0 ? (state.paddle1Y - prevP1Y) / dt : 0;
+	state.paddle2VY = dt > 0 ? (state.paddle2Y - prevP2Y) / dt : 0;
 }
 
 function checkPaddleCollision(state: GameState, settings: GameSettings): void {
@@ -266,8 +293,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
 		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
 	) {
-		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle1Y, 1, settings);
+		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY);
 	}
 
 	// Right paddle
@@ -279,8 +305,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
 		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
 	) {
-		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle2Y, -1, settings);
+		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY);
 	}
 }
 
@@ -288,7 +313,8 @@ function handlePaddleBounce(
 	state: GameState,
 	paddleY: number,
 	direction: number,
-	settings: GameSettings
+	settings: GameSettings,
+	paddleVY: number
 ): void {
 	const paddleCenter = paddleY + PADDLE_HEIGHT / 2;
 	const offset = (state.ballY - paddleCenter) / (PADDLE_HEIGHT / 2);
@@ -305,6 +331,11 @@ function handlePaddleBounce(
 	state.ballVY = state.currentBallSpeed * bounceAngle;
 	state.ballVX = state.currentBallSpeed * Math.sqrt(1 - bounceAngle * bounceAngle) * direction;
 
+	// Impart spin based on paddle velocity at moment of contact
+	// Moving paddle up (negative VY) → negative spin (curves ball upward)
+	// Moving paddle down (positive VY) → positive spin (curves ball downward)
+	state.ballSpin = (paddleVY / PADDLE_SPEED) * SPIN_FACTOR;
+
 	// Push ball away from paddle
 	if (direction === 1) {
 		state.ballX = PADDLE_OFFSET + PADDLE_WIDTH + BALL_RADIUS;
@@ -319,15 +350,6 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.score2++;
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
-
-		// Track max deficit for player 1
-		const deficit = state.score2 - state.score1;
-		if (deficit > state.maxDeficit) state.maxDeficit = deficit;
-
-		// Check deuce
-		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
-			state.reachedDeuce = true;
-		}
 
 		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
 		if (state.score2 >= settings.winScore) {
@@ -344,11 +366,6 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
 
-		// Check deuce
-		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
-			state.reachedDeuce = true;
-		}
-
 		if (state.score1 >= settings.winScore) {
 			endGame(state, 'Player 1');
 		} else {
@@ -358,34 +375,69 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
+/**
+ * Fuzzy Logic AI Controller for Computer Paddle
+ * 
+ * Implements prediction-based targeting with smooth movement:
+ * 1. Fuzzification: Predict ball trajectory including wall bounces
+ * 2. Inference: Determine target position based on ball approach state
+ * 3. Defuzzification: Apply dead zone tolerance for smooth movement
+ */
 export function computeComputerInput(state: GameState): InputState {
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
-	const deadZone = 20;
-
-	const ballApproaching = state.ballVX > 0;
-
-	let moveUp = false;
-	let moveDown = false;
-
-	if (ballApproaching) {
-		// Ball coming toward us → track it
-		if (state.ballY < paddleCenter - deadZone) {
-			moveUp = true;
-		} else if (state.ballY > paddleCenter + deadZone) {
-			moveDown = true;
+	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
+	
+	let targetY: number;
+	
+	// Rule 1: Ball approaching → Use predictive tracking
+	if (state.ballVX > 0) {
+		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+		const distanceToPaddle = paddleX - state.ballX;
+		const timeToReach = distanceToPaddle / state.ballVX;
+		
+		// Predict future ball position (account for spin curving the trajectory)
+		// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
+		// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
+		let predictedY = state.ballY
+			+ (state.ballVY * timeToReach)
+			+ (0.5 * state.ballSpin * SPIN_ACCELERATION * timeToReach * timeToReach);
+		
+		// Simulate wall bounces with safety limit (prevent infinite loops)
+		let bounces = 0;
+		const maxBounces = 10; // Safety limit
+		
+		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
+			if (predictedY < 0) {
+				predictedY = Math.abs(predictedY);
+			} else if (predictedY > CANVAS_HEIGHT) {
+				predictedY = 2 * CANVAS_HEIGHT - predictedY;
+			}
+			bounces++;
 		}
-	} else {
-		// Ball moving away → drift toward center
-		const canvasCenter = CANVAS_HEIGHT / 2;
-		if (paddleCenter < canvasCenter - 30) {
-			moveDown = true;
-		} else if (paddleCenter > canvasCenter + 30) {
-			moveUp = true;
-		}
+		
+		// Clamp if still out of bounds (safety fallback)
+		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+		
+		targetY = predictedY;
+	} 
+	// Rule 2: Ball moving away → Return to center (defensive positioning)
+	else {
+		targetY = CANVAS_HEIGHT / 2;
 	}
+	
+	// Defuzzification: Constrain target to valid paddle bounds
+	// Extend range by deadZone so the paddle can fully reach the top/bottom edges
+	targetY = Math.max(
+		PADDLE_HEIGHT / 2 - deadZone,
+		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
+	);
+	
+	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
+	const moveUp = targetY < paddleCenter - deadZone;
+	const moveDown = targetY > paddleCenter + deadZone;
 
 	return {
-		paddle1Up: false,    // Computer doesn't control paddle 1
+		paddle1Up: false,
 		paddle1Down: false,
 		paddle2Up: moveUp,
 		paddle2Down: moveDown,

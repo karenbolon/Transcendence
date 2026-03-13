@@ -27,6 +27,11 @@ export function connectSocket() {
 		console.warn('[Socket] Connection error:', err.message);
 		connected = false;
 	});
+
+	socket.on('reconnect', (attempt: number) => {
+		console.log(`[Socket] Reconnected after ${attempt} attempt(s)`);
+	});
+
 }
 
 export function disconnectSocket() {

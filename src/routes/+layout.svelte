@@ -2,7 +2,7 @@
 	import './layout.css';
 	import { invalidateAll } from '$app/navigation';
 	import { connectSocket, disconnectSocket, getSocket } from '$lib/stores/socket.svelte';
-	import { addToast } from '$lib/stores/toast.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
 	import favicon from '$lib/assets/favicon.ico';
 	import Header from '$lib/component/Header.svelte';
@@ -14,7 +14,11 @@
 	import { setUserLanguage } from '$lib/utils/language_utils';
 	import InviteModal from '$lib/component/InviteModal.svelte';
 
-	let pendingInvite: { inviteId: string; fromUsername: string } | null = $state(null);
+	let pendingInvite: {
+		inviteId: string;
+		challenger:  { username: string; displayName: string | null; avatarUrl: string | null };
+		settings: { speedPreset: string; winScore: number };
+	} | null = $state(null);
 
 	let { children, data } = $props<{
 		children: any;
@@ -57,33 +61,39 @@
 			const socket = getSocket();
 			if (socket) {
 				socket.on('friend:request', (evtData: { fromUsername: string }) => {
-					addToast(`${evtData.fromUsername} sent you a friend request`, 'info', 5000);
+					toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
 					invalidateAll();
 				});
 				socket.on('friend:accepted', (evtData: { fromUsername: string }) => {
-					addToast(`${evtData.fromUsername} accepted your friend request`, 'success');
+					toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
 					invalidateAll();
 				});
 				socket.on('friend:removed', () => { invalidateAll(); });
 				socket.on('friend:online', () => { invalidateAll(); });
 				socket.on('friend:offline', () => { invalidateAll(); });
 
-				socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string }) => {
-					pendingInvite = evtData;
+				socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number }
+				}) => {
+					pendingInvite = {
+						inviteId: evtData.inviteId,
+						challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
+						settings: evtData.settings ?? { speedPreset: 'normal', winScore: 5 },
+					};
 				});
+
 
 				socket.on('game:invite-expired', () => {
 					pendingInvite = null;
-					addToast('Game invite expired', 'warning');
+					toast.warning('Game invite expired');
 				});
 
 				socket.on('game:invite-declined', () => {
-					addToast('Your challenge was declined', 'info');
+					toast.game('Challenge Declined');;
 				});
 
 				socket.on('game:start', (evtData: { gameId: string; opponent: string; side: string }) => {
 					pendingInvite = null;
-					addToast(`Game starting against ${evtData.opponent}!`, 'success');
+					toast.game('Game Starting!', `Match against ${evtData.opponent}`);
 					// TODO: navigate to game page later
 				});
 			}
@@ -133,8 +143,9 @@
 
 {#if pendingInvite}
 	<InviteModal
-		inviteId={pendingInvite.inviteId}
-		fromUsername={pendingInvite.fromUsername}
+		challenger={pendingInvite.challenger}
+		settings={pendingInvite.settings}
+		timeoutSecs={30}
 		onAccept={acceptInvite}
 		onDecline={declineInvite}
 	/>

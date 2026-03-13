@@ -4,17 +4,17 @@
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
-	import { addToast } from '$lib/stores/toast.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 
 	function challengeUser(friendId: number, username: string) {
 		const socket = getSocket();
 		if (!socket?.connected) {
-			addToast('Not connected to server', 'error');
+			toast.error('Not connected to server');
 			return;
 		}
 		socket.emit('game:invite', { friendId });
-		addToast(`Challenge sent to ${username}!`, 'info');
+		toast.game('Challenge Sent', `Sent to ${username}`);
 	}
 
 
@@ -24,7 +24,6 @@
 	let searchResults: SearchResult[] = $state([]);
 	let searching = $state(false);
 	let activeTab = $state('friends');
-	// let toast = $state('');
 	let loading = $state('');
 
 	// Derived counts
@@ -53,7 +52,7 @@
 
 	// Toast helper
 	function showToast(message: string, success = true) {
-		addToast(message, success ? 'success' : 'error');
+		success ? toast.success(message) : toast.error(message);
 	}
 
 	// API search helper (used by input handler and tab switch)
@@ -124,7 +123,7 @@
 
 	// Socket listeners — refresh friends data in real-time
 	let cleanupSocket: (() => void) | null = null;
-
+	const friendEvents = ['friend:request', 'friend:accepted', 'friend:removed', 'friend:online', 'friend:offline'];
 	onMount(() => {
 		const socket = getSocket();
 		if (!socket) return;
@@ -137,18 +136,10 @@
 			}
 		};
 
-		socket.on('friend:request', onRefresh);
-		socket.on('friend:accepted', onRefresh);
-		socket.on('friend:removed', onRefresh);
-		socket.on('friend:online', onRefresh);
-		socket.on('friend:offline', onRefresh);
+		friendEvents.forEach(event => socket.on(event, onRefresh));
 
 		cleanupSocket = () => {
-			socket.off('friend:request', onRefresh);
-			socket.off('friend:accepted', onRefresh);
-			socket.off('friend:removed', onRefresh);
-			socket.off('friend:online', onRefresh);
-			socket.off('friend:offline', onRefresh);
+			friendEvents.forEach(event => socket.off(event, onRefresh));
 		};
 	});
 

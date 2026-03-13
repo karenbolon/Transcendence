@@ -38,6 +38,8 @@ export async function socketAuthMiddleware(socket: Socket, next: (err?: Error) =
 		// Attach user info to socket
 		socket.data.userId = Number(user.id);
 		socket.data.username = user.username;
+		socket.data.displayName = user.name ?? null;
+		socket.data.avatarUrl = user.avatar_url ?? null;
 
 		next();
 	} catch (err) {

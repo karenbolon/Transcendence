@@ -19,7 +19,7 @@ export function registerGameHandlers(socket: Socket) {
 	const username: string = socket.data.username;
 
 	// Send a game invite to a friend
-	socket.on('game:invite', async (data: { friendId: number; settings: { speedPreset: string; winScore: number } }) => {
+	socket.on('game:invite', async (data: { friendId: number; settings?: { speedPreset: string; winScore: number } }) => {
 		const { friendId, settings } = data;
 
 		// Validate: can't invite yourself
@@ -64,11 +64,13 @@ export function registerGameHandlers(socket: Socket) {
 			}
 		}, 30000);
 
+		const resolvedSettings = settings ?? { speedPreset: 'normal', winScore: 5 };
+
 		activeInvites.set(inviteId, {
 			fromUserId: userId,
 			fromUsername: username,
 			toUserId: friendId,
-			settings,
+			settings: resolvedSettings,
 			timeout,
 		});
 
@@ -78,10 +80,12 @@ export function registerGameHandlers(socket: Socket) {
 			const io = getIO();
 			for (const sid of targetSockets) {
 				io.to(sid).emit('game:invite', {
-				inviteId,
-				fromUserId: userId,
-				fromUsername: username,
-				settings,
+					inviteId,
+					fromUserId: userId,
+					fromUsername: username,
+					fromDisplayName: socket.data.displayName,
+					fromAvatarUrl: socket.data.avatarUrl,
+					settings: resolvedSettings,
 				});
 			}
 		}
@@ -99,9 +103,11 @@ export function registerGameHandlers(socket: Socket) {
 		// Create a game room
 		const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+		// TODO: uncomment when game engine is ready
+
 		// Mark both as in game
-		usersInGame.add(invite.fromUserId);
-		usersInGame.add(userId);
+		// usersInGame.add(invite.fromUserId);
+		// usersInGame.add(userId);
 
 		// Notify both players to go to the game
 		const io = getIO();

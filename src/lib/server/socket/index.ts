@@ -17,7 +17,9 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
 			origin: true,
 			credentials: true,
 		},
-		path: '/socket.io'
+		path: '/socket.io',
+		pingInterval: 25000,   // how often to send a ping (25s, same default)
+		pingTimeout: 60000,    // wait 60s for pong before disconnecting (default is 20s)
 	});
 	return io;
 }

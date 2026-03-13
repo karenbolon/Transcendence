@@ -7,7 +7,7 @@
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import { addToast } from '$lib/stores/toast.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -30,11 +30,11 @@
 	function handleChallenge() {
 		const socket = getSocket();
 		if (!socket?.connected) {
-			addToast('Not connected to server', 'error');
+			toast.error('Not connected to server');
 			return;
 		}
 		socket.emit('game:invite', { friendId: data.friend.id });
-		addToast(`Challenge sent to ${data.friend.name ?? data.friend.username}!`, 'info');
+		toast.game('Challenge Sent', `Sent to ${data.friend.name ?? data.friend.username}`);
 	}
 
 	async function handleUnfriend() {

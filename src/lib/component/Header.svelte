@@ -3,6 +3,7 @@
 	import logo from '$lib/assets/favicon.ico';
 	import Logout from '$lib/component/Logout.svelte';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import { isConnected } from '$lib/stores/socket.svelte';
 	//chat
 	//notifications
 
@@ -72,7 +73,7 @@
 								username={user.name || user.username}
 								avatarUrl={user.avatar_url}
 								size="lg"
-								status={user.is_online ? 'online' : 'offline'}
+								status={isConnected() ? 'online' : 'offline'}
 							/>
 						</button>
 						{#if dropdownOpen}

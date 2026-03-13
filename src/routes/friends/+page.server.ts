@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { friendships, users } from '$lib/server/db/schema';
 import { eq, and, or, inArray } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth/helpers';
+import { userSockets } from '$lib/server/socket';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireAuth(locals);
@@ -63,7 +64,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			username: user.username,
 			name: user.display_name,
 			avatar_url: user.avatar_url,
-			is_online: user.is_online,
+			is_online: userSockets.has(user.id),
 		};
 
 		switch (row.status) {

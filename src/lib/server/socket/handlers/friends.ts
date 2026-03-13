@@ -44,18 +44,22 @@ export function registerFriendHandlers(socket: Socket) {
 	}
 
 	// On disconnect — check if this was their last tab
+	// Grace period: wait 5s before marking offline to handle
+	// page refreshes and tab switches (socket reconnects quickly)
 	socket.on('disconnect', () => {
-		const remaining = userSockets.get(userId)?.size ?? 0;
+		setTimeout(() => {
+			const remaining = userSockets.get(userId)?.size ?? 0;
 
-		// If no more sockets, user went offline
-		if (remaining === 0) {
-			db.update(users)
-				.set({ is_online: false })
-				.where(eq(users.id, userId))
-				.then(() => {
+			// If no more sockets after grace period, user is truly offline
+			if (remaining === 0) {
+				db.update(users)
+					.set({ is_online: false })
+					.where(eq(users.id, userId))
+					.then(() => {
 						notifyFriends(userId, 'friend:offline', { userId, username });
-				})
-				.catch(() => { /* silently fail */ });
-		}
+					})
+					.catch(() => { /* silently fail */ });
+			}
+		}, 5000);
 	});
 }

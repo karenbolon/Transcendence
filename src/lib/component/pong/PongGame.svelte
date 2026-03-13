@@ -179,13 +179,30 @@
 
 		// Ball (hidden during menu)
 		if (game.phase !== 'menu') {
+			ctx.save();
+			ctx.translate(game.ballX, game.ballY);
+			ctx.rotate(game.ballRotation);
+
+			// Ball glow & fill
 			ctx.fillStyle = '#ff6b9d';
 			ctx.shadowColor = '#ff6b9d';
 			ctx.shadowBlur = 15;
 			ctx.beginPath();
-			ctx.arc(game.ballX, game.ballY, BALL_RADIUS, 0, Math.PI * 2);
+			ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
 			ctx.fill();
 			ctx.shadowBlur = 0;
+
+			// Spin indicator line — shows rotation visually
+			if (Math.abs(game.ballSpin) > 0.01) {
+				ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+				ctx.lineWidth = 1.5;
+				ctx.beginPath();
+				ctx.moveTo(-BALL_RADIUS * 0.6, 0);
+				ctx.lineTo(BALL_RADIUS * 0.6, 0);
+				ctx.stroke();
+			}
+
+			ctx.restore();
 		}
 
 		// Score

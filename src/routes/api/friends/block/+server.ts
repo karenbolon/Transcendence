@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { friendships, users } from '$lib/server/db/schema';
 import { eq, and, or } from 'drizzle-orm';
+import { emitToUser } from '$lib/server/socket/emitters';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -67,5 +68,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		.set({ status: 'blocked', user_id: userId, friend_id: friendId })
 		.where(eq(friendships.id, existing.id));
 
+	// Blocked person just sees you go "offline" — not that you blocked them
+	emitToUser(friendId, 'friend:offline', { userId, username: locals.user.username });
 	return json({ message: 'User blocked' });
 };

@@ -18,9 +18,10 @@ WORKDIR /app
 # Copy production node_modules
 COPY --from=build /app/node_modules ./node_modules
 
-# Copy built SvelteKit app
+# Copy built SvelteKit app and custom server
 COPY --from=build /app/build ./build
 COPY --from=build /app/package.json ./
+COPY --from=build /app/server.js ./
 
 # Copy drizzle migrations and config for runtime migration
 COPY --from=build /app/drizzle ./drizzle

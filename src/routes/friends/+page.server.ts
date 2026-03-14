@@ -3,6 +3,15 @@ import { db } from '$lib/server/db';
 import { friendships, users } from '$lib/server/db/schema';
 import { eq, and, or, inArray } from 'drizzle-orm';
 import { requireAuth } from '$lib/server/auth/helpers';
+import { userSockets } from '$lib/server/socket';
+
+// In production, socket state lives in the custom server.js (globalThis.__userSockets)
+// In dev, it lives in the Vite-loaded module (userSockets)
+function isUserOnline(userId: number): boolean {
+	const prodSockets = (globalThis as any).__userSockets as Map<number, Set<string>> | undefined;
+	if (prodSockets) return prodSockets.has(userId);
+	return userSockets.has(userId);
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireAuth(locals);
@@ -63,7 +72,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			username: user.username,
 			name: user.display_name,
 			avatar_url: user.avatar_url,
-			is_online: user.is_online,
+			is_online: isUserOnline(user.id),
 		};
 
 		switch (row.status) {

@@ -68,9 +68,11 @@
 		"@supabase/supabase-js": "^2.95.3",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "^0.45.1",
+		"i18next": "^25.8.14",
 		"lucia": "^3.2.2",
 		"postgres": "^3.4.7",
-		"i18next": "^25.8.14",
+		"socket.io": "^4.8.3",
+		"socket.io-client": "^4.8.3",
 		"svelte-i18n": "^4.0.1",
 		"zod": "^4.3.6"
 	}

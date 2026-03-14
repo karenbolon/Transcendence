@@ -1,12 +1,10 @@
 <script lang="ts">
 	import LevelBadge from './progression/LevelBadge.svelte';
 	import type { Achievement, Progression } from '$lib/types/progression';
-	import { formatDate } from '$lib/utils/format_date';
 	import AchievementCard from './progression/AchievementCard.svelte';
 	import { getStreakInfo, getMilestone } from '$lib/utils/format_progression';
 	import AchievementDetailModal from './progression/AchievementDetailModal.svelte';
 	import { _ } from 'svelte-i18n';
-    // import type { svelte } from '@sveltejs/vite-plugin-svelte';
 
 	type Props = {
 		badges: Achievement[];
@@ -104,7 +102,7 @@
 			<h2 class="section-title"><span class="bar purple"></span> {$_('user_profile.badges.recent')}</h2>
 			<a href={viewAllHref} class="see-all">
 				<!-- {badges.length} earned · View all →</a> -->
-				 {$_('user_profile.badges.view_all', { values: { count: badges.length } })}</a> 
+				 {$_('user_profile.badges.view_all', { values: { count: badges.length } })}</a>
 		</div>
 
 		<div class="badge-grid">

@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { friendships } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { emitToUser } from '$lib/server/socket/emitters';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -46,5 +47,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		.set({ status: 'accepted' })
 		.where(eq(friendships.id, row.id));
 
+	// They thought you were offline — now you're "back online"
+	emitToUser(friendId, 'friend:online', { userId, username: locals.user.username });
 	return json({ message: 'User unblocked' });
 };

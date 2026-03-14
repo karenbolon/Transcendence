@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { friendships, users } from '$lib/server/db/schema';
 import { eq, and, or } from 'drizzle-orm';
+import { emitToUser } from '$lib/server/socket/emitters';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -60,6 +61,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 					.update(friendships)
 					.set({ status: 'accepted' })
 					.where(eq(friendships.id, existing.id));
+				emitToUser(friendId, 'friend:accepted', { fromUserId: userId, fromUsername: locals.user.username });
+				emitToUser(userId, 'friend:accepted', { fromUserId: friendId, fromUsername: '' });
 				return json({ message: 'Friend request accepted', status: 'accepted' });
 			}
 			return json({ error: 'Friend Request already sent' }, { status: 409 });
@@ -77,6 +80,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			.update(friendships)
 			.set({ status: 'pending', user_id: userId, friend_id: friendId, created_at: new Date() })
 			.where(eq(friendships.id, existing.id));
+		emitToUser(friendId, 'friend:request', { fromUserId: userId, fromUsername: locals.user.username });
 		return json({ message: 'Friend request sent', status: 'pending' });
 	}
 
@@ -87,5 +91,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		status: 'pending',
 	});
 
+	emitToUser(friendId, 'friend:request', { fromUserId: userId, fromUsername: locals.user.username });
 	return json({ message: 'Friend request sent', status: 'pending' });
 };

@@ -1,12 +1,52 @@
 import { createServer } from 'http';
+import { createReadStream, existsSync } from 'fs';
+import { stat } from 'fs/promises';
+import { join, extname } from 'path';
+import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import { handler } from './build/handler.js';
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Create HTTP server with SvelteKit handler
-const httpServer = createServer(handler);
+// Serve runtime-uploaded avatars from build/client/avatars/uploads
+const __dirname = import.meta.dirname ?? import.meta.url.replace('file://', '').replace(/\/[^/]*$/, '');
+const uploadsDir = join(__dirname, 'build', 'client', 'avatars', 'uploads');
+
+const MIME_TYPES = {
+	'.webp': 'image/webp',
+	'.png': 'image/png',
+	'.jpg': 'image/jpeg',
+	'.jpeg': 'image/jpeg',
+};
+
+function uploadsHandler(req, res, next) {
+	if (!req.url.startsWith('/avatars/uploads/')) return next();
+
+	const filename = req.url.slice('/avatars/uploads/'.length).split('?')[0];
+	// Prevent path traversal
+	if (filename.includes('..') || filename.includes('/')) return next();
+
+	const filepath = join(uploadsDir, filename);
+	const ext = extname(filename).toLowerCase();
+	const mime = MIME_TYPES[ext];
+
+	if (!mime) return next();
+
+	stat(filepath).then((info) => {
+		res.writeHead(200, {
+			'Content-Type': mime,
+			'Content-Length': info.size,
+			'Cache-Control': 'public, max-age=31536000, immutable',
+		});
+		createReadStream(filepath).pipe(res);
+	}).catch(() => next());
+}
+
+// Create HTTP server with uploads handler + SvelteKit handler
+const httpServer = createServer((req, res) => {
+	uploadsHandler(req, res, () => handler(req, res));
+});
 
 // Attach Socket.IO to the same HTTP server
 const io = new SocketIOServer(httpServer, {

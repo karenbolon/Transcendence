@@ -1,4 +1,4 @@
-export type GamePhase = 'menu' | 'countdown' | 'playing' | 'gameover';
+export type GamePhase = 'menu' | 'countdown' | 'playing' | 'paused' | 'gameover';
 
 export interface GameState {
 	// Current phase
@@ -14,6 +14,15 @@ export interface GameState {
 	ballVX: number;
 	ballVY: number;
 	currentBallSpeed: number;
+
+	// Ball spin — continuous curve applied to ballVY each frame
+	ballSpin: number;
+	// Ball rotation angle — visual only, accumulated from spin
+	ballRotation: number;
+
+	// Paddle velocities — tracked to impart spin on contact
+	paddle1VY: number;
+	paddle2VY: number;
 
 	// Scores
 	score1: number;
@@ -38,6 +47,8 @@ export interface GameState {
 	ballReturns: number;     // total paddle hits this match
 	maxDeficit: number;      // biggest point deficit player 1 faced
 	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
+	maxBallSpeedReached: number;
+	longestRally: number;
 }
 
 export interface InputState {
@@ -52,29 +63,56 @@ export interface GameSettings {
 	ballSpeed: number;
 	maxBallSpeed: number;
 	gameMode: GameMode;
+	difficulty: Difficulty;
 }
 
+export interface GameModifiers {
+	paddle1Height: number;
+	paddle2Height: number;
+	ballSpeedMultiplier: number;
+	paddle1SpeedMultiplier: number;
+	paddle2SpeedMultiplier: number;
+}
 
-export type GameMode = 'local' | 'computer';
+export type GameMode = 'local' | 'computer' | 'online';
 
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
 	chill: { ballSpeed: 200, maxBallSpeed: 400 },
-	normal: { ballSpeed: 300, maxBallSpeed: 600 },
-	fast: { ballSpeed: 650, maxBallSpeed: 1000 },
+	normal: { ballSpeed: 500, maxBallSpeed: 700 },
+	fast: { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
-export const CANVAS_WIDTH = 800;
-export const CANVAS_HEIGHT = 500;
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export const DIFFICULTY_CONFIGS: Record<Difficulty, { speedMultiplier: number; deadZone: number }> = {
+	easy:   { speedMultiplier: 0.6, deadZone: 40 },
+	medium: { speedMultiplier: 1.0, deadZone: 20 },
+	hard:   { speedMultiplier: 1.3, deadZone: 8 },
+};
+
+export const CANVAS_WIDTH = 900;
+export const CANVAS_HEIGHT = 560;
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_OFFSET = 30;
-export const PADDLE_SPEED = 400;
+export const PADDLE_SPEED = 500;
 export const BALL_RADIUS = 8;
 export const BALL_SPEED_INCREMENT = 20;
 export const MAX_BOUNCE_ANGLE = 0.75;
 export const SCORE_PAUSE_DURATION = 0.8;
+export const SPIN_FACTOR = 0.6;       // How much paddle velocity transfers to spin
+export const SPIN_ACCELERATION = 800;  // How strongly spin curves the ball (px/s²)
+export const SPIN_DECAY = 0.97;        // Spin fades slightly each frame (friction)
+
+export const DEFAULT_MODIFIERS: GameModifiers = {
+	paddle1Height: PADDLE_HEIGHT,
+	paddle2Height: PADDLE_HEIGHT,
+	ballSpeedMultiplier: 1,
+	paddle1SpeedMultiplier: 1,
+	paddle2SpeedMultiplier: 1,
+};
 
 export function createGameState(): GameState {
 	return {
@@ -86,6 +124,10 @@ export function createGameState(): GameState {
 		ballVX: 0,
 		ballVY: 0,
 		currentBallSpeed: 0,
+		ballSpin: 0,
+		ballRotation: 0,
+		paddle1VY: 0,
+		paddle2VY: 0,
 		score1: 0,
 		score2: 0,
 		winner: '',
@@ -98,6 +140,8 @@ export function createGameState(): GameState {
 		ballReturns: 0,
 		maxDeficit: 0,
 		reachedDeuce: false,
+		maxBallSpeedReached: 0,
+		longestRally: 0,
 	};
 }
 
@@ -127,6 +171,16 @@ export function endGame(state: GameState, winnerName: string): void {
 	state.ballVY = 0;
 }
 
+/** PLAYING → PAUSED */
+export function pauseGame(state: GameState): void {
+	state.phase = 'paused';
+}
+
+/** PAUSED → PLAYING */
+export function resumeGame(state: GameState): void {
+	state.phase = 'playing';
+}
+
 /** GAMEOVER → MENU */
 export function returnToMenu(state: GameState): void {
 	state.phase = 'menu';
@@ -140,6 +194,8 @@ export function returnToMenu(state: GameState): void {
 	state.ballReturns = 0;
 	state.maxDeficit = 0;
 	state.reachedDeuce = false;
+	state.maxBallSpeedReached = 0;
+	state.longestRally = 0;
 	resetPositions(state);
 }
 
@@ -151,6 +207,10 @@ function resetPositions(state: GameState): void {
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.ballVX = 0;
 	state.ballVY = 0;
+	state.ballSpin = 0;
+	state.ballRotation = 0;
+	state.paddle1VY = 0;
+	state.paddle2VY = 0;
 }
 
 /** Reset ball to center (between points, not full reset) */
@@ -158,6 +218,7 @@ function resetBall(state: GameState, settings: GameSettings): void {
 	state.ballX = CANVAS_WIDTH / 2;
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.currentBallSpeed = settings.ballSpeed;
+	state.ballSpin = 0;
 	const direction = Math.random() > 0.5 ? 1 : -1;
 	state.ballVX = settings.ballSpeed * direction;
 	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
@@ -167,7 +228,8 @@ export function update(
 	state: GameState,
 	dt: number,
 	input: InputState,
-	settings: GameSettings
+	settings: GameSettings,
+	modifiers: GameModifiers = DEFAULT_MODIFIERS
 ): void {
 	// Score flash fades regardless of phase
 	if (state.scoreFlashTimer > 0) {
@@ -180,16 +242,19 @@ export function update(
 	// Dispatch to phase-specific update
 	switch (state.phase) {
 		case 'countdown':
-			updateCountdown(state, dt, input);
+			updateCountdown(state, dt, input, settings);
 			break;
 		case 'playing':
-			updatePlaying(state, dt, input, settings);
+			updatePlaying(state, dt, input, settings, modifiers);
 			break;
+		// case 'paused':
+		// 	updatePaused(state, dt, input, settings);
+		// 	break;
 		// 'menu' and 'gameover': nothing to update
 	}
 }
 
-function updateCountdown(state: GameState, dt: number, input: InputState): void {
+function updateCountdown(state: GameState, dt: number, input: InputState, settings: GameSettings): void {
 	state.countdownTimer -= dt;
 
 	if (state.countdownTimer > 3) state.countdownDisplay = '3';
@@ -203,15 +268,16 @@ function updateCountdown(state: GameState, dt: number, input: InputState): void 
 		return;
 	}
 
-	// Paddles can move during countdown
-	movePaddles(state, dt, input);
+	// Paddles can move during countdown (no modifiers active yet)
+	movePaddles(state, dt, input, settings, DEFAULT_MODIFIERS);
 }
 
 function updatePlaying(
 	state: GameState,
 	dt: number,
 	input: InputState,
-	settings: GameSettings
+	settings: GameSettings,
+	modifiers: GameModifiers
 ): void {
 	// Track total play time
 	state.playTime += dt;
@@ -223,11 +289,22 @@ function updatePlaying(
 	}
 
 	// Move paddles
-	movePaddles(state, dt, input);
+	movePaddles(state, dt, input, settings, modifiers);
 
-	// Move ball
-	state.ballX += state.ballVX * dt;
-	state.ballY += state.ballVY * dt;
+	// Apply spin: curves the ball trajectory over time
+	state.ballVY += state.ballSpin * SPIN_ACCELERATION * dt;
+	state.ballSpin *= SPIN_DECAY;
+
+	// Dampen tiny spin values to zero
+	if (Math.abs(state.ballSpin) < 0.001) state.ballSpin = 0;
+
+	// Update visual rotation
+	state.ballRotation += state.ballSpin * 15 * dt;
+
+	// Move ball (apply speed boost if active)
+	const speedMul = modifiers.ballSpeedMultiplier;
+	state.ballX += state.ballVX * dt * speedMul;
+	state.ballY += state.ballVY * dt * speedMul;
 
 	// Wall bounce (top/bottom)
 	if (state.ballY - BALL_RADIUS <= 0) {
@@ -240,34 +317,49 @@ function updatePlaying(
 	}
 
 	// Paddle collisions
-	checkPaddleCollision(state, settings);
+	checkPaddleCollision(state, settings, modifiers);
 
 	// Scoring
 	checkScoring(state, settings);
 }
 
-function movePaddles(state: GameState, dt: number, input: InputState): void {
-	if (input.paddle1Up) state.paddle1Y -= PADDLE_SPEED * dt;
-	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up) state.paddle2Y -= PADDLE_SPEED * dt;
-	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
+function movePaddles(state: GameState, dt: number, input: InputState, settings: GameSettings, modifiers: GameModifiers): void {
+	const prevP1Y = state.paddle1Y;
+	const prevP2Y = state.paddle2Y;
+
+	const p1Speed = PADDLE_SPEED * modifiers.paddle1SpeedMultiplier;
+	if (input.paddle1Up) state.paddle1Y -= p1Speed * dt;
+	if (input.paddle1Down) state.paddle1Y += p1Speed * dt;
+
+	// Apply difficulty speed multiplier to AI paddle, then power-up modifier
+	const p2BaseSpeed = settings.gameMode === 'computer'
+		? PADDLE_SPEED * DIFFICULTY_CONFIGS[settings.difficulty].speedMultiplier
+		: PADDLE_SPEED;
+	const p2Speed = p2BaseSpeed * modifiers.paddle2SpeedMultiplier;
+	if (input.paddle2Up) state.paddle2Y -= p2Speed * dt;
+	if (input.paddle2Down) state.paddle2Y += p2Speed * dt;
 
 	// Clamp to canvas bounds
 	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle1Y));
 	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle2Y));
+	// Track paddle velocities for spin calculation
+	state.paddle1VY = dt > 0 ? (state.paddle1Y - prevP1Y) / dt : 0;
+	state.paddle2VY = dt > 0 ? (state.paddle2Y - prevP2Y) / dt : 0;
 }
 
-function checkPaddleCollision(state: GameState, settings: GameSettings): void {
+function checkPaddleCollision(state: GameState, settings: GameSettings, modifiers: GameModifiers): void {
+	const p1Height = modifiers.paddle1Height;
+	const p2Height = modifiers.paddle2Height;
+
 	// Left paddle
 	if (
 		state.ballVX < 0 &&
 		state.ballX - BALL_RADIUS <= PADDLE_OFFSET + PADDLE_WIDTH &&
 		state.ballX + BALL_RADIUS >= PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
-		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
+		state.ballY - BALL_RADIUS <= state.paddle1Y + p1Height
 	) {
-		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle1Y, 1, settings);
+		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY, p1Height);
 	}
 
 	// Right paddle
@@ -277,10 +369,9 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballX + BALL_RADIUS >= p2Left &&
 		state.ballX - BALL_RADIUS <= CANVAS_WIDTH - PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
-		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
+		state.ballY - BALL_RADIUS <= state.paddle2Y + p2Height
 	) {
-		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle2Y, -1, settings);
+		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY, p2Height);
 	}
 }
 
@@ -288,10 +379,12 @@ function handlePaddleBounce(
 	state: GameState,
 	paddleY: number,
 	direction: number,
-	settings: GameSettings
+	settings: GameSettings,
+	paddleVY: number,
+	paddleHeight: number = PADDLE_HEIGHT
 ): void {
-	const paddleCenter = paddleY + PADDLE_HEIGHT / 2;
-	const offset = (state.ballY - paddleCenter) / (PADDLE_HEIGHT / 2);
+	const paddleCenter = paddleY + paddleHeight / 2;
+	const offset = (state.ballY - paddleCenter) / (paddleHeight / 2);
 	const clampedOffset = Math.max(-1, Math.min(1, offset));
 
 	// Speed up (capped at max)
@@ -305,11 +398,23 @@ function handlePaddleBounce(
 	state.ballVY = state.currentBallSpeed * bounceAngle;
 	state.ballVX = state.currentBallSpeed * Math.sqrt(1 - bounceAngle * bounceAngle) * direction;
 
+	// Impart spin based on paddle velocity at moment of contact
+	state.ballSpin = (paddleVY / PADDLE_SPEED) * SPIN_FACTOR;
+
 	// Push ball away from paddle
 	if (direction === 1) {
 		state.ballX = PADDLE_OFFSET + PADDLE_WIDTH + BALL_RADIUS;
 	} else {
 		state.ballX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - BALL_RADIUS;
+	}
+
+	// Track rally stats
+	state.ballReturns++;
+	if (state.ballReturns > state.longestRally) {
+		state.longestRally = state.ballReturns;
+	}
+	if (state.currentBallSpeed > state.maxBallSpeedReached) {
+		state.maxBallSpeedReached = state.currentBallSpeed;
 	}
 }
 
@@ -319,6 +424,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.score2++;
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
+		state.ballReturns = 0;
 
 		// Track max deficit for player 1
 		const deficit = state.score2 - state.score1;
@@ -343,6 +449,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.score1++;
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
+		state.ballReturns = 0;
 
 		// Check deuce
 		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
@@ -358,9 +465,10 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
-export function computeComputerInput(state: GameState): InputState {
+export function computeComputerInput(state: GameState, settings: GameSettings): InputState {
+	const config = DIFFICULTY_CONFIGS[settings.difficulty];
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
-	const deadZone = 20;
+	const deadZone = config.deadZone;
 
 	const ballApproaching = state.ballVX > 0;
 

@@ -8,14 +8,6 @@ export function formatMode(mode: string): string {
 	}
 };
 
-export function formatInvite(invite: string): string {
-	switch (invite) {
-		case '1v1': return 'Online';
-		case 'tournament': return 'Tournament';
-		default: return invite;
-	}
-}
-
 /** Speed preset to emoji */
 export function speedEmoji(preset: string): string {
 	switch (preset) {
@@ -25,6 +17,15 @@ export function speedEmoji(preset: string): string {
 		default: return '';
 	}
 };
+
+export function difficultyLabel(difficulty: string): string {
+	switch (difficulty) {
+		case 'easy': return '😌 Easy';
+		case 'medium': return '🏓 Medium';
+		case 'hard': return '🔥 Hard';
+		default: return difficulty;
+	}
+}
 
 /** Format tournament time */
 export function formatTournamentTime(date: Date | string | null): string {
@@ -71,20 +72,9 @@ export function modeEmoji(mode: string): string {
 
 export function speedLabel(preset: string): string {
 	switch (preset) {
-		case 'slow': return 'Slow';
+		case 'chill': return 'Chill';
 		case 'normal': return 'Normal';
 		case 'fast': return 'Fast';
 		default: return preset;
-	}
-}
-
-
-export function winSets(wins: number, total: number): number {
-	switch (wins) {
-		case 3: return 3;
-		case 5: return 5;
-		case 7: return 7;
-		case 11: return 11;
-		default: return 0;
 	}
 }

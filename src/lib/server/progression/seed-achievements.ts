@@ -10,24 +10,28 @@ import { achievement_definitions } from '$lib/server/db/schema';
 
 export const ACHIEVEMENT_SEED_DATA = [
 	// ── Shutout ─────────────────────────────────
-	{ id: 'shutout_bronze', name: 'First Shutout', description: 'Win a game without the opponent scoring', tier: 'bronze', category: 'shutout', icon: '🛡️' },
-	{ id: 'shutout_silver', name: 'Serial Shutdown', description: 'Win 10 shutout games', tier: 'silver', category: 'shutout', icon: '🛡️' },
-	{ id: 'shutout_gold', name: 'Untouchable', description: 'Win 50 shutout games', tier: 'gold', category: 'shutout', icon: '🛡️' },
+	{ id: 'shutout_bronze', name: 'Shutout', description: 'Win a match where your opponent scores 0 points', tier: 'bronze', category: 'shutout', icon: '🛡️' },
+	{ id: 'shutout_silver', name: 'Shutout Artist', description: 'Win 10 shutout matches', tier: 'silver', category: 'shutout', icon: '🛡️' },
+	{ id: 'shutout_gold', name: 'Perfect Machine', description: 'Win 50 shutout matches', tier: 'gold', category: 'shutout', icon: '🛡️' },
 
 	// ── Streak ──────────────────────────────────
-	{ id: 'streak_bronze', name: 'Hot Streak', description: 'Win 3 games in a row', tier: 'bronze', category: 'streak', icon: '🔥' },
-	{ id: 'streak_silver', name: 'On Fire', description: 'Win 7 games in a row', tier: 'silver', category: 'streak', icon: '🔥' },
-	{ id: 'streak_gold', name: 'Unstoppable', description: 'Win 15 games in a row', tier: 'gold', category: 'streak', icon: '🔥' },
+	{ id: 'streak_bronze', name: 'Hot Streak', description: 'Win 3 matches in a row', tier: 'bronze', category: 'streak', icon: '🔥' },
+	{ id: 'streak_silver', name: 'On Fire', description: 'Win 7 matches in a row', tier: 'silver', category: 'streak', icon: '🔥' },
+	{ id: 'streak_gold', name: 'Unstoppable', description: 'Win 15 matches in a row', tier: 'gold', category: 'streak', icon: '🔥' },
 
-	// ── Veteran ─────────────────────────────────
-	{ id: 'veteran_bronze', name: 'Newcomer', description: 'Play 10 games', tier: 'bronze', category: 'veteran', icon: '🎮' },
-	{ id: 'veteran_silver', name: 'Regular', description: 'Play 50 games', tier: 'silver', category: 'veteran', icon: '🎮' },
-	{ id: 'veteran_gold', name: 'Veteran', description: 'Play 200 games', tier: 'gold', category: 'veteran', icon: '🎮' },
+	// ── Origins (match milestones) ──────────────
+	{ id: 'matches_10', name: 'Getting Started', description: 'Play 10 matches', tier: 'bronze', category: 'origins', icon: '🎾' },
+	{ id: 'matches_50', name: 'Regular', description: 'Play 50 matches', tier: 'silver', category: 'origins', icon: '🎾' },
+
+	// ── Veteran (high match counts) ─────────────
+	{ id: 'matches_v_100', name: 'Veteran', description: 'Play 100 matches', tier: 'bronze', category: 'veteran', icon: '🎮' },
+	{ id: 'matches_v_250', name: 'Elite Veteran', description: 'Play 250 matches', tier: 'silver', category: 'veteran', icon: '🎮' },
+	{ id: 'matches_v_500', name: 'Living Legend', description: 'Play 500 matches', tier: 'gold', category: 'veteran', icon: '🎮' },
 
 	// ── Scorer ──────────────────────────────────
-	{ id: 'scorer_bronze', name: 'Point Collector', description: 'Score 50 total points', tier: 'bronze', category: 'scorer', icon: '🎯' },
-	{ id: 'scorer_silver', name: 'Sharpshooter', description: 'Score 250 total points', tier: 'silver', category: 'scorer', icon: '🎯' },
-	{ id: 'scorer_gold', name: 'Point Machine', description: 'Score 1000 total points', tier: 'gold', category: 'scorer', icon: '🎯' },
+	{ id: 'points_bronze', name: 'Point Collector', description: 'Score 50 career points', tier: 'bronze', category: 'scorer', icon: '🎯' },
+	{ id: 'points_silver', name: 'Point Machine', description: 'Score 250 career points', tier: 'silver', category: 'scorer', icon: '🎯' },
+	{ id: 'points_gold', name: 'Point God', description: 'Score 1000 career points', tier: 'gold', category: 'scorer', icon: '🎯' },
 
 	// ── Comeback ────────────────────────────────
 	{ id: 'comeback_bronze', name: 'Comeback Kid', description: 'Win a game after being down by 2+ points', tier: 'bronze', category: 'comeback', icon: '💪' },

@@ -401,7 +401,7 @@
       "action": "This action is",
       "action2": "permanent",
       "action3": "Your account,profile, and stats will be removed. Your match history will be preserved for other players."
-    } 
+    }
   },
   "instructions": {
     "title": "Instructions",
@@ -528,6 +528,7 @@
       "label": "Game mode",
       "local": "👥 Local PvP",
       "computer": "🤖 vs Computer",
+      "online": "🌐 Online",
       "guest": "Guest"
     },
     "win_score": {

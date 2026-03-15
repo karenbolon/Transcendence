@@ -565,6 +565,15 @@ function createGameRoom(roomId, p1, p2, settings) {
 	activeRooms.set(roomId, room);
 	playerRoomMap.set(p1.userId, roomId);
 	playerRoomMap.set(p2.userId, roomId);
+
+	// Safety: destroy room if nobody joins within 30 seconds
+	room._joinTimeout = setTimeout(() => {
+		if (room.player1.socketIds.size === 0 || room.player2.socketIds.size === 0) {
+			console.log(`[GameRoom] Room ${roomId} timed out — nobody joined`);
+			destroyGameRoom(roomId);
+		}
+	}, 30000);
+
 	return room;
 }
 
@@ -788,6 +797,8 @@ io.on('connection', (socket) => {
 		});
 
 		if (room.player1.socketIds.size > 0 && room.player2.socketIds.size > 0) {
+			// Clear the join timeout since both players are in
+			if (room._joinTimeout) { clearTimeout(room._joinTimeout); room._joinTimeout = null; }
 			room.start();
 		}
 	});

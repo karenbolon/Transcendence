@@ -42,13 +42,26 @@
 		goto('/play');
 	});
 
-	// Tell the server we're here — this is the ONLY place
-	// that emits game:join-room (not in OnlinePongGame)
-	socket.emit('game:join-room', { roomId: data.roomId });
+	// Tell the server we're here
+	// Retry every 2 seconds if we don't get game:joined back
+	// (handles race condition where socket briefly disconnects during navigation)
+	function tryJoinRoom() {
+		if (!gameReady) {
+			socket.emit('game:join-room', { roomId: data.roomId });
+		}
+	}
+
+	tryJoinRoom();
+	const retryInterval = setInterval(tryJoinRoom, 2000);
+
+	// Also retry when socket reconnects
+	socket.on('connect', tryJoinRoom);
 
 	return () => {
+		clearInterval(retryInterval);
 		socket.off('game:joined');
 		socket.off('game:error');
+		socket.off('connect', tryJoinRoom);
 	};
 	});
 

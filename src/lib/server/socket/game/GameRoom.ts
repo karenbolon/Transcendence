@@ -54,6 +54,7 @@ export class GameRoom {
 	private broadcastEvent: GameRoomOptions['broadcastEvent'];
 	private disconnectTimers = new Map<number, ReturnType<typeof setTimeout>>();
 	private destroyed = false;
+	private gameEnded = false;
 
 	constructor(options: GameRoomOptions) {
 		this.roomId = options.roomId;
@@ -243,6 +244,8 @@ export class GameRoom {
 
 	// ── Game End Handling ─────────────────────────────────────
 	private handleGameOver(): void {
+		if (this.gameEnded) return;
+		this.gameEnded = true;
 		this.stop();
 
 		const p1Won = this.state.score1 > this.state.score2;
@@ -269,6 +272,8 @@ export class GameRoom {
 	}
 
 	private handleForfeit(winner: RoomPlayer): void {
+		if (this.gameEnded) return;
+		this.gameEnded = true;
 		this.stop();
 
 		const loser = winner === this.player1 ? this.player2 : this.player1;

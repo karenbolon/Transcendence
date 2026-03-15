@@ -72,6 +72,11 @@ export function destroyRoom(roomId: string): void {
  * This runs inside a transaction so everything succeeds or fails together.
  */
 async function handleGameEnd(result: GameResult): Promise<void> {
+	// Clear playerRoomMap immediately so players can challenge again
+	// while the async DB save is still running
+	playerRoomMap.delete(result.player1.userId);
+	playerRoomMap.delete(result.player2.userId);
+
 	try {
 		const finishedAt = new Date();
 		const startedAt = new Date(finishedAt.getTime() - result.durationSeconds * 1000);

@@ -37,6 +37,7 @@ COMPOSE := docker compose -f $(COMPOSE_FILE)
 DB_CONTAINER		= ft_db
 DB_TEST_CONTAINER	= test_db
 DB_USER             = root
+DB_NAME             = pong_db
 
 # ================================================================================
 # SETUP & INSTALLATION
@@ -148,6 +149,12 @@ db-seed:
 	@echo "$(DATABASE) $(PURPLE)Seeding database with test data...$(NC)"
 	@npm run db:seed
 	@echo "$(CHECK) $(MINT)Database seeded! Password for all users: 123321Pa$(NC)"
+
+## Seed achievement definitions (safe to run multiple times)
+db-seed-achievements:
+	@echo "$(DATABASE) $(PURPLE)Seeding achievement definitions...$(NC)"
+	@docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) < drizzle/seed-achievements.sql
+	@echo "$(CHECK) $(MINT)Achievement definitions seeded!$(NC)"
 
 ## Seed the test database
 db-seed-test:

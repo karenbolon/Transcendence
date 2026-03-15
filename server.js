@@ -385,6 +385,7 @@ class ServerGameRoom {
 		this.roomId = roomId;
 		this.rawSettings = settings;
 		this.destroyed = false;
+		this.gameEnded = false;
 		this.interval = null;
 		this.lastTick = 0;
 		this.disconnectTimers = new Map();
@@ -496,6 +497,8 @@ class ServerGameRoom {
 	}
 
 	_handleGameOver() {
+		if (this.gameEnded) return;
+		this.gameEnded = true;
 		this.stop();
 		const p1Won = this.state.score1 > this.state.score2;
 		const winner = p1Won ? this.player1 : this.player2;
@@ -511,10 +514,16 @@ class ServerGameRoom {
 		};
 		broadcastRoomState(this.roomId, this._getSnapshot());
 		broadcastRoomEvent(this.roomId, 'game:over', result);
+		// Clear playerRoomMap immediately so players can challenge again
+		// while the async DB save is still running
+		playerRoomMap.delete(this.player1.userId);
+		playerRoomMap.delete(this.player2.userId);
 		saveOnlineMatch(result);
 	}
 
 	_handleForfeit(winner) {
+		if (this.gameEnded) return;
+		this.gameEnded = true;
 		this.stop();
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		endGameState(this.state, winner.username);
@@ -528,6 +537,9 @@ class ServerGameRoom {
 			settings: this.rawSettings,
 		};
 		broadcastRoomEvent(this.roomId, 'game:forfeit', result);
+		// Clear playerRoomMap immediately so players can challenge again
+		playerRoomMap.delete(this.player1.userId);
+		playerRoomMap.delete(this.player2.userId);
 		saveOnlineMatch(result);
 	}
 
@@ -659,9 +671,6 @@ io.on('connection', (socket) => {
 	const activeInvites = globalThis.__activeInvites || (globalThis.__activeInvites = new Map());
 
 	socket.on('game:invite', async (data) => {
-		console.log(`[DEBUG] game:invite received from user ${userId}`);
-		console.log(`[DEBUG] invite data:`, data);
-		console.log(`[DEBUG] playerRoomMap:`, playerRoomMap);
 		const { friendId, settings } = data;
 
 		if (friendId === userId) return;
@@ -778,8 +787,6 @@ io.on('connection', (socket) => {
 
 	// ── Join a game room ──────────────────────────────────────────
 	socket.on('game:join-room', (data) => {
-		console.log(`[DEBUG] game:join-room received from user ${userId}, roomId: ${data.roomId}`);
-		console.log(`[DEBUG] activeRooms keys:`, [...activeRooms.keys()]);
 		const room = getGameRoom(data.roomId);
 		if (!room || !room.hasPlayer(userId)) {
 			socket.emit('game:error', { message: 'Game room not found' });

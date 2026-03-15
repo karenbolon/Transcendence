@@ -1,6 +1,7 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { lucia } from '$lib/server/auth/lucia';
 import { clearSessionCookie } from '$lib/server/auth/helpers';
+import { logger } from '$lib/server/logger';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get(lucia.sessionCookieName);
@@ -44,4 +45,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	});
 
+};
+
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+	const errorId = crypto.randomUUID();
+	logger.error(
+		{ err: error, errorId, status, path: event.url.pathname },
+		message
+	);
+	return { message: 'Internal error', errorId };
 };

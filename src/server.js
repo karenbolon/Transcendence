@@ -4,6 +4,11 @@ import { initSocketIO } from './lib/server/socket/index.js';
 import { socketAuthMiddleware, registerPresence } from './lib/server/socket/auth.js';
 import { registerFriendHandlers } from './lib/server/socket/handlers/friends.js';
 import { registerGameHandlers } from './lib/server/socket/handlers/game.js';
+import pino from 'pino';
+
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+const socketLog = logger.child({ component: 'socket.io' });
+const serverLog = logger.child({ component: 'server' });
 
 const PORT = process.env.PORT || 3000;
 
@@ -15,7 +20,7 @@ io.use(socketAuthMiddleware);
 
 // Connection handler
 io.on('connection', (socket) => {
-	console.log(`[Socket.IO] User ${socket.data.userId} connected (${socket.id})`);
+	socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User connected');
 
 	// Register presence tracking (online/offline)
 	registerPresence(socket);
@@ -26,10 +31,10 @@ io.on('connection', (socket) => {
 	registerGameHandlers(socket);
 
 	socket.on('disconnect', () => {
-			console.log(`[Socket.IO] User ${socket.data.userId} disconnected (${socket.id})`);
+			socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User disconnected');
 	});
 });
 
 httpServer.listen(PORT, () => {
-	console.log(`[Server] Running on http://localhost:${PORT}`);
+	serverLog.info({ port: PORT }, `Running on http://localhost:${PORT}`);
 });

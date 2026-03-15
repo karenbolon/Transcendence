@@ -5,6 +5,7 @@ import { games, users } from '$lib/server/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { processMatchProgression } from '$lib/server/progression';
+import { apiLogger } from '$lib/server/logger';
 
 const matchResultSchema = z.object({
 	// Game mode: how the game was played
@@ -158,7 +159,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}, { status: 201 });
 
 	} catch (err) {
-		console.error('Failed to save match:', err);
+		apiLogger.error({ err }, 'Failed to save match');
 		return json({ errorKey: 'errors.match_not_saved' }, { status: 500 });
 	}
 };

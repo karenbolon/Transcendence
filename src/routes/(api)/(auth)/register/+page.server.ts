@@ -5,6 +5,7 @@ import { hashPassword } from '$lib/server/auth/password';
 import { validateRegistration } from '$lib/server/auth/validation';
 import { validateRegistrationUniqueness } from '$lib/server/auth/db_valid';
 import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
+import { authLogger } from '$lib/server/logger';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 // import { eq } from 'drizzle-orm';
@@ -73,7 +74,7 @@ export const actions: Actions = {
 
 			await createAndSetSession(newUser.id, cookies);
 		} catch (err) {
-			console.error('Registration error:', err);
+			authLogger.error({ err }, 'Registration error');
 
 			return fail(500, {
 				errorKey: 'errors.server_error',

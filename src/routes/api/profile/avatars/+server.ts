@@ -5,6 +5,7 @@ import { writeFile, mkdir, readdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { apiLogger } from '$lib/server/logger';
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -79,7 +80,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 		return json({ url });
 	} catch (err) {
-		console.error('Failed to upload avatar:', err);
+		apiLogger.error({ err }, 'Failed to upload avatar');
 		return json({ error: 'Failed to upload avatar' }, { status: 500 });
 	}
 };

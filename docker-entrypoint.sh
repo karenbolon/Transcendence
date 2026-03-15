@@ -23,6 +23,16 @@ if [ -n "$DATABASE_URL" ]; then
 
   echo "Running database migrations..."
   npx drizzle-kit migrate
+
+  echo "Seeding achievement definitions..."
+  node --input-type=module -e "
+    import postgres from 'postgres';
+    import { readFileSync } from 'fs';
+    const sql = postgres(process.env.DATABASE_URL);
+    await sql.unsafe(readFileSync('/app/drizzle/seed-achievements.sql', 'utf-8'));
+    await sql.end();
+    console.log('Achievement definitions seeded.');
+  "
 fi
 
 echo "Starting SvelteKit server with Socket.IO on port 3000..."

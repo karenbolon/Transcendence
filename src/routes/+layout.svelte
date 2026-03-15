@@ -1,18 +1,19 @@
 <script lang="ts">
 	import './layout.css';
+	import favicon from '$lib/assets/favicon.ico';
+	import Header from '$lib/component/Header.svelte';
+	import Footer from '$lib/component/Footer.svelte';
+	import InviteModal from '$lib/component/InviteModal.svelte';
+	import Toast from '$lib/component/Toast.svelte';
+	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { connectSocket, disconnectSocket, getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
-	import favicon from '$lib/assets/favicon.ico';
-	import Header from '$lib/component/Header.svelte';
-	import Footer from '$lib/component/Footer.svelte';
 	import { initI18n, normaliseLocale, FALLBACK_LOCALE } from '$lib/i18n';
 	import { _ , locale as localeStore, isLoading } from 'svelte-i18n';
 	import { onMount } from 'svelte';
-	import Toast from '$lib/component/Toast.svelte';
 	import { setUserLanguage } from '$lib/utils/language_utils';
-	import InviteModal from '$lib/component/InviteModal.svelte';
 
 	let pendingInvite: {
 		inviteId: string;
@@ -91,11 +92,11 @@
 					toast.game('Challenge Declined');;
 				});
 
-				socket.on('game:start', (evtData: { gameId: string; opponent: string; side: string }) => {
+				socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
 					pendingInvite = null;
-					toast.game('Game Starting!', `Match against ${evtData.opponent}`);
-					// TODO: navigate to game page later
+					goto(`/play/online/${evtData.roomId}`);
 				});
+
 			}
 		}
 

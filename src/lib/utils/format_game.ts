@@ -71,7 +71,7 @@ export function modeEmoji(mode: string): string {
 
 export function speedLabel(preset: string): string {
 	switch (preset) {
-		case 'slow': return 'Slow';
+		case 'chill': return 'Chill';
 		case 'normal': return 'Normal';
 		case 'fast': return 'Fast';
 		default: return preset;

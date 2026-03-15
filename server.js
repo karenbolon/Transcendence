@@ -650,6 +650,9 @@ io.on('connection', (socket) => {
 	const activeInvites = globalThis.__activeInvites || (globalThis.__activeInvites = new Map());
 
 	socket.on('game:invite', async (data) => {
+		console.log(`[DEBUG] game:invite received from user ${userId}`);
+		console.log(`[DEBUG] invite data:`, data);
+		console.log(`[DEBUG] playerRoomMap:`, playerRoomMap);
 		const { friendId, settings } = data;
 
 		if (friendId === userId) return;

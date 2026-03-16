@@ -319,7 +319,7 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username, item.name, item.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username)}><span class="btn-icon">👾</span> Challenge</button>
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"

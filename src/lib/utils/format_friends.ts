@@ -1,7 +1,7 @@
 import type { ActivityStatus, FriendItem } from "$lib/types/friends";
 
 export const FRIENDTABS = [
-	{ key: 'find', label: 'Find Friends', emoji: '🔍' },
+	{ key: 'find', label: 'Add Friends', emoji: '🔍' },
 	{ key: 'friends', label: 'All Friends', emoji: '👥' },
 	{ key: 'requests', label: 'Requests', emoji: '📩' },
 	{ key: 'sent', label: 'Sent', emoji: '📤' },

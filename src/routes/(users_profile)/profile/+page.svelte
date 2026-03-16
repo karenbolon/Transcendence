@@ -90,7 +90,6 @@
 	<section class="user-achievements">
 		<div class="section-header">
 			<h2 class="section-title">{$_('user_profile.dashboard.milestonesTitle')}</h2>
-			<!-- <a href="/achievements" class="view-all-link">View all →</a> -->
 		</div>
 			{#if data.achievements && data.achievements.length > 0}
 				<BadgeDisplay badges={data.achievements ?? []}
@@ -111,11 +110,13 @@
 	     MATCH HISTORY
 	═══════════════════════════════════════════════════════════ -->
 	<section class="match-history">
-    <h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
-		{#if data.matches.length > 0}
-			<a href="/match-history" class="view-all-link">View all</a>
-		{/if}
-		
+		<div class="section-header">
+			<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
+			{#if data.matches.length > 0}
+				<a href="/match-history" class="view-all-link">View all →</a>
+			{/if}
+		</div>
+
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">

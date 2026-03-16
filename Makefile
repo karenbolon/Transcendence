@@ -171,7 +171,7 @@ db-reset:
 ## Start development server
 dev:
 	@echo "$(ROCKET) $(PINK)Starting development server...$(NC)"
-	@npm run dev
+	@npm run dev | npx pino-pretty --colorize --levelFirst --translateTime "HH:MM:ss"
 
 ## Start dev server on specific port
 dev-port:

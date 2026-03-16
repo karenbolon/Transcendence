@@ -1,20 +1,31 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
+	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
 
-	function challengeUser(friendId: number, username: string) {
+	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
+
+	function openChallenge(friendId: number, username: string, name: string | null = null, avatarUrl: string | null = null) {
+		challengeTarget = { id: friendId, username, name, avatar_url: avatarUrl };
+	}
+
+	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
+		if (!challengeTarget) return;
 		const socket = getSocket();
 		if (!socket?.connected) {
 			toast.error('Not connected to server');
 			return;
 		}
-		socket.emit('game:invite', { friendId });
-		toast.game('Challenge Sent', `Sent to ${username}`);
+		socket.emit('game:invite', {
+			friendId: challengeTarget.id,
+			settings,
+		});
+		toast.game('Challenge Sent', `Sent to ${challengeTarget.username}`);
+		challengeTarget = null;
 	}
 
 
@@ -263,7 +274,7 @@
 												onclick={() => friendAction('request', user.id, 'Friend request sent')}
 											>Add Friend</button>
 										{/if}
-										<button class="btn btn-challenge" onclick={() => challengeUser(user.id, user.username)}><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => openChallenge(user.id, user.username, user.name, user.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
 									</div>
 								</div>
 							{/each}
@@ -308,7 +319,7 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-challenge" onclick={() => challengeUser(item.id, item.username)}><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username, item.name, item.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
@@ -475,6 +486,13 @@
 	</div>
 </div>
 
+{#if challengeTarget}
+	<ChallengePicker
+		targetName={{ username: challengeTarget.username, displayName: challengeTarget.name, avatarUrl: challengeTarget.avatar_url }}
+		onSend={sendChallenge}
+		onCancel={() => challengeTarget = null}
+	/>
+{/if}
 
 <style>
 /* ===== Page container ===== */

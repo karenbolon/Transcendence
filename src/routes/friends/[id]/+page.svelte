@@ -8,9 +8,11 @@
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
+	let showChallengePicker = $state(false);
 
 	const RING_C = 125.66;
 	let ringOffset = $derived(RING_C * (1 - data.stats.winRate / 100));
@@ -22,19 +24,26 @@
 			body: JSON.stringify({ friendId: data.friend.id }),
 		});
 		if (res.ok) {
-			// Reload to update friendship status
 			window.location.reload();
 		}
 	}
 
 	function handleChallenge() {
+		showChallengePicker = true;
+	}
+
+	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
 		const socket = getSocket();
 		if (!socket?.connected) {
 			toast.error('Not connected to server');
 			return;
 		}
-		socket.emit('game:invite', { friendId: data.friend.id });
+		socket.emit('game:invite', {
+			friendId: data.friend.id,
+			settings,
+		});
 		toast.game('Challenge Sent', `Sent to ${data.friend.name ?? data.friend.username}`);
+		showChallengePicker = false;
 	}
 
 	async function handleUnfriend() {
@@ -191,6 +200,14 @@
 		{/if}
 	</section>
 </div>
+
+{#if showChallengePicker}
+	<ChallengePicker
+		targetName={{ username: data.friend.username, displayName: data.friend.name, avatarUrl: data.friend.avatarUrl }}
+		onSend={sendChallenge}
+		onCancel={() => showChallengePicker = false}
+	/>
+{/if}
 
 <style>
 	.profile-page {

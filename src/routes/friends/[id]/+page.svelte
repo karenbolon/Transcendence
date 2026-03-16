@@ -6,9 +6,13 @@
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
+	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import Starfield from '$lib/component/Starfield.svelte';
+	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -42,8 +46,15 @@
 			friendId: data.friend.id,
 			settings,
 		});
-		toast.game('Challenge Sent', `Sent to ${data.friend.name ?? data.friend.username}`);
+
+		setWaiting({
+			you: { username: data.user.username, avatarUrl: data.user.avatarUrl, displayName: data.user.name },
+			opponent: { username: data.friend.username, avatarUrl: data.friend.avatarUrl, displayName: data.friend.name },
+			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+			totalTime: 30,
+		});
 		showChallengePicker = false;
+		goto('/play/online/waiting');
 	}
 
 	async function handleUnfriend() {
@@ -57,6 +68,9 @@
 		}
 	}
 </script>
+
+<Starfield starCount={30}/>
+<!-- <NoiseGrain opacity={0.03} /> -->
 
 <div class="profile-page max-w-4xl mx-auto px-4 py-8">
 	<ProfileBanner
@@ -120,6 +134,7 @@
 			bestWin={data.headToHead.bestWin}
 			lastPlayed={data.headToHead.lastPlayed}
 			recentMatches={data.headToHead.recentMatches}
+			onChallenge={handleChallenge}
 			onclose={() => showH2hModal = false}
 		/>
 	{/if}

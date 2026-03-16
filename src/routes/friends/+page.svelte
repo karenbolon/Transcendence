@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
+	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import Starfield from '$lib/component/Starfield.svelte';
+	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
 
 	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
 
@@ -14,7 +17,7 @@
 	}
 
 	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
-		if (!challengeTarget) return;
+		if (!challengeTarget || !data.user) return;
 		const socket = getSocket();
 		if (!socket?.connected) {
 			toast.error('Not connected to server');
@@ -24,8 +27,16 @@
 			friendId: challengeTarget.id,
 			settings,
 		});
-		toast.game('Challenge Sent', `Sent to ${challengeTarget.username}`);
+
+		// Set waiting store and navigate to waiting room
+		setWaiting({
+			you: { username: data.user.username, avatarUrl: data.user.avatar_url, displayName: data.user.name },
+			opponent: { username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
+			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+			totalTime: 30,
+		});
 		challengeTarget = null;
+		goto('/play/online/waiting');
 	}
 
 
@@ -156,6 +167,9 @@
 	});
 
 </script>
+
+<Starfield starCount={30} />
+<!-- <NoiseGrain opacity={0.03} /> -->
 
 <div class="friends-page">
 	<!-- Header -->
@@ -312,14 +326,14 @@
 							{#each onlineFriends as item}
 								<div class="friend-card">
 									<a href="/friends/{item.id}" class="friend-info">
-										<UserAvatar avatarUrl={item.avatar_url} username={item.username} size="md" />
+										<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
 										<div class="friend-details">
 											<span class="friend-name">{item.name ?? item.username}</span>
 											<span class="card-handle">@{item.username.toLowerCase()}</span>
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username)}><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username, item.name, item.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
 										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
@@ -347,7 +361,7 @@
 							{#each offlineFriends as item}
 								<div class="friend-card">
 									<a href="/friends/{item.id}" class="friend-info">
-										<UserAvatar avatarUrl={item.avatar_url} username={item.username} size="md" />
+										<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
 										<div class="friend-details">
 											<span class="friend-name">{item.name ?? item.username}</span>
 											<span class="card-handle">@{item.username.toLowerCase()}</span>
@@ -389,7 +403,7 @@
 						{#each currentItems as item}
 							<div class="friend-card">
 								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} size="md" />
+									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
 									<div class="friend-details">
 										<span class="friend-name">{item.name ?? item.username}</span>
 										<span class="card-handle">@{item.username.toLowerCase()}</span>
@@ -429,7 +443,7 @@
 						{#each currentItems as item}
 							<div class="friend-card">
 								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} size="md" />
+									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
 									<div class="friend-details">
 										<span class="friend-name">{item.name ?? item.username}</span>
 										<span class="card-handle">@{item.username.toLowerCase()}</span>
@@ -464,7 +478,7 @@
 						{#each currentItems as item}
 							<div class="friend-card">
 								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} size="md" />
+									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
 									<div class="friend-details">
 										<span class="friend-name">{item.name ?? item.username}</span>
 										<span class="card-handle">@{item.username.toLowerCase()}</span>

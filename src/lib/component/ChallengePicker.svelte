@@ -114,13 +114,19 @@
 		backdrop-filter: blur(4px);
 	}
 
+	.challenge-picker {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+	}
+
 	.modal {
 		background: linear-gradient(160deg, #1a1035 0%, #0d1525 100%);
 		border: 1px solid rgba(255, 107, 157, 0.12);
 		border-radius: 1rem;
 		padding: 2.8rem 2.55rem;
-		max-width: 700px;
-		width: 100%;
+		max-width: 480px;
+		width: calc(100% - 2rem);
 		animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 107, 157, 0.04);
 		position: relative;

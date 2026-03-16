@@ -1,8 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
+	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
+	import GameOver from '$lib/component/pong/GameOver.svelte';
+	import AmbientBackground from '$lib/component/AmbientBackground.svelte';
+	import Starfield from '$lib/component/Starfield.svelte';
+	import Aurora from '$lib/component/Aurora.svelte';
+	import Scanlines from '$lib/component/Scanlines.svelte';
+	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
 
 	let { data } = $props();
 
@@ -12,7 +19,6 @@
 	let player1 = $state({ userId: 0, username: '' });
 	let player2 = $state({ userId: 0, username: '' });
 	let gameOverResult: any = $state(null);
-	let challengeSent = $state(false);
 
 	// Reactive to data.roomId — re-runs when navigating between rooms.
 	// This is the key fix: onMount only runs once, but $effect re-runs
@@ -26,7 +32,6 @@
 		// Reset all state for the new room
 		gameReady = false;
 		gameOverResult = null;
-		challengeSent = false;
 
 		const socket = getSocket();
 		if (!socket?.connected) {
@@ -77,82 +82,98 @@
 		goto('/play');
 	}
 
-	// Challenge the same opponent again without going to /friends
+	// Challenge the same opponent again → send invite → waiting room
 	function challengeAgain() {
 		const socket = getSocket();
 		if (!socket?.connected) return;
 
-		// Figure out who the opponent is
 		const opponentId = data.userId === player1.userId ? player2.userId : player1.userId;
 		const opponentName = data.userId === player1.userId ? player2.username : player1.username;
 
 		socket.emit('game:invite', { friendId: opponentId, settings: gameOverResult.settings });
-		toast.game('Challenge Sent', `Sent to ${opponentName}`);
-		challengeSent = true;
-	}
-	let player1DisplayName = $derived(player1.username);
-	let player2DisplayName = $derived(player2.username);
 
-	let player1Avatar = $derived('🎮');
-	let player2Avatar = $derived('👾');
+		setWaiting({
+			you: { username: data.username, avatarUrl: null, displayName: null },
+			opponent: { username: opponentName, avatarUrl: null, displayName: null },
+			settings: { speedPreset: gameOverResult.settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: gameOverResult.settings.winScore, mode: 'online' },
+			totalTime: 30,
+		});
+		goto('/play/online/waiting');
+	}
+
+	// Build GameOver data from the raw result
+	// "player1" in GameOver = YOU (current user), "player2" = opponent
+	let gameOverData = $derived.by(() => {
+		if (!gameOverResult) return null;
+		const iAmPlayer1 = data.userId === player1.userId;
+		const me = iAmPlayer1 ? gameOverResult.player1 : gameOverResult.player2;
+		const them = iAmPlayer1 ? gameOverResult.player2 : gameOverResult.player1;
+		const myUsername = iAmPlayer1 ? player1.username : player2.username;
+		const theirUsername = iAmPlayer1 ? player2.username : player1.username;
+		const iWon = gameOverResult.winnerId === data.userId;
+		return {
+		winner: (iWon ? 'player1' : 'player2') as 'player1' | 'player2',
+		player1: {
+			username: myUsername,
+			displayName: null as string | null,
+			avatarUrl: null as string | null,
+			score: me.score,
+		},
+		player2: {
+			username: theirUsername,
+			displayName: null as string | null,
+			avatarUrl: null as string | null,
+			score: them.score,
+		},
+		stats: {
+			durationSeconds: gameOverResult.durationSeconds,
+			speedPreset: gameOverResult.settings.speedPreset,
+			winScore: gameOverResult.settings.winScore,
+		},
+		newBadges: [] as { emoji: string; name: string }[],
+	};
+	});
 </script>
 
-<!-- ═══ AMBIENT BACKGROUND EFFECTS ═══ -->
-<div class="ambient-bg">
-	<div class="corner-glow tl"></div>
-	<div class="corner-glow br"></div>
-	<div class="retro-grid"></div>
-	{#each Array(25) as _, i}
-		<div
-			class="particle"
-			style="
-				left: {Math.random() * 100}%;
-				width: {2 + Math.random() * 4}px;
-				height: {2 + Math.random() * 4}px;
-				animation-duration: {8 + Math.random() * 12}s;
-				animation-delay: {Math.random() * 10}s;
-				--particle-color: {['rgba(255,107,157,0.4)', 'rgba(168,85,247,0.3)', 'rgba(96,165,250,0.2)'][i % 3]};
-			"
-		></div>
-	{/each}
-</div>
+<AmbientBackground bgColor="#0a0a1e" maxDelay={1} />
+<Starfield starCount={30} />
+<Aurora />
+<Scanlines opacity={0.04} />
+<!-- <NoiseGrain opacity={0.03} /> -->
 
 <div class="online-game-container">
 	{#if !gameReady}
 		<!-- Waiting state: room exists but we haven't joined yet -->
 		<div class="waiting">
-			<h2>Waiting for opponent...</h2>
-			<p class="waiting-text">Setting up game room</p>
+			<div class="spinner"></div>
+			<p class="waiting-text">Joining game...</p>
 			<button class="back-btn" onclick={goBack}>Cancel</button>
 		</div>
 
-	{:else if gameOverResult}
+	{:else if gameOverResult && gameOverData}
 		<!-- Game over state: show results -->
-		<div class="game-over-panel">
-			<h2>{gameOverResult.winnerUsername} wins!</h2>
-			<p>{gameOverResult.player1.username} {gameOverResult.player1.score} — {gameOverResult.player2.score} {gameOverResult.player2.username}</p>
-			<button class="back-btn" onclick={() => goto('/play')}>Back to Menu</button>
-			<button class="challenge-btn" onclick={challengeAgain} disabled={challengeSent}>
-				{challengeSent ? 'Challenge Sent!' : 'Challenge Again'}
-			</button>
-		</div>
+		<GameOver
+			{gameOverData}
+			gameMode="online"
+			onRematch={challengeAgain}
+			onBackToMenu={() => goto('/friends')}
+		/>
 
 	{:else}
 		<!-- Playing state: show the game -->
 		<div class="player-bar">
 			<div class="player-side">
-				<div class="player-avatar p1">{player1Avatar}</div>
+				<div class="player-avatar p1">🎮</div>
 				<div class="player-info-block">
-					<span class="player-name p1">{player1DisplayName}</span>
-
+					<span class="player-name p1">{player1.username}</span>
 				</div>
 			</div>
 			<div class="vs-badge">VS</div>
 			<div class="player-side">
 				<div class="player-info-block right">
-					<span class="player-name p2">{player2DisplayName}</span>
+					<span class="player-name p2">{player2.username}</span>
 				</div>
-				<div class="player-avatar p2">{player2Avatar}</div>
+				<div class="player-avatar p2">👾</div>
 			</div>
 		</div>
 		<OnlineGame
@@ -171,77 +192,6 @@
 
 <style>
 
-	/* ═══════════════════════════════════════════════════════ */
-	/*  AMBIENT BACKGROUND                                    */
-	/* ═══════════════════════════════════════════════════════ */
-	.ambient-bg {
-		position: fixed;
-		inset: 0;
-		pointer-events: none;
-		z-index: 0;
-		overflow: hidden;
-	}
-
-	.corner-glow {
-		position: absolute;
-		width: 400px;
-		height: 400px;
-		border-radius: 50%;
-		filter: blur(120px);
-	}
-	.corner-glow.tl {
-		top: -150px;
-		left: -150px;
-		background: rgba(168, 85, 247, 0.08);
-	}
-	.corner-glow.br {
-		bottom: -150px;
-		right: -150px;
-		background: rgba(255, 107, 157, 0.06);
-	}
-
-	.retro-grid {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 40vh;
-		background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.03) 100%);
-		mask-image: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
-		-webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
-		overflow: hidden;
-	}
-	.retro-grid::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background:
-			repeating-linear-gradient(90deg, rgba(168,85,247,0.08) 0px, transparent 1px, transparent 60px),
-			repeating-linear-gradient(0deg, rgba(168,85,247,0.08) 0px, transparent 1px, transparent 60px);
-		transform: perspective(400px) rotateX(55deg);
-		transform-origin: bottom;
-		animation: grid-scroll 4s linear infinite;
-	}
-	@keyframes grid-scroll {
-		0% { background-position: 0 0; }
-		100% { background-position: 0 60px; }
-	}
-
-	.particle {
-		position: absolute;
-		bottom: 0;
-		border-radius: 50%;
-		background: var(--particle-color);
-		box-shadow: 0 0 8px var(--particle-color);
-		animation: float-particle linear infinite;
-		opacity: 0;
-	}
-	@keyframes float-particle {
-		0%   { transform: translateY(0) scale(0); opacity: 0; }
-		10%  { opacity: 0.8; }
-		90%  { opacity: 0.8; }
-		100% { transform: translateY(-100vh) scale(1); opacity: 0; }
-	}
 	.online-game-container {
 		position: relative;
 		z-index: 1;
@@ -262,32 +212,24 @@
 		color: #9ca3af;
 	}
 
-	.waiting h2 {
-		color: #ffffff;
-		font-size: 1.5rem;
+	.spinner {
+		width: 32px;
+		height: 32px;
+		border: 3px solid rgba(255, 107, 157, 0.15);
+		border-top-color: #ff6b9d;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 
 	.waiting-text {
-		font-size: 0.9rem;
+		font-size: 0.85rem;
+		color: #6b7280;
 	}
 
-	.game-over-panel {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 1rem;
-		padding: 2rem;
-		color: #ffffff;
-	}
-
-	.game-over-panel h2 {
-		color: #ff6b9d;
-		font-size: 1.5rem;
-	}
-
-	.game-over-panel p {
-		color: #9ca3af;
-	}
 
 	.status-bar {
 		display: flex;
@@ -327,26 +269,6 @@
 		background: rgba(239, 68, 68, 0.1);
 	}
 
-	.challenge-btn {
-		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
-		border: 1px solid rgba(255, 107, 157, 0.3);
-		background: rgba(255, 107, 157, 0.1);
-		color: #ff6b9d;
-		font-size: 0.85rem;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-
-	.challenge-btn:hover:not(:disabled) {
-		background: rgba(255, 107, 157, 0.2);
-		border-color: rgba(255, 107, 157, 0.5);
-	}
-
-	.challenge-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
 
 	/* ===== Player bar (above canvas) ===== */
 	.player-bar {

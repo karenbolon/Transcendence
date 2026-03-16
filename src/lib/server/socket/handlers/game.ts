@@ -229,6 +229,26 @@ export function registerGameHandlers(socket: Socket) {
 		}
 	});
 
+	// Cancel an invite (challenger changed their mind from waiting room)
+	socket.on('game:invite-cancel', () => {
+		for (const [inviteId, invite] of activeInvites) {
+			if (invite.fromUserId === userId) {
+				clearTimeout(invite.timeout);
+				activeInvites.delete(inviteId);
+
+				// Notify the target so their invite modal disappears
+				const targetSockets = userSockets.get(invite.toUserId);
+				if (targetSockets) {
+					const io = getIO();
+					for (const sid of targetSockets) {
+						io.to(sid).emit('game:invite-cancelled', { inviteId });
+					}
+				}
+				break;
+			}
+		}
+	});
+
 	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
 	socket.on('game:leave', () => {
 		const room = getRoomByPlayer(userId);

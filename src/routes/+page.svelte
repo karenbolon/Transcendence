@@ -1,9 +1,14 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Dashboard from '$lib/component/Dashboard.svelte';
+	import Aurora from '$lib/component/Aurora.svelte';
+	import Scanlines from '$lib/component/Scanlines.svelte';
 
 	let { data } : { data: PageData } = $props();
 </script>
+
+<Aurora />
+<Scanlines opacity={0.04} />
 
 {#if data.loggedIn}
 	<Dashboard

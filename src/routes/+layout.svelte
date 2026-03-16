@@ -7,6 +7,7 @@
 	import Toast from '$lib/component/Toast.svelte';
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { connectSocket, disconnectSocket, getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
@@ -88,13 +89,21 @@
 					toast.warning('Game invite expired');
 				});
 
+				socket.on('game:invite-cancelled', () => {
+					pendingInvite = null;
+				});
+
 				socket.on('game:invite-declined', () => {
-					toast.game('Challenge Declined');;
+					if ($page.url.pathname.includes('/play/online/waiting')) return;
+					toast.game('Challenge Declined');
 				});
 
 				socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
 					pendingInvite = null;
-					goto(`/play/online/${evtData.roomId}`);
+					// If on the waiting page, let that page handle the navigation
+					if (!$page.url.pathname.includes('/play/online/waiting')) {
+						goto(`/play/online/${evtData.roomId}`);
+					}
 				});
 
 			}

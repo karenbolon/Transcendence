@@ -30,6 +30,7 @@
 
 	let { settings, onGameOver }: Props = $props();
 	let game = $state<GameState>(createGameState());
+	const goLabel = $derived($_('common.go'));
 
 	// Expose game state for the parent to read (phase, scores, etc.)
 	export function getGameState(): GameState {
@@ -111,7 +112,7 @@
 		const prevPhase = game.phase;
 
 		// Update game state via engine
-		update(game, safeDt, input, settings);
+		update(game, safeDt, input, settings, goLabel);
 
 		// Check if countdown just finished
 		if (game.phase === 'countdown' && game.countdownTimer <= 0) {
@@ -276,11 +277,12 @@
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 		const fractional = game.countdownTimer % 1;
-		const scale = game.countdownDisplay === 'GO!' ? 1.2 : 1 + fractional * 0.3;
+		const isGo = game.countdownDisplay ===goLabel;
+		const scale = isGo ? 1.2 : 1 + fractional * 0.3;
 		const fontSize = Math.round(72 * scale);
 
-		ctx.fillStyle = game.countdownDisplay === 'GO!' ? '#ff6b9d' : '#ffffff';
-		ctx.shadowColor = game.countdownDisplay === 'GO!' ? '#ff6b9d' : '#ffffff';
+		ctx.fillStyle = isGo ? "#ff6b9d" : "#ffffff";
+		ctx.shadowColor = isGo ? "#ff6b9d" : "#ffffff";
 		ctx.shadowBlur = 20;
 		ctx.font = `${fontSize}px 'Press Start 2P', monospace`;
 		ctx.textAlign = 'center';

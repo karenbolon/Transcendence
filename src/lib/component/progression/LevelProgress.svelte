@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { getTierColor } from '$lib/utils/format_progression';
 	import type { LevelSizeProps } from '$lib/types/progression';
 
@@ -6,7 +7,7 @@
 	let tierColor = $derived(getTierColor(level));
 </script>
 
-<div class="level-badge {size}" title="Level {level}">
+<div class="level-badge {size}" title="{$_('user_profile.level.label2')} {level}">
 	<div
 		class="level-ring"
 		style="background: linear-gradient(135deg, {tierColor.from}, {tierColor.to});"
@@ -15,7 +16,7 @@
 			<span class="level-num">{level}</span>
 		</div>
 	</div>
-	<span class="level-label">LVL</span>
+	<span class="level-label">{$_('user_profile.level.levelShort')}</span>
 </div>
 
 <style>

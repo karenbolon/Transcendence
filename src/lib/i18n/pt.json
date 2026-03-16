@@ -31,7 +31,21 @@
     "play": "Jogar",
     "player1": "Jogador 1",
     "player2": "Jogador 2",
-    "games": "Partidas"
+    "games": "Partidas",
+    "game": "partida",
+    "go": "Vai!",
+    "up": "Cima",
+    "down": "Baixo",
+    "computer": "Computador",
+    "headToHead": "Confronto direto",
+    "wins": "vitórias",
+    "avgScore": "Pontuação média",
+    "bestWin": "Melhor vitória",
+    "lastPlayed": "Última partida",
+    "recent": "Partidas recentes",
+    "challenge": "Desafiar novamente",
+    "close": "Fechar",
+    "local": "Local"
   },
   "errors": {
     "username_taken": "Nome de usuário já está em uso",
@@ -299,7 +313,7 @@
       "games": "Partidas",
       "wins": "Vitórias",
       "losses": "Derrotas",
-      "winRate": "Taxa de vitórias",
+      "winRate": "de vitórias",
       "milestonesTitle": "Marcos e Conquistas",
       "noAchievements": "Ainda não há conquistas. Jogue partidas para desbloqueá-las!",
       "matchHistoryTitle": "Histórico de partidas",
@@ -352,10 +366,11 @@
     },
     "level": {
       "label": "Nível {level}",
+      "label2": "Nível",
+      "levelShort": "NÍV",
+      "next": "Nível {level + 1}",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
-      "no_xp": "0 XP ganho",
-      "level_label": "Nível",
-      "lvl": "NÍV"
+      "no_xp": "0 XP ganho"
     },
     "badges": {
       "recent": "Insígnias recentes",
@@ -562,7 +577,60 @@
     "title": "Tornei"
   },
   "friends": {
-    "title": "Amici"
+    "title": "Amigos",
+    "titleLower": "amigos",
+    "online": "online",
+    "searchPlaceholder": "Procurar usuários...",
+    "findFriends": "Encontrar amigos",
+    "allFriends": "Todos os amigos",
+    "searching": "A procurar...",
+    "resultsFor": "{count} resultado{suffix} para \"{query}\"",
+    "noPlayersFound": "Nenhum jogador encontrado",
+    "tryDifferentName": "Tente outro nome ou nome de utilizador.",
+    "searchPrompt": "Procure utilizadores para adicionar como amigos",
+    "typeAtLeastTwo": "Digite pelo menos 2 caracteres para pesquisar.",
+    "noMatchesFor": "Nenhum resultado para \"{query}\"",
+    "noFriendsYet": "Ainda não tem amigos. Procure utilizadores para adicionar!",
+    "onlineSection": "ONLINE",
+    "offlineSection": "OFFLINE",
+    "findFriendsTab": "Tente outro nome ou verifique o separador «Encontrar amigos».",
+    "requests": "Pedidos",
+    "status": {
+      "accepted": "Amigos",
+      "pending": "Pendente",
+      "blocked": "Bloqueado",
+      "sent": "Enviado",
+      "away": "Ausente",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "actions": {
+      "addFriend": "Adicionar amigo",
+      "challenge": "Desafiar",
+      "message": "Mensagem",
+      "block": "Bloquear",
+      "unfriend": "Remover amigo",
+      "accept": "Aceitar",
+      "decline": "Recusar",
+      "cancel": "Cancelar",
+      "unblock": "Desbloquear"
+    },
+    "empty": {
+      "noPendingRequests": "Sem pedidos pendentes",
+      "noSentRequests": "Sem pedidos enviados",
+      "noBlockedUsers": "Sem utilizadores bloqueados"
+    },
+    "toast": {
+      "requestSent": "Pedido de amizade enviado",
+      "friendAdded": "Amigo adicionado!",
+      "requestDeclined": "Pedido recusado",
+      "requestCancelled": "Pedido cancelado",
+      "userBlocked": "Utilizador bloqueado",
+      "userUnblocked": "Utilizador desbloqueado",
+      "friendRemoved": "Amigo removido",
+      "somethingWentWrong": "Algo correu mal",
+      "networkError": "Erro de rede"
+    }
   },
   "about": {
     "title": "Sobre",
@@ -571,7 +639,6 @@
     "subtitleLine1": "ft_transcendence é o projeto final do core curriculum da 42.",
     "subtitleLine2": "Uma aplicação web full-stack desenvolvida do zero por uma equipa.",
     "heroBadge": "42 Berlin · Projeto Final · 2025/2026",
-
     "projectTitle": "Sobre o Projeto",
     "projectIntroLine1": "Neste projeto final decidimos desenvolver um jogo de Pong multijogador.",
     "projectIntroLine2": "Com jogabilidade em tempo real, uma interface de utilizador moderna e responsiva, e funcionalidades sociais.",
@@ -587,7 +654,6 @@
     "projectParagraph4": "Toda a aplicação é contentorizada com Docker para garantir portabilidade, isolamento e implementações consistentes entre diferentes ambientes.",
     "goalLabel": "O nosso objetivo:",
     "goalText": "criar algo que não seja apenas funcional, mas também verdadeiramente divertido de jogar e bonito de ver. 🏓✨",
-
     "techStackTitle": "Tecnologias",
     "techSveltekit": "Frontend e Backend",
     "techPostgresql": "Base de dados",
@@ -595,34 +661,34 @@
     "techDocker": "Contentorização",
     "techTypescript": "Segurança de tipos",
     "techLucia": "Autenticação",
-
     "teamTitle": "Conhece a equipa",
     "teamSubtitle": "Quatro estudantes, um objetivo: lançar algo de que nos orgulhemos.",
     "karenRole": "Product Owner · Frontend",
     "jamesRole": "Desenvolvedor · Backend",
     "finnRole": "Desenvolvedor · Backend",
     "kellenRole": "Desenvolvedor · Frontend",
-
     "schoolDescription": "é uma rede global de escolas de programação gratuitas com um modelo de aprendizagem peer-to-peer. Não existem professores nem aulas — os estudantes aprendem construindo projetos reais e ajudando-se mutuamente. Ft_transcendence é o projeto final do common core e exige que uma equipa construa o teste definitivo de tudo o que aprendemos.",
     "schoolFooter": "Sem professores. Sem aulas. Apenas código, colaboração e muito Pong."
   },
   "dashboard": {
-    "title": "Classificação Global",
+    "title": "Classificação global",
     "viewAll": "Ver tudo",
     "noGames": "Nenhum jogo jogado ainda",
+    "welcome": "Bem-vindo,",
     "welcomeBack": "Bem-vindo de volta,",
     "readyMatch": "Pronto para outra partida?",
+    "readyFirst": "Pronto para sua primeira partida?",
     "playNow": "Jogar agora",
     "friendsLeaderboard": "Classificação de amigos",
-    "friendsEmpty": "Adicione amigos para ver as classificações deles!",
+    "friendsEmpty": "Adicione amigos para ver suas posições!",
     "recentActivity": "Atividade recente",
     "activityEmpty": "Jogue algumas partidas para ver atividade aqui!",
     "you": "Você",
     "unlocked": "desbloqueou",
     "beat": "venceu",
     "openTournaments": "Torneios abertos",
-    "browseAll": "Explorar todos",
-    "noOpenTournaments": "Nenhum torneio aberto no momento. Volte em breve!",
+    "browseAll": "Ver todos",
+    "noOpenTournaments": "Não há torneios abertos agora. Volte em breve!",
     "statusOpen": "Aberto",
     "statusScheduled": "Agendado",
     "playersCount": "{playerCount} / {maxPlayers} jogadores",
@@ -635,8 +701,7 @@
     "local1v1Desc": "Mesmo teclado, dois jogadores",
     "vsComputer": "Contra o computador",
     "vsComputerDesc": "Pratique contra a IA",
-    "statsLine": "{totalGames} jogos · {winRate}% de vitórias",
-    "winsShort": "{wins} V",
+    "winRate": "de vitórias",
     "activityAchievement": "{name} desbloqueou {achievement}",
     "activityMatch": "{winner} venceu {loser} {winnerScore}–{loserScore}"
   },
@@ -676,6 +741,122 @@
       "title": "Erro",
       "description": "Ocorreu um erro inesperado.",
       "footer": "Algo inesperado aconteceu no jogo! 🕹️"
+    }
+  },
+  "levelUpModal": {
+    "title": "Subiu de nível!",
+    "matchComplete": "Partida concluída",
+    "total": "Total",
+    "newAchievements": "Novas conquistas",
+    "continue": "Continuar",
+    "levelAbbrev": "Nv.",
+    "bonuses": {
+      "shutout": "Vitória limpa",
+      "winStreak": "Sequência de vitórias",
+      "comeback": "Virada",
+      "speedBonus": "Bônus de velocidade"
+    }
+  },
+  "achievements": {
+    "shutout_bronze": {
+      "name": "Vitória perfeita",
+      "description": "Vença uma partida em que seu oponente marque 0 pontos"
+    },
+    "shutout_silver": {
+      "name": "Artista do shutout",
+      "description": "Vença 10 partidas sem sofrer pontos"
+    },
+    "streak_bronze": {
+      "name": "Sequência quente",
+      "description": "Vença 3 partidas seguidas"
+    },
+    "streak_silver": {
+      "name": "Em chamas",
+      "description": "Vença 7 partidas seguidas"
+    },
+    "streak_gold": {
+      "name": "Imparável",
+      "description": "Vença 15 partidas seguidas"
+    },
+    "points_bronze": {
+      "name": "Colecionador de pontos",
+      "description": "Marque 50 pontos no total"
+    },
+    "points_silver": {
+      "name": "Atirador de elite",
+      "description": "Marque 200 pontos no total"
+    },
+    "points_gold": {
+      "name": "Máquina de pontos",
+      "description": "Marque 500 pontos no total"
+    },
+    "first_match": {
+      "name": "Primeira partida",
+      "description": "Complete uma partida"
+    },
+    "first_victory": {
+      "name": "Primeira vitória",
+      "description": "Vença sua primeira partida"
+    },
+    "first_defeat": {
+      "name": "Primeira derrota",
+      "description": "Perca sua primeira partida"
+    },
+    "profile_avatar": {
+      "name": "O rosto do jogo",
+      "description": "Envie ou selecione um avatar"
+    },
+    "profile_bio": {
+      "name": "Expresse-se",
+      "description": "Escreva uma bio"
+    },
+    "social_first_friend": {
+      "name": "Primeiro amigo",
+      "description": "Adicione seu primeiro amigo"
+    },
+    "social_circle": {
+      "name": "Círculo social",
+      "description": "Tenha 5 amigos aceitos"
+    },
+    "pvp_first_match": {
+      "name": "Primeira partida PvP",
+      "description": "Jogue sua primeira partida online"
+    },
+    "pvp_first_win": {
+      "name": "Primeira vitória PvP",
+      "description": "Vença sua primeira partida online"
+    },
+    "night_owl": {
+      "name": "Coruja da noite",
+      "description": "Jogue uma partida depois da meia-noite"
+    },
+    "veteran_bronze": {
+      "name": "Veterano",
+      "description": "Jogue 10 partidas"
+    },
+    "veteran_silver": {
+      "name": "Jogador experiente",
+      "description": "Jogue 50 partidas"
+    },
+    "veteran_gold": {
+      "name": "Lenda",
+      "description": "Jogue 100 partidas"
+    },
+    "comeback_bronze": {
+      "name": "Rei da virada",
+      "description": "Vença depois de estar perdendo por 3 ou mais pontos"
+    },
+    "comeback_silver": {
+      "name": "Nunca desista",
+      "description": "Vença 5 partidas de virada"
+    },
+    "speed_demon": {
+      "name": "Demônio da velocidade",
+      "description": "Vença uma partida no modo rápido"
+    },
+    "marathon": {
+      "name": "Partida maratona",
+      "description": "Jogue uma partida que dure mais de 5 minutos"
     }
   }
 }

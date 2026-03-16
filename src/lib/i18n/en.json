@@ -31,7 +31,21 @@
     "play": "Play",
     "player1": "Player 1",
     "player2": "Player 2",
-    "games": "Games"
+    "games": "Games",
+    "game": "game",
+    "go": "GO!",
+    "up": "Up",
+    "down": "Down",
+    "computer": "Computer",
+    "headToHead": "Head to Head",
+    "wins": "wins",
+    "avgScore": "Avg Score",
+    "bestWin": "Best Win",
+    "lastPlayed": "Last Played",
+    "recent": "Recent matches",
+    "challenge": "Challenge Again",
+    "close": "Close",
+    "local": "Local"
   },
   "errors": {
     "username_taken": "Username already taken",
@@ -351,6 +365,8 @@
     },
     "level": {
       "label": "Level {level}",
+      "label2": "Level",
+      "levelShort": "LVL",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
       "no_xp": "0 XP earned"
     },
@@ -401,7 +417,7 @@
       "action": "This action is",
       "action2": "permanent",
       "action3": "Your account,profile, and stats will be removed. Your match history will be preserved for other players."
-    } 
+    }
   },
   "instructions": {
     "title": "Instructions",
@@ -558,8 +574,62 @@
   "tournaments": {
     "title": "Tournaments"
   },
-  "friends": {
-    "title": "Friends"
+  "friends": {  
+    "title": "Friends",
+    "titleLower": "friends",
+    "online": "online",
+    "searchPlaceholder": "Search users...",
+    "findFriends": "Find Friends",
+    "allFriends": "All Friends",
+    "searching": "Searching...",
+    "resultsFor": "{count} result{suffix} for \"{query}\"",
+    "noPlayersFound": "No players found",
+    "tryDifferentName": "Try a different name or username.",
+    "searchPrompt": "Search for users to add as friends",
+    "typeAtLeastTwo": "Type at least 2 characters to search.",
+    "noMatchesFor": "No matches for \"{query}\"",
+    "noFriendsYet": "No friends yet. Search for users to add!",
+    "onlineSection": "ONLINE",
+    "offlineSection": "OFFLINE",
+    "findFriendsTab": "Try a different name or check the Find Friends tab.",
+    "requests": "Requests",
+    "status": {
+      "accepted": "Friends",
+      "pending": "Pending",
+      "blocked": "Blocked",
+      "sent": "Sent",
+      "inGame": "In Game",
+      "away": "Away",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "actions": {
+      "addFriend": "Add Friend",
+      "challenge": "Challenge",
+      "message": "Message",
+      "block": "Block",
+      "unfriend": "Unfriend",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel": "Cancel",
+      "unblock": "Unblock"
+    },
+    "empty": {
+      "noPendingRequests": "No pending requests",
+      "noSentRequests": "No sent requests",
+      "noBlockedUsers": "No blocked users"
+    },
+    "toast": {
+      "requestSent": "Friend request sent",
+      "friendAdded": "Friend added!",
+      "requestDeclined": "Request declined",
+      "requestCancelled": "Request cancelled",
+      "userBlocked": "User blocked",
+      "userUnblocked": "User unblocked",
+      "friendRemoved": "Friend removed",
+      "somethingWentWrong": "Something went wrong",
+      "networkError": "Network error"
+    }
   },
   "about": {
     "title": "About",
@@ -568,7 +638,6 @@
     "subtitleLine1": "ft_transcendence is the final project of the 42 core curriculum.",
     "subtitleLine2": "A full-stack web application built from scratch as a team.",
     "heroBadge": "42 Berlin · Final Project · 2025/2026",
-
     "projectTitle": "About the Project",
     "projectIntroLine1": "In this final project we chose to build a multiplayer Pong game.",
     "projectIntroLine2": "With real-time gameplay, a modern and responsive user interface, and social features.",
@@ -584,7 +653,6 @@
     "projectParagraph4": "The entire application is containerized using Docker to ensure portability, isolation, and consistent deployment across environments.",
     "goalLabel": "Our goal:",
     "goalText": "make something that's not just functional, but genuinely fun to play and beautiful to look at. 🏓✨",
-
     "techStackTitle": "Tech Stack",
     "techSveltekit": "Frontend & Backend",
     "techPostgresql": "Database",
@@ -592,14 +660,12 @@
     "techDocker": "Containerization",
     "techTypescript": "Type Safety",
     "techLucia": "Authentication",
-
     "teamTitle": "Meet the Team",
     "teamSubtitle": "Four students, one goal: ship something we're proud of.",
     "karenRole": "Product Owner · Frontend",
     "jamesRole": "Developer · Backend",
     "finnRole": "Developer · Backend",
     "kellenRole": "Developer · Frontend",
-
     "schoolDescription": "is a global network of tuition-free coding schools with a peer-to-peer learning model. There are no teachers, no lectures — students learn by building real projects and helping each other. Ft_transcendence is the capstone project of the common core, requiring a team to build the ultimate test of everything we've learned.",
     "schoolFooter": "No teachers. No lectures. Just code, collaboration, and a whole lot of Pong."
   },
@@ -612,16 +678,13 @@
     "readyMatch": "Ready for another match?",
     "readyFirst": "Ready for your first match?",
     "playNow": "Play Now",
-
     "friendsLeaderboard": "Friends Leaderboard",
     "friendsEmpty": "Add friends to see their rankings!",
-
     "recentActivity": "Recent Activity",
     "activityEmpty": "Play some games to see activity here!",
     "you": "You",
     "unlocked": "unlocked",
     "beat": "beat",
-
     "openTournaments": "Open Tournaments",
     "browseAll": "Browse all",
     "noOpenTournaments": "No open tournaments right now. Check back soon!",
@@ -630,7 +693,6 @@
     "playersCount": "{playerCount} / {maxPlayers} players",
     "joinTournament": "Join Tournament",
     "full": "Full",
-
     "quickPlay": "Quick Play",
     "findMatch": "Find a Match",
     "findMatchDesc": "Play against someone online",
@@ -638,12 +700,9 @@
     "local1v1Desc": "Same keyboard, two players",
     "vsComputer": "vs Computer",
     "vsComputerDesc": "Practice against the AI",
-
-    "statsLine": "{totalGames} games · {winRate}% win rate",
-    "winsShort": "{wins} W",
+    "winRate": "win rate",
     "activityAchievement": "{name} unlocked {achievement}",
     "activityMatch": "{winner} beat {loser} {winnerScore}–{loserScore}"
-
   },
   "error_pages": {
     "default_message": "An error occurred",
@@ -681,6 +740,122 @@
       "title": "Error",
       "description": "An unexpected error occurred.",
       "footer": "Something unexpected happened in the game! 🕹️"
+    }
+  },
+  "levelUpModal": {
+    "title": "Level Up!",
+    "matchComplete": "Match Complete",
+    "total": "Total",
+    "newAchievements": "New Achievements",
+    "continue": "Continue",
+    "levelAbbrev": "Lv.",
+    "bonuses": {
+      "shutout": "Shutout",
+      "winStreak": "Win Streak",
+      "comeback": "Comeback",
+      "speedBonus": "Speed Bonus"
+    }
+  },
+  "achievements": {
+    "shutout_bronze": {
+      "name": "Shutout",
+      "description": "Win a match where your opponent scores 0 points"
+    },
+    "shutout_silver": {
+      "name": "Shutout Artist",
+      "description": "Win 10 shutout matches"
+    },
+    "streak_bronze": {
+      "name": "Hot Streak",
+      "description": "Win 3 matches in a row"
+    },
+    "streak_silver": {
+      "name": "On Fire",
+      "description": "Win 7 matches in a row"
+    },
+    "streak_gold": {
+      "name": "Unstoppable",
+      "description": "Win 15 matches in a row"
+    },
+    "points_bronze": {
+      "name": "Point Collector",
+      "description": "Score 50 career points"
+    },
+    "points_silver": {
+      "name": "Sharpshooter",
+      "description": "Score 200 career points"
+    },
+    "points_gold": {
+      "name": "Point Machine",
+      "description": "Score 500 career points"
+    },
+    "first_match": {
+      "name": "First Match",
+      "description": "Finish one match"
+    },
+    "first_victory": {
+      "name": "First Victory",
+      "description": "Win your first match"
+    },
+    "first_defeat": {
+      "name": "First Defeat",
+      "description": "Lose your first match"
+    },
+    "profile_avatar": {
+      "name": "Face of the Game",
+      "description": "Upload or select an avatar"
+    },
+    "profile_bio": {
+      "name": "Express Yourself",
+      "description": "Write a bio"
+    },
+    "social_first_friend": {
+      "name": "First Friend",
+      "description": "Add your first friend"
+    },
+    "social_circle": {
+      "name": "Social Circle",
+      "description": "Have 5 accepted friends"
+    },
+    "pvp_first_match": {
+      "name": "First PvP Match",
+      "description": "Play your first online match"
+    },
+    "pvp_first_win": {
+      "name": "First PvP Win",
+      "description": "Win your first online match"
+    },
+    "night_owl": {
+      "name": "Night Owl",
+      "description": "Play a match after midnight"
+    },
+    "veteran_bronze": {
+      "name": "Veteran",
+      "description": "Play 10 matches"
+    },
+    "veteran_silver": {
+      "name": "Seasoned Player",
+      "description": "Play 50 matches"
+    },
+    "veteran_gold": {
+      "name": "Legend",
+      "description": "Play 100 matches"
+    },
+    "comeback_bronze": {
+      "name": "Comeback Kid",
+      "description": "Win after being down by 3+ points"
+    },
+    "comeback_silver": {
+      "name": "Never Give Up",
+      "description": "Win 5 comeback matches"
+    },
+    "speed_demon": {
+      "name": "Speed Demon",
+      "description": "Win a match on fast speed"
+    },
+    "marathon": {
+      "name": "Marathon Match",
+      "description": "Play a match lasting over 5 minutes"
     }
   }
 }

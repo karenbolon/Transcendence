@@ -31,7 +31,20 @@
     "play": "Spielen",
     "player1": "Spieler 1",
     "player2": "Spieler 2",
-    "games": "Spiele"
+    "games": "Spiele",
+    "go": "Los!",
+    "up": "Hoch",
+    "down": "Runter",
+    "computer": "Computer",
+    "headToHead": "Direkter Vergleich",
+    "wins": "Siege",
+    "avgScore": "Ø Punktzahl",
+    "bestWin": "Bester Sieg",
+    "lastPlayed": "Zuletzt gespielt",
+    "recent": "Letzte Matches",
+    "challenge": "Erneut herausfordern",
+    "close": "Schließen",
+    "local": "LoKal"
   },
   "errors": {
     "username_taken": "Benutzername bereits vergeben",
@@ -352,6 +365,7 @@
     },
     "level": {
       "label": "Level {level}",
+      "next": "Level {level + 1}",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
       "no_xp": "0 XP verdient",
       "level_label": "Level",
@@ -562,7 +576,60 @@
     "title": "Turniere"
   },
   "friends": {
-    "title": "Freunde"
+    "title": "Freunde",
+    "titleLower": "freunde",
+    "online": "online",
+    "searchPlaceholder": "Benutzer suchen...",
+    "findFriends": "Freunde finden",
+    "allFriends": "Alle Freunde",
+    "searching": "Suche...",
+    "resultsFor": "{count} Ergebnis{suffix} für \"{query}\"",
+    "noPlayersFound": "Keine Spieler gefunden",
+    "tryDifferentName": "Versuche einen anderen Namen oder Benutzernamen.",
+    "searchPrompt": "Suche nach Nutzern, um sie als Freunde hinzuzufügen",
+    "typeAtLeastTwo": "Gib mindestens 2 Zeichen ein, um zu suchen.",
+    "noMatchesFor": "Keine Treffer für \"{query}\"",
+    "noFriendsYet": "Noch keine Freunde. Suche nach Nutzern, um sie hinzuzufügen!",
+    "onlineSection": "ONLINE",
+    "offlineSection": "OFFLINE",
+    "findFriendsTab": "Versuche einen anderen Namen oder prüfe den Tab „Freunde finden“.",
+    "requests": "Anfragen",
+    "status": {
+      "accepted": "Freunde",
+      "pending": "Ausstehend",
+      "blocked": "Blockiert",
+      "sent": "Gesendet",
+      "away": "Abwesend",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "actions": {
+      "addFriend": "Freund hinzufügen",
+      "challenge": "Herausfordern",
+      "message": "Nachricht",
+      "block": "Blockieren",
+      "unfriend": "Freund entfernen",
+      "accept": "Akzeptieren",
+      "decline": "Ablehnen",
+      "cancel": "Abbrechen",
+      "unblock": "Entsperren"
+    },
+    "empty": {
+      "noPendingRequests": "Keine offenen Anfragen",
+      "noSentRequests": "Keine gesendeten Anfragen",
+      "noBlockedUsers": "Keine blockierten Benutzer"
+    },
+    "toast": {
+      "requestSent": "Freundschaftsanfrage gesendet",
+      "friendAdded": "Freund hinzugefügt!",
+      "requestDeclined": "Anfrage abgelehnt",
+      "requestCancelled": "Anfrage abgebrochen",
+      "userBlocked": "Benutzer blockiert",
+      "userUnblocked": "Benutzer entsperrt",
+      "friendRemoved": "Freund entfernt",
+      "somethingWentWrong": "Etwas ist schiefgelaufen",
+      "networkError": "Netzwerkfehler"
+    }
   },
   "about": {
     "title": "Über uns",
@@ -571,7 +638,6 @@
     "subtitleLine1": "ft_transcendence ist das Abschlussprojekt des 42-Core-Curriculums.",
     "subtitleLine2": "Eine Full-Stack-Webanwendung, die im Team von Grund auf entwickelt wurde.",
     "heroBadge": "42 Berlin · Abschlussprojekt · 2025/2026",
-
     "projectTitle": "Über das Projekt",
     "projectIntroLine1": "In diesem Abschlussprojekt haben wir uns entschieden, ein Multiplayer-Pong-Spiel zu entwickeln.",
     "projectIntroLine2": "Mit Echtzeit-Gameplay, einer modernen und responsiven Benutzeroberfläche sowie sozialen Funktionen.",
@@ -587,7 +653,6 @@
     "projectParagraph4": "Die gesamte Anwendung ist mit Docker containerisiert, um Portabilität, Isolation und konsistente Bereitstellung über verschiedene Umgebungen hinweg sicherzustellen.",
     "goalLabel": "Unser Ziel:",
     "goalText": "etwas zu schaffen, das nicht nur funktioniert, sondern auch wirklich Spaß macht und schön aussieht. 🏓✨",
-
     "techStackTitle": "Technologie-Stack",
     "techSveltekit": "Frontend & Backend",
     "techPostgresql": "Datenbank",
@@ -595,14 +660,12 @@
     "techDocker": "Containerisierung",
     "techTypescript": "Typsicherheit",
     "techLucia": "Authentifizierung",
-
     "teamTitle": "Lerne das Team kennen",
     "teamSubtitle": "Vier Studierende, ein Ziel: etwas zu veröffentlichen, auf das wir stolz sind.",
     "karenRole": "Product Owner · Frontend",
     "jamesRole": "Entwickler · Backend",
     "finnRole": "Entwickler · Backend",
     "kellenRole": "Entwickler · Frontend",
-
     "schoolDescription": "ist ein globales Netzwerk gebührenfreier Programmierschulen mit einem Peer-to-Peer-Lernmodell. Es gibt keine Lehrkräfte, keine Vorlesungen — die Studierenden lernen, indem sie echte Projekte entwickeln und sich gegenseitig helfen. Ft_transcendence ist das Abschlussprojekt des Common Core und verlangt von einem Team, die ultimative Prüfung all dessen zu bauen, was wir gelernt haben.",
     "schoolFooter": "Keine Lehrkräfte. Keine Vorlesungen. Nur Code, Zusammenarbeit und eine ganze Menge Pong."
   },
@@ -610,19 +673,21 @@
     "title": "Globale Rangliste",
     "viewAll": "Alle anzeigen",
     "noGames": "Noch keine Spiele gespielt",
+    "welcome": "Willkommen,",
     "welcomeBack": "Willkommen zurück,",
-    "readyMatch": "Bereit für ein weiteres Match?",
+    "readyMatch": "Bereit für ein weiteres Spiel?",
+    "readyFirst": "Bereit für dein erstes Spiel?",
     "playNow": "Jetzt spielen",
-    "friendsLeaderboard": "Freundes-Rangliste",
+    "friendsLeaderboard": "Freundesrangliste",
     "friendsEmpty": "Füge Freunde hinzu, um ihre Platzierungen zu sehen!",
     "recentActivity": "Letzte Aktivitäten",
-    "activityEmpty": "Spiele ein paar Spiele, um hier Aktivitäten zu sehen!",
+    "activityEmpty": "Spiele ein paar Matches, um hier Aktivitäten zu sehen!",
     "you": "Du",
     "unlocked": "freigeschaltet",
     "beat": "besiegte",
     "openTournaments": "Offene Turniere",
-    "browseAll": "Alle durchsuchen",
-    "noOpenTournaments": "Zurzeit keine offenen Turniere. Schau später noch einmal vorbei!",
+    "browseAll": "Alle anzeigen",
+    "noOpenTournaments": "Zurzeit keine offenen Turniere. Schau bald wieder vorbei!",
     "statusOpen": "Offen",
     "statusScheduled": "Geplant",
     "playersCount": "{playerCount} / {maxPlayers} Spieler",
@@ -631,12 +696,11 @@
     "quickPlay": "Schnelles Spiel",
     "findMatch": "Match finden",
     "findMatchDesc": "Spiele online gegen jemanden",
-    "local1v1": "Lokales 1v1",
-    "local1v1Desc": "Eine Tastatur, zwei Spieler",
-    "vsComputer": "Gegen den Computer",
+    "local1v1": "Lokal 1v1",
+    "local1v1Desc": "Gleiche Tastatur, zwei Spieler",
+    "vsComputer": "Gegen Computer",
     "vsComputerDesc": "Trainiere gegen die KI",
-    "statsLine": "{totalGames} Spiele · {winRate}% Siegesrate",
-    "winsShort": "{wins} S",
+    "winRate": "Siegquote",
     "activityAchievement": "{name} hat {achievement} freigeschaltet",
     "activityMatch": "{winner} besiegte {loser} {winnerScore}–{loserScore}"
   },
@@ -676,6 +740,122 @@
       "title": "Fehler",
       "description": "Ein unerwarteter Fehler ist aufgetreten.",
       "footer": "Im Spiel ist etwas Unerwartetes passiert! 🕹️"
+    }
+  },
+  "levelUpModal": {
+    "title": "Level aufgestiegen!",
+    "matchComplete": "Match beendet",
+    "total": "Gesamt",
+    "newAchievements": "Neue Erfolge",
+    "continue": "Weiter",
+    "levelAbbrev": "Lvl.",
+    "bonuses": {
+      "shutout": "Zu Null",
+      "winStreak": "Siegesserie",
+      "comeback": "Comeback",
+      "speedBonus": "Geschwindigkeitsbonus"
+    }
+  },
+  "achievements": {
+    "shutout_bronze": {
+      "name": "Zu-Null-Sieg",
+      "description": "Gewinne ein Match, bei dem dein Gegner 0 Punkte erzielt"
+    },
+    "shutout_silver": {
+      "name": "Zu-Null-Künstler",
+      "description": "Gewinne 10 Matches ohne Gegentor"
+    },
+    "streak_bronze": {
+      "name": "Glückssträhne",
+      "description": "Gewinne 3 Matches in Folge"
+    },
+    "streak_silver": {
+      "name": "Heiß gelaufen",
+      "description": "Gewinne 7 Matches in Folge"
+    },
+    "streak_gold": {
+      "name": "Unaufhaltsam",
+      "description": "Gewinne 15 Matches in Folge"
+    },
+    "points_bronze": {
+      "name": "Punktesammler",
+      "description": "Erziele 50 Punkte insgesamt"
+    },
+    "points_silver": {
+      "name": "Treffsicher",
+      "description": "Erziele 200 Punkte insgesamt"
+    },
+    "points_gold": {
+      "name": "Punktemaschine",
+      "description": "Erziele 500 Punkte insgesamt"
+    },
+    "first_match": {
+      "name": "Erstes Match",
+      "description": "Beende ein Match"
+    },
+    "first_victory": {
+      "name": "Erster Sieg",
+      "description": "Gewinne dein erstes Match"
+    },
+    "first_defeat": {
+      "name": "Erste Niederlage",
+      "description": "Verliere dein erstes Match"
+    },
+    "profile_avatar": {
+      "name": "Gesicht des Spiels",
+      "description": "Lade einen Avatar hoch oder wähle einen aus"
+    },
+    "profile_bio": {
+      "name": "Drück dich aus",
+      "description": "Schreibe eine Bio"
+    },
+    "social_first_friend": {
+      "name": "Erster Freund",
+      "description": "Füge deinen ersten Freund hinzu"
+    },
+    "social_circle": {
+      "name": "Freundeskreis",
+      "description": "Habe 5 bestätigte Freunde"
+    },
+    "pvp_first_match": {
+      "name": "Erstes PvP-Match",
+      "description": "Spiele dein erstes Online-Match"
+    },
+    "pvp_first_win": {
+      "name": "Erster PvP-Sieg",
+      "description": "Gewinne dein erstes Online-Match"
+    },
+    "night_owl": {
+      "name": "Nachteule",
+      "description": "Spiele ein Match nach Mitternacht"
+    },
+    "veteran_bronze": {
+      "name": "Veteran",
+      "description": "Spiele 10 Matches"
+    },
+    "veteran_silver": {
+      "name": "Erfahrener Spieler",
+      "description": "Spiele 50 Matches"
+    },
+    "veteran_gold": {
+      "name": "Legende",
+      "description": "Spiele 100 Matches"
+    },
+    "comeback_bronze": {
+      "name": "Comeback-Kid",
+      "description": "Gewinne nach einem Rückstand von 3 oder mehr Punkten"
+    },
+    "comeback_silver": {
+      "name": "Gib niemals auf",
+      "description": "Gewinne 5 Comeback-Matches"
+    },
+    "speed_demon": {
+      "name": "Geschwindigkeitsdämon",
+      "description": "Gewinne ein Match im schnellen Modus"
+    },
+    "marathon": {
+      "name": "Marathon-Match",
+      "description": "Spiele ein Match, das länger als 5 Minuten dauert"
     }
   }
 }

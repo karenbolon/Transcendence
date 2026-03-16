@@ -17,6 +17,7 @@
 		toast.game('Challenge Sent', `Sent to ${username}`);
 	}
 
+	import { _ } from 'svelte-i18n';
 
 	let { data } = $props();
 
@@ -112,10 +113,10 @@
 				}
 			} else {
 				const err = await res.json();
-				showToast(err.error || 'Something went wrong', false);
+				showToast(err.error || $_('friends.toast.somethingWentWrong', false));
 			}
 		} catch {
-			showToast('Network error', false);
+			showToast($_('friends.toast.networkError', false));
 		} finally {
 			loading = '';
 		}
@@ -150,14 +151,14 @@
 	<!-- Header -->
 	<div class="page-header">
 		<div class="header-left">
-			<h1 class="page-title">Friends</h1>
-			<p class="page-stats">{data.counts.friends} friends &middot; {onlineCount} online</p>
+			<h1 class="page-title">{$_('friends.title')}</h1>
+			<p class="page-stats">{data.counts.friends} {$_('friends.titleLower')} &middot; {onlineCount} {$_('friends.online')}</p>
 		</div>
 		<div class="search-wrapper">
 			<input
 				type="text"
 				class="search-input"
-				placeholder="Search users..."
+				placeholder={$_('friends.searchPlaceholder')}
 				value={searchQuery}
 				oninput={handleSearchInput}
 			/>
@@ -187,7 +188,7 @@
 				}}
 				>
 					<span class="tab-emoji">{tab.emoji}</span>
-					<span class="tab-label">{tab.label}</span>
+					<span class="tab-label">{$_(tab.labelKey)}</span>
 					{#if tab.key !== 'find' && data.counts[tab.key] > 0}
 						{#if tab.key === 'friends' && data.counts.friends > 0}
 							<span class="content-count">{data.counts.friends}</span>
@@ -205,13 +206,13 @@
 		<div class="tab-content">
 			<div class="content-header">
 				{#if activeTab === 'find'}
-					<h2 class="content-title">Find Friends</h2>
+					<h2 class="content-title">{$_('friends.findFriends')}</h2>
 				{:else if activeTab === 'friends'}
-					<h2 class="content-title">All Friends</h2>
+					<h2 class="content-title">{$_('friends.allFriends')}</h2>
 					<span class="content-count">{onlineFriends.length + offlineFriends.length}</span>
 				{:else}
 					<h2 class="content-title">
-						{FRIENDTABS.find(t => t.key === activeTab)?.label ?? 'Friends'}
+						{FRIENDTABS.find(t => t.key === activeTab)?.label ?? $_('friends.title')}
 					</h2>
 					<span class="content-count">{currentItems.length}</span>
 				{/if}
@@ -222,16 +223,23 @@
 				{#if showSearch}
 					<p class="search-summary">
 						{#if searching}
-							Searching...
+							{$_('friends.searching')}
 						{:else}
-							{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+							<!-- {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}" -->
+							 {$_('friends.resultsFor', {
+								values: {
+									count: searchResults.length,
+									suffix: searchResults.length !== 1 ? 's' : '',
+									query: searchQuery
+								}
+							})}
 						{/if}
 					</p>
 					{#if !searching && searchResults.length === 0}
 						<div class="empty-state">
 							<span class="empty-icon">😕</span>
-							<p>No players found</p>
-							<span class="empty-hint">Try a different name or username.</span>
+							<p>{$_('friends.noPlayersFound')}</p>
+							<span class="empty-hint">{$_('friends.tryDifferentName')}</span>
 						</div>
 					{:else if !searching}
 						<div class="friend-list">
@@ -245,11 +253,11 @@
 											{#if user.relationship}
 												<span class="friend-status-badge {user.relationship}">
 													{#if user.relationship === 'accepted'}
-														✓ Friends
+														✓ {$_('friends.status.accepted')}
 													{:else if user.relationship === 'pending'}
-														⏳ Pending
+														⏳ {$_('friends.status.pending')}
 													{:else if user.relationship === 'blocked'}
-														✕ Blocked
+														✕ {$_('friends.status.blocked')}
 													{/if}
 												</span>
 											{/if}
@@ -260,10 +268,10 @@
 											<button
 												class="btn btn-add"
 												disabled={loading === `request-${user.id}`}
-												onclick={() => friendAction('request', user.id, 'Friend request sent')}
-											>Add Friend</button>
+												onclick={() => friendAction('request', user.id, $_('friends.toast.requestSent'))}
+											>{$_('friends.actions.addFriend')}</button>
 										{/if}
-										<button class="btn btn-challenge" onclick={() => challengeUser(user.id, user.username)}><span class="btn-icon">👾</span> Challenge</button>
+										<button class="btn btn-challenge" onclick={() => challengeUser(user.id, user.username)}><span class="btn-icon">👾</span> {$_('friends.actions.challenge')}</button>
 									</div>
 								</div>
 							{/each}
@@ -272,8 +280,8 @@
 				{:else}
 					<div class="empty-state">
 						<span class="empty-icon">🔍</span>
-						<p>Search for users to add as friends</p>
-						<span class="empty-hint">Type at least 2 characters to search.</span>
+						<p>{$_('friends.searchPrompt')}</p>
+						<span class="empty-hint">{$_('friends.typeAtLeastTwo')}</span>
 					</div>
 				{/if}
 
@@ -283,18 +291,18 @@
 					<div class="empty-state">
 						{#if searchQuery.trim()}
 							<span class="empty-icon">😕</span>
-							<p>No matches for "{searchQuery}"</p>
-							<span class="empty-hint">Try a different name or check the Find Friends tab.</span>
+							<p>{$_('friends.noMatchesFor', { values: { query: searchQuery } })}</p>
+							<span class="empty-hint">{$_('friends.findFriendsTab')}</span>
 						{:else}
 							<span class="empty-icon">🔍</span>
-							<p>No friends yet. Search for users to add!</p>
+							<p>{$_('friends.noFriendsYet')}</p>
 						{/if}
 					</div>
 				{:else}
 					{#if onlineFriends.length > 0}
 						<div class="section-header">
 							<span class="section-dot online"></span>
-							<span class="section-label">ONLINE</span>
+							<span class="section-label">{$_('friends.onlineSection')}</span>
 							<span class="section-count">({onlineFriends.length})</span>
 						</div>
 						<div class="friend-list">
@@ -308,18 +316,18 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-challenge" onclick={() => challengeUser(item.id, item.username)}><span class="btn-icon">👾</span> Challenge</button>
-										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
+										<button class="btn btn-challenge" onclick={() => challengeUser(item.id, item.username)}><span class="btn-icon">👾</span> {$_('friends.actions.challenge')}</button>
+										<button class="btn btn-message"><span class="btn-icon">✉️</span> {$_('friends.actions.message')}</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
-											onclick={() => friendAction('block', item.id, 'User blocked')}
-										><span class="btn-icon">🚫</span> Block</button>
+											onclick={() => friendAction('block', item.id, $_('friends.toast.userBlocked'))}
+										><span class="btn-icon">🚫</span> {$_('friends.actions.block')}</button>
 										<button
 											class="btn btn-unfriend"
 											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										>Unfriend</button>
+											onclick={() => friendAction('remove', item.id, $_('friends.toast.friendRemoved'))}
+										>{$_('friends.actions.unfriend')}</button>
 									</div>
 								</div>
 							{/each}
@@ -329,7 +337,7 @@
 					{#if offlineFriends.length > 0}
 						<div class="section-header">
 							<span class="section-dot offline"></span>
-							<span class="section-label">OFFLINE</span>
+							<span class="section-label">{$_('friends.offlineSection')}</span>
 							<span class="section-count">({offlineFriends.length})</span>
 						</div>
 						<div class="friend-list">
@@ -343,17 +351,17 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
+										<button class="btn btn-message"><span class="btn-icon">✉️</span> {$_('friends.actions.message')}</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
-											onclick={() => friendAction('block', item.id, 'User blocked')}
-										><span class="btn-icon">🚫</span> Block</button>
+											onclick={() => friendAction('block', item.id, $_('friends.toast.userBlocked'))}
+										><span class="btn-icon">🚫</span> {$_('friends.actions.block')}</button>
 										<button
 											class="btn btn-unfriend"
 											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										>Unfriend</button>
+											onclick={() => friendAction('remove', item.id, $_('friends.toast.friendRemoved'))}
+										>{$_('friends.actions.unfriend')}</button>
 									</div>
 								</div>
 							{/each}
@@ -367,10 +375,10 @@
 					<div class="empty-state">
 						{#if searchQuery.trim()}
 							<span class="empty-icon">😕</span>
-							<p>No matches for "{searchQuery}"</p>
+							<p>{$_('friends.noMatchesFor', { values: { query: searchQuery } })}</p>
 						{:else}
 							<span class="empty-icon">📭</span>
-							<p>No pending requests</p>
+							<p>{$_('friends.empty.noPendingRequests')}</p>
 						{/if}
 					</div>
 				{:else}
@@ -388,13 +396,13 @@
 									<button
 										class="btn btn-accept"
 										disabled={loading === `accept-${item.id}`}
-										onclick={() => friendAction('accept', item.id, 'Friend added!')}
-									>Accept</button>
+										onclick={() => friendAction('accept', item.id, $_('friends.toast.friendAdded'))}
+									>{$_('friends.actions.accept')}</button>
 									<button
 										class="btn btn-decline"
 										disabled={loading === `decline-${item.id}`}
-										onclick={() => friendAction('decline', item.id, 'Request declined')}
-									>Decline</button>
+										onclick={() => friendAction('decline', item.id, $_('friends.toast.requestDeclined'))}
+									>{$_('friends.actions.decline')}</button>
 								</div>
 							</div>
 						{/each}
@@ -407,10 +415,10 @@
 					<div class="empty-state">
 						{#if searchQuery.trim()}
 							<span class="empty-icon">😕</span>
-							<p>No matches for "{searchQuery}"</p>
+							<p>{$_('friends.noMatchesFor', { values: { query: searchQuery } })}</p>
 						{:else}
 							<span class="empty-icon">✉️</span>
-							<p>No sent requests</p>
+							<p>{$_('friends.empty.noSentRequests')}</p>
 						{/if}
 					</div>
 				{:else}
@@ -428,8 +436,8 @@
 									<button
 										class="btn btn-cancel"
 										disabled={loading === `cancel-${item.id}`}
-										onclick={() => friendAction('cancel', item.id, 'Request cancelled')}
-									>Cancel</button>
+										onclick={() => friendAction('cancel', item.id, $_('friends.toast.requestCancelled'))}
+									>{$_('friends.actions.cancel')}</button>
 								</div>
 							</div>
 						{/each}
@@ -442,10 +450,10 @@
 					<div class="empty-state">
 						{#if searchQuery.trim()}
 							<span class="empty-icon">😕</span>
-							<p>No matches for "{searchQuery}"</p>
+							<p>{$_('friends.noMatchesFor', { values: { query: searchQuery } })}</p>
 						{:else}
 							<span class="empty-icon">🚫</span>
-							<p>No blocked users</p>
+							<p>{$_('friends.empty.noBlockedUsers')}</p>
 						{/if}
 					</div>
 				{:else}
@@ -463,8 +471,8 @@
 									<button
 										class="btn btn-unblock"
 										disabled={loading === `unblock-${item.id}`}
-										onclick={() => friendAction('unblock', item.id, 'User unblocked')}
-									>Unblock</button>
+										onclick={() => friendAction('unblock', item.id, $_('friends.toast.userUnblocked'))}
+									>{$_('friends.actions.unblock')}</button>
 								</div>
 							</div>
 						{/each}

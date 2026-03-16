@@ -3,6 +3,7 @@
 	import XpBar from "./XpBar.svelte";
 	import { TIER_EMOJIS, getMilestone } from '$lib/utils/format_progression';
 	import type { XpBonus, NewAchievement } from '$lib/types/progression';
+	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		xpEarned: number;
@@ -66,27 +67,27 @@
 		{#if didLevelUp}
 			<div class="level-up-header">
 				<span class="level-up-icon">{newMilestoneIcon}</span>
-				<h2 class="level-up-title">Level Up!</h2>
+				<h2 class="level-up-title">{$_('levelUpModal.title')}</h2>
 				<div class="level-transition">
-					<span class="old-level">Lv.{oldLevel}</span>
+					<span class="old-level">{$_('levelUpModal.levelAbbrev')}{oldLevel}</span>
 					<span class="arrow">→</span>
-					<span class="new-level">Lv.{newLevel}</span>
+					<span class="new-level">{$_('levelUpModal.levelAbbrev')}{newLevel}</span>
 				</div>
 			</div>
 		{:else}
-			<h2 class="xp-title">Match Complete</h2>
+			<h2 class="xp-title">{$_('levelUpModal.matchComplete')}</h2>
 		{/if}
 
 		<!-- XP Breakdown -->
 		<div class="xp-breakdown">
 			{#each bonuses as bonus}
 				<div class="xp-row">
-					<span class="xp-name">{bonus.name}</span>
+					<span class="xp-name">{$_(bonus.name, { default: bonus.name })}</span>
 					<span class="xp-amount">+{bonus.amount} XP</span>
 				</div>
 			{/each}
 			<div class="xp-total">
-				<span>Total</span>
+				<span>{$_('levelUpModal.total')}</span>
 				<span class="xp-total-amount">+{xpEarned} XP</span>
 			</div>
 		</div>
@@ -103,24 +104,26 @@
 		<!-- New Achievements -->
 		{#if newAchievements.length > 0}
 			<div class="achievements-section">
-				<h3 class="achievements-title">🏆 New Achievements</h3>
+				<h3 class="achievements-title">🏆 {$_('levelUpModal.newAchievements')}</h3>
 				{#each newAchievements as ach}
 					<div class="achievement-row">
 						<span class="achievement-tier"
 							>{TIER_EMOJIS[ach.tier] ?? "🏅"}</span
 						>
 						<div class="achievement-info">
-							<span class="achievement-name">{ach.name}</span>
-							<span class="achievement-desc"
-								>{ach.description}</span
-							>
+							<span class="achievement-name">
+								{$_(`achievements.${ach.id}.name`)}
+							</span>
+							<span class="achievement-desc">
+								{$_(`achievements.${ach.id}.description`)}
+							</span>
 						</div>
 					</div>
 				{/each}
 			</div>
 		{/if}
 
-		<button class="close-btn" onclick={handleClose}>Continue</button>
+		<button class="close-btn" onclick={handleClose}>{$_('levelUpModal.continue')}</button>
 	</div>
 </div>
 

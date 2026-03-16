@@ -177,7 +177,8 @@ export function update(
 	state: GameState,
 	dt: number,
 	input: InputState,
-	settings: GameSettings
+	settings: GameSettings,
+	goLabel: string = 'GO!'
 ): void {
 	// Score flash fades regardless of phase
 	if (state.scoreFlashTimer > 0) {
@@ -190,7 +191,7 @@ export function update(
 	// Dispatch to phase-specific update
 	switch (state.phase) {
 		case 'countdown':
-			updateCountdown(state, dt, input);
+			updateCountdown(state, dt, input, goLabel);
 			break;
 		case 'playing':
 			updatePlaying(state, dt, input, settings);
@@ -199,16 +200,16 @@ export function update(
 	}
 }
 
-function updateCountdown(state: GameState, dt: number, input: InputState): void {
+function updateCountdown(state: GameState, dt: number, input: InputState, goLabel: string): void {
 	state.countdownTimer -= dt;
 
 	if (state.countdownTimer > 3)      state.countdownDisplay = '3';
 	else if (state.countdownTimer > 2) state.countdownDisplay = '2';
 	else if (state.countdownTimer > 1) state.countdownDisplay = '1';
-	else if (state.countdownTimer > 0) state.countdownDisplay = 'GO!';
+	else if (state.countdownTimer > 0) state.countdownDisplay = goLabel;
 	else {
 		// Timer finished — will be caught by the component to call startPlaying()
-		state.countdownDisplay = 'GO!';
+		state.countdownDisplay = goLabel;
 		state.countdownTimer = 0;
 		return;
 	}

@@ -5,6 +5,7 @@
 	import XpBar from '$lib/component/progression/XpBar.svelte';
 	import LevelBadge from '$lib/component/progression/LevelBadge.svelte';
 	import { CATEGORYLABELS, DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
+	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -24,13 +25,21 @@
 			? Math.round((data.unlockedCount / data.totalCount) * 100)
 			: 0,
 	);
+
+	function openDetail(achievement: (typeof data.achievements)[number]) {
+		selectedAchievement = achievement;
+	}
+
+	function closeDetail() {
+		selectedAchievement = null;
+	}
 </script>
 
+<!-- Header -->
 <div class="achievements-page">
-	<!-- Header -->
 	<section class="page-header">
 		<div class="header-top">
-			<h1 class="page-title">{data.friend.name ?? data.friend.username}'s Achievements</h1>
+			<h1 class="page-title">{$_('user_profile.achievements.title')}</h1>
 			<LevelBadge level={data.progression?.level ?? 1} />
 		</div>
 
@@ -38,7 +47,7 @@
 		<div class="completion-section">
 			<div class="completion-header">
 				<span class="completion-label">
-					{data.unlockedCount} / {data.totalCount} unlocked
+					{data.unlockedCount} / {data.totalCount} {$_('user_profile.labels.unlocked')}
 				</span>
 				<span class="completion-percent">{completionPercent}%</span>
 			</div>
@@ -47,11 +56,13 @@
 			</div>
 		</div>
 
-		<XpBar
-			currentXp={progression.currentXp}
-			xpToNextLevel={progression.xpToNextLevel}
-			level={progression.level}
-		/>
+		{#if progression}
+			<XpBar
+				currentXp={progression.currentXp}
+				xpToNextLevel={progression.xpToNextLevel}
+				level={progression.level}
+			/>
+		{/if}
 	</section>
 
 	<!-- Category Filter -->
@@ -61,47 +72,60 @@
 			class:active={selectedCategory === null}
 			onclick={() => (selectedCategory = null)}
 		>
-			All
+			{$_('user_profile.labels.all')}
 		</button>
+
 		{#each data.categories as cat}
 			<button
 				class="category-btn"
 				class:active={selectedCategory === cat}
 				onclick={() => (selectedCategory = cat)}
 			>
-				{CATEGORYLABELS[cat] ?? cat}
+				{#if CATEGORYLABELS[cat]}
+					{$_(CATEGORYLABELS[cat])}
+				{:else}
+					{cat}
+				{/if}
 			</button>
 		{/each}
 	</nav>
 
-	<p class="hint">Tap any achievement for details</p>
+	<p class="hint">{$_('user_profile.achievements.hint')}</p>
 
 	<!-- Achievement Grid -->
 	<div class="achievement-list">
 		{#each filteredAchievements as ach (ach.id)}
 			<AchievementCard
 				id={ach.id}
-				name={ach.name}
-				description={ach.description}
+				name={$_(`achievements.${ach.id}.name`)}
+				description={$_(`achievements.${ach.id}.description`)}
 				tier={ach.tier}
 				category={ach.category}
 				icon={ach.icon}
 				unlockedAt={ach.unlockedAt}
-				onclick={() => selectedAchievement = ach}
+				onclick={() => openDetail(ach)}
 			/>
 		{/each}
 	</div>
 
 	{#if filteredAchievements.length === 0}
-		<p class="empty-state">No achievements in this category yet.</p>
+		<p class="empty-state">{$_('user_profile.achievements.empty')}</p>
 	{/if}
 
-	<a href="/friends/{data.friend.id}" class="back-link">← Back to {data.friend.name ?? data.friend.username}'s Profile</a>
+	<a href="/profile" class="back-link">{$_('user_profile.labels.back_profile')}</a>
 </div>
 
 <AchievementDetailModal
-	achievement={selectedAchievement}
-	onclose={() => selectedAchievement = null}
+	achievement={
+		selectedAchievement
+			? {
+					...selectedAchievement,
+					name: $_(`achievements.${selectedAchievement.id}.name`),
+					description: $_(`achievements.${selectedAchievement.id}.description`)
+				}
+			: null
+	}
+	onclose={closeDetail}
 />
 
 <style>

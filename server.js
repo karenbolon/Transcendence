@@ -325,8 +325,9 @@ function updateGame(state, dt, input, settings) {
 		movePaddles(state, dt, input);
 	} else if (state.phase === 'playing') {
 		state.playTime += dt;
-		if (state.scorePause > 0) { state.scorePause -= dt; return; }
 		movePaddles(state, dt, input);
+		if (state.scorePause > 0) { state.scorePause -= dt; return; }
+		// movePaddles(state, dt, input);
 		state.ballVY += state.ballSpin * SPIN_ACCELERATION * dt;
 		state.ballSpin *= SPIN_DECAY;
 		if (Math.abs(state.ballSpin) < 0.001) state.ballSpin = 0;

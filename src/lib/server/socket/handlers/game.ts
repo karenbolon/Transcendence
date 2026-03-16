@@ -137,8 +137,6 @@ export function registerGameHandlers(socket: Socket) {
 		// Create a game room
 		const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-		// TODO: uncomment when game engine is ready
-
 		// Mark both as in game
 		// usersInGame.add(invite.fromUserId);
 		// usersInGame.add(userId);

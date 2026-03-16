@@ -236,7 +236,7 @@ function updatePlaying(
 	}
 
 	// Move paddles
-	movePaddles(state, dt, input);
+	// movePaddles(state, dt, input);
 
 	// Apply spin: curves the ball trajectory over time
 	state.ballVY += state.ballSpin * SPIN_ACCELERATION * dt;

@@ -90,6 +90,11 @@
 		toast.game('Challenge Sent', `Sent to ${opponentName}`);
 		challengeSent = true;
 	}
+	let player1DisplayName = $derived(player1.username);
+	let player2DisplayName = $derived(player2.username);
+
+	let player1Avatar = $derived('🎮');
+	let player2Avatar = $derived('👾');
 </script>
 
 <!-- ═══ AMBIENT BACKGROUND EFFECTS ═══ -->
@@ -134,6 +139,22 @@
 
 	{:else}
 		<!-- Playing state: show the game -->
+		<div class="player-bar">
+			<div class="player-side">
+				<div class="player-avatar p1">{player1Avatar}</div>
+				<div class="player-info-block">
+					<span class="player-name p1">{player1DisplayName}</span>
+
+				</div>
+			</div>
+			<div class="vs-badge">VS</div>
+			<div class="player-side">
+				<div class="player-info-block right">
+					<span class="player-name p2">{player2DisplayName}</span>
+				</div>
+				<div class="player-avatar p2">{player2Avatar}</div>
+			</div>
+		</div>
 		<OnlineGame
 			roomId={data.roomId}
 			{side}
@@ -223,11 +244,13 @@
 	}
 	.online-game-container {
 		position: relative;
+		z-index: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 1.25rem;
 		width: 100%;
+		padding: 1rem 0 2rem;
 	}
 
 	.waiting {
@@ -323,5 +346,97 @@
 	.challenge-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	/* ===== Player bar (above canvas) ===== */
+	.player-bar {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2.5rem;
+		width: 100%;
+		max-width: 900px;
+		padding: 1rem 1rem;
+	}
+	.player-side {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.player-side:first-child {
+		justify-content: flex-end;
+	}
+
+	.player-side:last-child {
+		justify-content: flex-start;
+	}
+
+	.player-avatar {
+		width: 46px;
+		height: 46px;
+		border-radius: 50%;
+		border: 2px solid;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.3rem;
+		flex-shrink: 0;
+	}
+
+	.player-avatar.p1 {
+		border-color: #60a5fa;
+		background: rgba(96, 165, 250, 0.1);
+		box-shadow: 0 0 15px rgba(96, 165, 250, 0.15);
+	}
+
+	.player-avatar.p2 {
+		border-color: var(--accent);
+		background: rgba(255, 107, 157, 0.1);
+		box-shadow: 0 0 15px rgba(255, 107, 157, 0.15);
+	}
+
+	.player-info-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		min-width: 0;
+	}
+
+	.player-info-block.right {
+		text-align: right;
+	}
+
+	.player-name {
+		font-family: 'Press Start 2P', cursive;
+		font-size: 1.6rem;
+		font-weight: 500;
+		letter-spacing: 0.01em;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.player-name.p1 {
+		color: #60a5fa;
+	}
+
+	.player-name.p2 {
+		color: #ff6b9d;
+	}
+
+	.vs-badge {
+		font-family: 'Press Start 2P', cursive;
+		font-size: 0.55rem;
+		color: #6b7280;
+		background: rgba(255, 255, 255, 0.04);
+		padding: 0.35rem 0.7rem;
+		border-radius: 2rem;
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		text-transform: uppercase;
+		letter-spacing: 0.15em;
+		flex-shrink: 0;
 	}
 </style>

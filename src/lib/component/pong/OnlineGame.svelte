@@ -12,11 +12,11 @@
 	import type { GameStateSnapshot } from '$lib/types/game';
 
 	type Props = {
-	roomId: string;
-	side: 'left' | 'right';  // Which paddle this player controls
-	player1: { userId: number; username: string };
-	player2: { userId: number; username: string };
-	onGameOver?: (result: any) => void;
+		roomId: string;
+		side: 'left' | 'right';  // Which paddle this player controls
+		player1: { userId: number; username: string };
+		player2: { userId: number; username: string };
+		onGameOver?: (result: any) => void;
 	};
 
 	let { roomId, side, player1, player2, onGameOver }: Props = $props();
@@ -32,90 +32,90 @@
 	let lastSentDirection: 'up' | 'down' | 'stop' = 'stop';
 
 	function computeDirection(): 'up' | 'down' | 'stop' {
-	const upHeld = keysDown.has('w') || keysDown.has('arrowup');
-	const downHeld = keysDown.has('s') || keysDown.has('arrowdown');
-	if (upHeld && !downHeld) return 'up';
-	if (downHeld && !upHeld) return 'down';
-	return 'stop';
+		const upHeld = keysDown.has('w') || keysDown.has('arrowup');
+		const downHeld = keysDown.has('s') || keysDown.has('arrowdown');
+		if (upHeld && !downHeld) return 'up';
+		if (downHeld && !upHeld) return 'down';
+		return 'stop';
 	}
 
 	function sendDirection() {
-	const dir = computeDirection();
-	if (dir !== lastSentDirection) {
-		lastSentDirection = dir;
-		const socket = getSocket();
-		socket?.emit('game:paddle-move', { direction: dir });
-	}
+		const dir = computeDirection();
+		if (dir !== lastSentDirection) {
+			lastSentDirection = dir;
+			const socket = getSocket();
+			socket?.emit('game:paddle-move', { direction: dir });
+		}
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-	const key = e.key.toLowerCase();
-	if (['w', 's', 'arrowup', 'arrowdown'].includes(key)) {
-		e.preventDefault();
-		keysDown.add(key);
-		sendDirection();
-	}
+		const key = e.key.toLowerCase();
+		if (['w', 's', 'arrowup', 'arrowdown'].includes(key)) {
+			e.preventDefault();
+			keysDown.add(key);
+			sendDirection();
+		}
 	}
 
 	function handleKeyUp(e: KeyboardEvent) {
-	const key = e.key.toLowerCase();
-	if (keysDown.has(key)) {
-		keysDown.delete(key);
-		sendDirection();
-	}
+		const key = e.key.toLowerCase();
+		if (keysDown.has(key)) {
+			keysDown.delete(key);
+			sendDirection();
+		}
 	}
 
 	// ── Socket Listeners + Render Loop ──────────────────────────
 	onMount(() => {
-	const ctx = canvas.getContext('2d');
-	if (!ctx) return;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
 
-	const socket = getSocket();
-	if (!socket) return;
+		const socket = getSocket();
+		if (!socket) return;
 
-	// NOTE: game:join-room is emitted by the parent page component,
-	// not here, to avoid double-emission. This component only listens.
+		// NOTE: game:join-room is emitted by the parent page component,
+		// not here, to avoid double-emission. This component only listens.
 
-	// Listen for state updates from the server (60 per second)
-	socket.on('game:state', (state: GameStateSnapshot) => {
-		latestState = state;
-	});
+		// Listen for state updates from the server (60 per second)
+		socket.on('game:state', (state: GameStateSnapshot) => {
+			latestState = state;
+		});
 
-	socket.on('game:over', (result: any) => {
-		onGameOver?.(result);
-	});
+		socket.on('game:over', (result: any) => {
+			onGameOver?.(result);
+		});
 
-	socket.on('game:forfeit', (result: any) => {
-		onGameOver?.(result);
-	});
+		socket.on('game:forfeit', (result: any) => {
+			onGameOver?.(result);
+		});
 
-	socket.on('game:player-disconnected', (data: { userId: number; timeout: number }) => {
-		disconnectedPlayer = data.userId;
-	});
+		socket.on('game:player-disconnected', (data: { userId: number; timeout: number }) => {
+			disconnectedPlayer = data.userId;
+		});
 
-	socket.on('game:player-reconnected', () => {
-		disconnectedPlayer = null;
-	});
+		socket.on('game:player-reconnected', () => {
+			disconnectedPlayer = null;
+		});
 
-	// Render loop — just draws the latest state, NO physics
-	let animFrame: number;
-	function renderLoop() {
-		if (latestState) {
-		draw(ctx!, latestState);
+		// Render loop — just draws the latest state, NO physics
+		let animFrame: number;
+		function renderLoop() {
+			if (latestState) {
+				draw(ctx!, latestState);
+			}
+			animFrame = requestAnimationFrame(renderLoop);
 		}
 		animFrame = requestAnimationFrame(renderLoop);
-	}
-	animFrame = requestAnimationFrame(renderLoop);
 
-	// Cleanup when component is destroyed
-	return () => {
-		cancelAnimationFrame(animFrame);
-		socket.off('game:state');
-		socket.off('game:over');
-		socket.off('game:forfeit');
-		socket.off('game:player-disconnected');
-		socket.off('game:player-reconnected');
-	};
+		// Cleanup when component is destroyed
+		return () => {
+			cancelAnimationFrame(animFrame);
+			socket.off('game:state');
+			socket.off('game:over');
+			socket.off('game:forfeit');
+			socket.off('game:player-disconnected');
+			socket.off('game:player-reconnected');
+		};
 	});
 
 	// ── Drawing ─────────────────────────────────────────────────

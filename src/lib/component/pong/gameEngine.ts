@@ -226,6 +226,9 @@ function updatePlaying(
 	// Track total play time
 	state.playTime += dt;
 
+	// Move paddles FIRST — players should always be able to move
+	movePaddles(state, dt, input);
+
 	// Score pause
 	if (state.scorePause > 0) {
 		state.scorePause -= dt;

@@ -70,6 +70,7 @@
 		"drizzle-orm": "^0.45.1",
 		"i18next": "^25.8.14",
 		"lucia": "^3.2.2",
+		"pino": "^10.3.1",
 		"postgres": "^3.4.7",
 		"socket.io": "^4.8.3",
 		"socket.io-client": "^4.8.3",

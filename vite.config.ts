@@ -3,6 +3,9 @@ import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import pino from 'pino';
+
+const socketLog = pino({ level: process.env.LOG_LEVEL || 'info' }).child({ component: 'socket.io' });
 
 function socketIODevPlugin() {
 	let ioAttached = false;
@@ -28,19 +31,19 @@ function socketIODevPlugin() {
 						io.use(socketAuthMiddleware);
 
 						io.on('connection', (socket: any) => {
-							console.log(`[Socket.IO] User ${socket.data.userId} connected (${socket.id})`);
+							socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User connected');
 							registerPresence(socket);
 							registerFriendHandlers(socket);
 							registerGameHandlers(socket);
 
 							socket.on('disconnect', () => {
-								console.log(`[Socket.IO] User ${socket.data.userId} disconnected (${socket.id})`);
+								socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User disconnected');
 							});
 						});
 
-						console.log('[Socket.IO] Attached to Vite dev server');
+						socketLog.info('Attached to Vite dev server');
 					} catch (err) {
-						console.error('[Socket.IO] Failed to attach to dev server:', err);
+						socketLog.error({ err }, 'Failed to attach to dev server');
 					}
 				});
 			},

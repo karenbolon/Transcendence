@@ -5,6 +5,11 @@ import { join, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import { handler } from './build/handler.js';
+import pino from 'pino';
+
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+const socketLog = logger.child({ component: 'socket.io' });
+const serverLog = logger.child({ component: 'server' });
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -119,7 +124,7 @@ async function socketAuthMiddleware(socket, next) {
 
 		next();
 	} catch (err) {
-		console.error('[Socket.IO] Auth error:', err.message);
+		socketLog.error({ err: err.message }, 'Auth error');
 		next(new Error('Authentication failed'));
 	}
 }
@@ -155,7 +160,7 @@ io.on('connection', (socket) => {
 	const userId = socket.data.userId;
 	const username = socket.data.username;
 
-	console.log(`[Socket.IO] User ${userId} connected (${socket.id})`);
+	socketLog.info({ userId, socketId: socket.id }, 'User connected');
 
 	// Register presence
 	if (!userSockets.has(userId)) {
@@ -276,7 +281,7 @@ io.on('connection', (socket) => {
 
 	// ── Disconnect ────────────────────────────────────────────────
 	socket.on('disconnect', () => {
-		console.log(`[Socket.IO] User ${userId} disconnected (${socket.id})`);
+		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
 
 		const sockets = userSockets.get(userId);
 		if (sockets) {
@@ -312,6 +317,6 @@ globalThis.__userSockets = userSockets;
 globalThis.__socketIO = io;
 
 httpServer.listen(PORT, HOST, () => {
-	console.log(`[Server] Listening on http://${HOST}:${PORT}`);
-	console.log('[Socket.IO] Attached to production server');
+	serverLog.info({ host: HOST, port: PORT }, `Listening on http://${HOST}:${PORT}`);
+	socketLog.info('Attached to production server');
 });

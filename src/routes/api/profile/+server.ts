@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { apiLogger } from '$lib/server/logger';
 // import { checkOnboardingAchievements } from '$lib/server/progression/onboarding';
 
 export const PUT: RequestHandler = async ({ locals, request }) => {
@@ -77,7 +78,7 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 			// xpAwarded: progressionResult.totalXpAwarded,
 		});
 	} catch (err) {
-		console.error('Failed to update profile:', err);
+		apiLogger.error({ err }, 'Failed to update profile');
 		return json({ error: 'Failed to update profile' }, { status: 500 });
 	}
 };

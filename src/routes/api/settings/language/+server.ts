@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { SUPPORTED_LOCALES } from '$lib/i18n';
+import { apiLogger } from '$lib/server/logger';
 
 export const PUT: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
@@ -28,7 +29,7 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 
 		return json({ success: true, language });
 	} catch (error) {
-		console.error('Error updating language:', error);
+		apiLogger.error({ err: error }, 'Error updating language');
 		return json({ error: 'Failed to update language' }, { status: 500 });
 	}
 };

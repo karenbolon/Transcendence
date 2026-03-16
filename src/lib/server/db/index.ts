@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
+import { dbLogger } from '$lib/server/logger';
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -12,7 +13,14 @@ export function getDb(): Db {
 		const connectionString = env.DB_URL || env.DATABASE_URL;
 		if (!connectionString) throw new Error('DATABASE_URL is not set');
 		const client = postgres(connectionString, { prepare: false });
-		_db = drizzle(client, { schema });
+		_db = drizzle(client, {
+			schema,
+			logger: {
+				logQuery(query, params) {
+					dbLogger.debug({ query, params }, 'query');
+				}
+			}
+		});
 	}
 	return _db;
 }

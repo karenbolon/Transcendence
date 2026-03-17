@@ -3,12 +3,12 @@
 	import BadgeDisplay from '$lib/component/BadgeDisplay.svelte';
 	import { formatDate, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji, formatMode } from '$lib/utils/format_game';
+	import { _ } from 'svelte-i18n';
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -182,7 +182,7 @@
 							<span class="opponent-score">{match.opponentScore}</span>
 						</span>
 						<span class="match-opponent">{match.opponentName}</span>
-						<span class="match-mode">{formatMode(match.gameMode)}</span>
+							<span class="match-mode">{$_(formatMode(match.gameMode), { default: match.gameMode })}</span>
 						<span class="match-speed">{speedEmoji(match.speedPreset)}</span>
 						<span class="match-duration">{formatDuration(match.durationSeconds)}</span>
 						<span class="match-time">{formatDate(match.playedAt)}</span>

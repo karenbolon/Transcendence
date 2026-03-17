@@ -288,17 +288,20 @@
   "matches": {
     "status": {
       "play": "Pulsa ESPACIO para jugar",
+      "playAgain": "Pulsa ESPACIO para jugar de nuevo",
       "get_ready": "Prepárate...",
-      "saved": "Partida guardada"
-    },
-    "success": {
-      "saved_match": "¡Partida guardada! {winnerName} gana {score}"
-    },
-    "validation": {
-      "win_score_invalid": "La puntuación para ganar debe ser 3, 5, 7 u 11",
-      "score_must_equal_win_score": "Una puntuación debe ser igual a la puntuación para ganar",
-      "winner_must_have_winning_score": "El ganador debe tener la puntuación ganadora"
+      "savingMatch": "Guardando partida...",
+      "saved": "Partida guardada",
+      "notSaved": "Partida no guardada (¿no has iniciado sesión?)"
     }
+  },
+  "success": {
+    "saved_match": "¡Partida guardada! {winnerName} gana {score}"
+  },
+  "validation": {
+    "win_score_invalid": "La puntuación para ganar debe ser 3, 5, 7 u 11",
+    "score_must_equal_win_score": "Una puntuación debe ser igual a la puntuación para ganar",
+    "winner_must_have_winning_score": "El ganador debe tener la puntuación ganadora"
   },
   "user_profile": {
     "member": "Miembro desde ",
@@ -550,6 +553,9 @@
       "computer": "🤖 contra el ordenador",
       "guest": "Invitado"
     },
+    "player2": {
+      "label": "Jugador 2"
+    },
     "win_score": {
       "label": "Puntos para ganar"
     },
@@ -573,7 +579,25 @@
     "copyright": "© {year} ft_transcendence™ — Todos los derechos reservados."
   },
   "leaderboard": {
-    "title": "Clasificación"
+    "title": "Clasificación",
+    "youRank": "Tu posición:",
+    "unranked": "Sin clasificar",
+    "you": "TÚ",
+    "youLower": "Tú",
+    "Win": "Vict.",
+    "wins": "victorias",
+    "wins2": "Vict.",
+    "losses": "Der.",
+    "games": "partidas",
+    "games2": "Part.",
+    "player": "JUGADOR",
+    "player2": "Jugador",
+    "global": "Global",
+    "friends": "Amigos",
+    "addFriends": "¡Añade amigos para ver sus posiciones aquí!",
+    "globalLeaderboard": "Ver clasificación global",
+    "noGames": "¡Aún no se han jugado partidas!",
+    "first": "Sé el primero en jugar"
   },
   "tournaments": {
     "title": "Torneos"

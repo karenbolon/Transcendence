@@ -287,17 +287,20 @@
   "matches": {
     "status": {
       "play": "Drücke LEERTASTE zum Spielen",
+      "playAgain": "Drücke LEERTASTE, um erneut zu spielen",
       "get_ready": "Mach dich bereit...",
-      "saved": "Spiel gespeichert"
-    },
-    "success": {
-      "saved_match": "Spiel gespeichert! {winnerName} gewinnt {score}"
-    },
-    "validation": {
-      "win_score_invalid": "Der Gewinnpunktestand muss 3, 5, 7 oder 11 sein",
-      "score_must_equal_win_score": "Eine Punktzahl muss dem Gewinnpunktestand entsprechen",
-      "winner_must_have_winning_score": "Der Gewinner muss den Gewinnpunktestand erreicht haben"
+      "savingMatch": "Spiel wird gespeichert...",
+      "saved": "Spiel gespeichert",
+      "notSaved": "Spiel nicht gespeichert (nicht eingeloggt?)"
     }
+  },
+  "success": {
+    "saved_match": "Spiel gespeichert! {winnerName} gewinnt {score}"
+  },
+  "validation": {
+    "win_score_invalid": "Der Gewinnpunktestand muss 3, 5, 7 oder 11 sein",
+    "score_must_equal_win_score": "Eine Punktzahl muss dem Gewinnpunktestand entsprechen",
+    "winner_must_have_winning_score": "Der Gewinner muss den Gewinnpunktestand erreicht haben"
   },
   "user_profile": {
     "member": "Mitglied seit ",
@@ -547,6 +550,9 @@
       "computer": "🤖 gegen Computer",
       "guest": "Gast"
     },
+    "player2": {
+      "label": "Spieler 2"
+    },
     "win_score": {
       "label": "Punkte zum Sieg"
     },
@@ -570,7 +576,25 @@
     "copyright": "© {year} ft_transcendence™ — Alle Rechte vorbehalten."
   },
   "leaderboard": {
-    "title": "Bestenliste"
+    "title": "Bestenliste",
+    "youRank": "Dein Rang:",
+    "unranked": "Nicht platziert",
+    "you": "DU",
+    "youLower": "Du",
+    "win": "Sieg",
+    "wins": "Siege",
+    "wins2": "Siege",
+    "losses": "Nied.",
+    "games": "Spiele",
+    "games2": "Spiele",
+    "player": "SPIELER",
+    "player2": "Spieler",
+    "global": "Weltweit",
+    "friends": "Freunde",
+    "addFriends": "Füge Freunde hinzu, um ihre Platzierungen hier zu sehen!",
+    "globalLeaderboard": "Globale Bestenliste anzeigen",
+    "noGames": "Noch keine Spiele gespielt!",
+    "first": "Sei der Erste, der spielt"
   },
   "tournaments": {
     "title": "Turniere"

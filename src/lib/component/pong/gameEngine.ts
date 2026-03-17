@@ -59,7 +59,7 @@ export interface GameSettings {
 }
 
 
-export type GameMode = 'local' | 'computer';
+export type GameMode = 'local' | 'computer' | 'online';
 
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
 
@@ -227,6 +227,9 @@ function updatePlaying(
 	// Track total play time
 	state.playTime += dt;
 
+	// Move paddles FIRST — players should always be able to move
+	movePaddles(state, dt, input);
+
 	// Score pause
 	if (state.scorePause > 0) {
 		state.scorePause -= dt;
@@ -234,7 +237,7 @@ function updatePlaying(
 	}
 
 	// Move paddles
-	movePaddles(state, dt, input);
+	// movePaddles(state, dt, input);
 
 	// Apply spin: curves the ball trajectory over time
 	state.ballVY += state.ballSpin * SPIN_ACCELERATION * dt;
@@ -378,7 +381,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 
 /**
  * Fuzzy Logic AI Controller for Computer Paddle
- * 
+ *
  * Implements prediction-based targeting with smooth movement:
  * 1. Fuzzification: Predict ball trajectory including wall bounces
  * 2. Inference: Determine target position based on ball approach state
@@ -387,26 +390,26 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 export function computeComputerInput(state: GameState): InputState {
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
 	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
-	
+
 	let targetY: number;
-	
+
 	// Rule 1: Ball approaching → Use predictive tracking
 	if (state.ballVX > 0) {
 		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
 		const distanceToPaddle = paddleX - state.ballX;
 		const timeToReach = distanceToPaddle / state.ballVX;
-		
+
 		// Predict future ball position (account for spin curving the trajectory)
 		// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
 		// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
 		let predictedY = state.ballY
 			+ (state.ballVY * timeToReach)
 			+ (0.5 * state.ballSpin * SPIN_ACCELERATION * timeToReach * timeToReach);
-		
+
 		// Simulate wall bounces with safety limit (prevent infinite loops)
 		let bounces = 0;
 		const maxBounces = 10; // Safety limit
-		
+
 		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
 			if (predictedY < 0) {
 				predictedY = Math.abs(predictedY);
@@ -415,24 +418,24 @@ export function computeComputerInput(state: GameState): InputState {
 			}
 			bounces++;
 		}
-		
+
 		// Clamp if still out of bounds (safety fallback)
 		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
-		
+
 		targetY = predictedY;
-	} 
+	}
 	// Rule 2: Ball moving away → Return to center (defensive positioning)
 	else {
 		targetY = CANVAS_HEIGHT / 2;
 	}
-	
+
 	// Defuzzification: Constrain target to valid paddle bounds
 	// Extend range by deadZone so the paddle can fully reach the top/bottom edges
 	targetY = Math.max(
 		PADDLE_HEIGHT / 2 - deadZone,
 		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
 	);
-	
+
 	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
 	const moveUp = targetY < paddleCenter - deadZone;
 	const moveDown = targetY > paddleCenter + deadZone;

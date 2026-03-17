@@ -9,12 +9,13 @@ import { apiLogger } from '$lib/server/logger';
 
 const matchResultSchema = z.object({
 	// Game mode: how the game was played
-	gameMode: z.enum(['local', 'computer']),
+	gameMode: z.enum(['local', 'computer', 'online']),
 
 	// Player 2 info
 	// In 'local' mode: a custom name (or "Guest")
 	// In 'computer' mode: always "Computer"
 	player2Name: z.string().min(1).max(100),
+	player2Id: z.number().int().positive().optional(),
 
 	// Scores — must be non-negative integers
 	player1Score: z.number().int().min(0),
@@ -85,7 +86,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	} else {
 		// Player 2 won
 		winnerName = data.player2Name;
-		winnerId = null;  // Guest/Computer has no user ID
+		winnerId = data.player2Id ?? null;
+		// Real user ID for online, null for local/computer
+		// Guest/Computer has no user ID
 	}
 
 	// ── SAVE TO DATABASE ───────────────────────────────────────

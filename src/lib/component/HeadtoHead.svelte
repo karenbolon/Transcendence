@@ -24,6 +24,7 @@
 		bestWin: string;
 		lastPlayed: Date | string | null;
 		recentMatches: H2hMatch[];
+		onChallenge?: () => void;
 		onclose: () => void;
 	};
 
@@ -38,6 +39,7 @@
 		bestWin,
 		lastPlayed,
 		recentMatches,
+		onChallenge,
 		onclose,
 	}: Props = $props();
 
@@ -145,6 +147,8 @@
 
 			<!-- Actions -->
 			<div class="modal-actions">
+				<button class="action-btn challenge-btn" onclick={() => { onclose(); onChallenge?.(); }}>🎮 Challenge Again</button>
+				<button class="action-btn view-btn" onclick={onclose}>Close</button>
 				<button class="action-btn challenge-btn">🎮 {$_('common.challenge')}</button>
 				<button class="action-btn view-btn" onclick={onclose}>{$_('common.close')}</button>
 			</div>

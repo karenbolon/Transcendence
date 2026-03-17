@@ -1,6 +1,13 @@
 import type { Socket } from 'socket.io';
 import { getIO, userSockets } from '../index';
 import { getFriendIds } from '$lib/server/db/helpers_queries';
+import {
+	createRoom,
+	getRoom,
+	getRoomByPlayer,
+	isPlayerInGame,
+} from '../game/RoomManager';
+import type { GameStateSnapshot } from '$lib/types/game';
 
 // Track active game invites: inviteId → invite data
 const activeInvites = new Map<string, {
@@ -12,7 +19,34 @@ const activeInvites = new Map<string, {
 }>();
 
 // Track which users are currently in a game
-export const usersInGame = new Set<number>();
+// export const usersInGame = new Set<number>();
+
+/** Broadcast game state to all sockets of both players in a room */
+function broadcastState(roomId: string, state: GameStateSnapshot): void {
+	const io = getIO();
+	const room = getRoom(roomId);
+	if (!room) return;
+
+	//const snapshot = state;
+	for (const sid of room.player1.socketIds) {
+		io.to(sid).emit('game:state', state);
+	}
+	for (const sid of room.player2.socketIds) {
+		io.to(sid).emit('game:state', state);
+	}
+}
+/** Broadcast a game event to all sockets of both players */
+function broadcastEvent(roomId: string, event: string, data: any): void {
+	const io = getIO();
+	const room = getRoom(roomId);
+	if (!room) return;
+	for (const sid of room.player1.socketIds) {
+		io.to(sid).emit(event, data);
+	}
+	for (const sid of room.player2.socketIds) {
+		io.to(sid).emit(event, data);
+	}
+}
 
 export function registerGameHandlers(socket: Socket) {
 	const userId: number = socket.data.userId;
@@ -39,11 +73,11 @@ export function registerGameHandlers(socket: Socket) {
 		}
 
 		// Validate: neither player is already in a game
-		if (usersInGame.has(userId)) {
+		if (isPlayerInGame(userId)) {
 			socket.emit('game:error', { message: 'You are already in a game' });
 			return;
 		}
-		if (usersInGame.has(friendId)) {
+		if (isPlayerInGame(friendId)) {
 			socket.emit('game:error', { message: 'Player is already in a game' });
 			return;
 		}
@@ -103,20 +137,29 @@ export function registerGameHandlers(socket: Socket) {
 		// Create a game room
 		const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-		// TODO: uncomment when game engine is ready
-
 		// Mark both as in game
 		// usersInGame.add(invite.fromUserId);
 		// usersInGame.add(userId);
+		// CREATE THE GAME ROOM — this is where GameRoom gets instantiated
+		createRoom(
+			roomId,
+			{ userId: invite.fromUserId, username: invite.fromUsername },
+			{ userId, username },
+			invite.settings,
+			broadcastState,
+			broadcastEvent,
+		);
 
-		// Notify both players to go to the game
-		const io = getIO();
 		const gameData = {
 			roomId,
 			player1: { userId: invite.fromUserId, username: invite.fromUsername },
 			player2: { userId, username },
 			settings: invite.settings,
 		};
+
+
+		// Notify both players to go to the game
+		const io = getIO();
 
 		// Notify challenger
 		const challengerSockets = userSockets.get(invite.fromUserId);
@@ -133,6 +176,39 @@ export function registerGameHandlers(socket: Socket) {
 				io.to(sid).emit('game:start', gameData);
 			}
 		}
+	});
+
+	// ── Join a game room (called when player navigates to game page) ─
+	socket.on('game:join-room', (data: { roomId: string }) => {
+		const room = getRoom(data.roomId);
+		if (!room || !room.hasPlayer(userId)) {
+			socket.emit('game:error', { message: 'Game room not found' });
+			return;
+		}
+
+		// Register this socket in the room
+		room.addSocket(userId, socket.id);
+
+		// Tell the client which side they play (left paddle or right paddle)
+		const side = userId === room.player1.userId ? 'left' : 'right';
+		socket.emit('game:joined', {
+			roomId: data.roomId,
+			side,
+			player1: { userId: room.player1.userId, username: room.player1.username },
+			player2: { userId: room.player2.userId, username: room.player2.username },
+		});
+
+		// If both players now have at least one socket connected, start the game
+		if (room.player1.socketIds.size > 0 && room.player2.socketIds.size > 0) {
+			room.start();
+		}
+	});
+
+	// ── Paddle input during game ────────────────────────────────
+	socket.on('game:paddle-move', (data: { direction: 'up' | 'down' | 'stop' }) => {
+		const room = getRoomByPlayer(userId);
+		if (!room) return;
+		room.handleInput(userId, data.direction);
 	});
 
 	// Decline an invite
@@ -153,6 +229,33 @@ export function registerGameHandlers(socket: Socket) {
 		}
 	});
 
+	// Cancel an invite (challenger changed their mind from waiting room)
+	socket.on('game:invite-cancel', () => {
+		for (const [inviteId, invite] of activeInvites) {
+			if (invite.fromUserId === userId) {
+				clearTimeout(invite.timeout);
+				activeInvites.delete(inviteId);
+
+				// Notify the target so their invite modal disappears
+				const targetSockets = userSockets.get(invite.toUserId);
+				if (targetSockets) {
+					const io = getIO();
+					for (const sid of targetSockets) {
+						io.to(sid).emit('game:invite-cancelled', { inviteId });
+					}
+				}
+				break;
+			}
+		}
+	});
+
+	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
+	socket.on('game:leave', () => {
+		const room = getRoomByPlayer(userId);
+		if (!room) return;
+		room.forfeitByPlayer(userId);
+	});
+
 	// Clean up on disconnect
 	socket.on('disconnect', () => {
 		// Cancel any pending invites from this user
@@ -161,6 +264,11 @@ export function registerGameHandlers(socket: Socket) {
 				clearTimeout(invite.timeout);
 				activeInvites.delete(inviteId);
 			}
+		}
+		// Remove socket from active game room (triggers reconnect timer)
+		const room = getRoomByPlayer(userId);
+		if (room) {
+			room.removeSocket(userId, socket.id);
 		}
 	});
 }

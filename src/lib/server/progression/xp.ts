@@ -125,7 +125,7 @@ export function getLevelForXp(totalXp: number): LevelInfo {
  * Get the milestone icon and title for a given level.
  * Returns the highest milestone the player has reached.
  */
-export function getMilestoneForLevel(level: number): { icon: string; title: string } {
+export function getMilestoneForLevel(level: number): { icon: string; titleKey: string } {
 	return getMilestone(level);
 }
 

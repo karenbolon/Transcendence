@@ -7,11 +7,17 @@
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
+	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { setWaiting } from '$lib/stores/matchmaking.svelte';
+	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import Starfield from '$lib/component/Starfield.svelte';
+	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
+	let showChallengePicker = $state(false);
 
 	const RING_C = 125.66;
 	let ringOffset = $derived(RING_C * (1 - data.stats.winRate / 100));
@@ -23,19 +29,33 @@
 			body: JSON.stringify({ friendId: data.friend.id }),
 		});
 		if (res.ok) {
-			// Reload to update friendship status
 			window.location.reload();
 		}
 	}
 
 	function handleChallenge() {
+		showChallengePicker = true;
+	}
+
+	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
 		const socket = getSocket();
 		if (!socket?.connected) {
 			toast.error('Not connected to server');
 			return;
 		}
-		socket.emit('game:invite', { friendId: data.friend.id });
-		toast.game('Challenge Sent', `Sent to ${data.friend.name ?? data.friend.username}`);
+		socket.emit('game:invite', {
+			friendId: data.friend.id,
+			settings,
+		});
+
+		setWaiting({
+			you: { username: data.user.username, avatarUrl: data.user.avatarUrl, displayName: data.user.name },
+			opponent: { username: data.friend.username, avatarUrl: data.friend.avatarUrl, displayName: data.friend.name },
+			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+			totalTime: 30,
+		});
+		showChallengePicker = false;
+		goto('/play/online/waiting');
 	}
 
 	async function handleUnfriend() {
@@ -49,6 +69,9 @@
 		}
 	}
 </script>
+
+<Starfield starCount={30}/>
+<!-- <NoiseGrain opacity={0.03} /> -->
 
 <div class="profile-page max-w-4xl mx-auto px-4 py-8">
 	<ProfileBanner
@@ -112,6 +135,7 @@
 			bestWin={data.headToHead.bestWin}
 			lastPlayed={data.headToHead.lastPlayed}
 			recentMatches={data.headToHead.recentMatches}
+			onChallenge={handleChallenge}
 			onclose={() => showH2hModal = false}
 		/>
 	{/if}
@@ -192,6 +216,14 @@
 		{/if}
 	</section>
 </div>
+
+{#if showChallengePicker}
+	<ChallengePicker
+		targetName={{ username: data.friend.username, displayName: data.friend.name, avatarUrl: data.friend.avatarUrl }}
+		onSend={sendChallenge}
+		onCancel={() => showChallengePicker = false}
+	/>
+{/if}
 
 <style>
 	.profile-page {

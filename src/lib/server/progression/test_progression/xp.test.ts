@@ -44,7 +44,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 0
 			});
-			expect(result.bonuses).toContainEqual({ name: 'Shutout', amount: 15 });
+			expect(result.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.shutout', amount: 15 });
 			expect(result.total).toBe(65);
 		});
 
@@ -60,7 +60,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 0
 			});
-			expect(result3.bonuses).toContainEqual({ name: 'Win Streak', amount: 15 });
+			expect(result3.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.winStreak', amount: 15 });
 
 			// Test streak cap (6 wins = 30XP, but should cap at 25XP)
 			const resultCap = calculateMatchXp({
@@ -73,7 +73,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 0
 			});
-			expect(resultCap.bonuses).toContainEqual({ name: 'Win Streak', amount: 25 });
+			expect(resultCap.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.winStreak', amount: 25 });
 		});
 
 		it('should apply comeback bonus (+10)', () => {
@@ -87,7 +87,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 2
 			});
-			expect(result.bonuses).toContainEqual({ name: 'Comeback', amount: 10 });
+			expect(result.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.comeback', amount: 10 });
 			expect(result.total).toBe(60);
 		});
 
@@ -102,7 +102,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 0
 			});
-			expect(resultNormal.bonuses).toContainEqual({ name: 'Speed Bonus', amount: 5 });
+			expect(resultNormal.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.speedBonus', amount: 5 });
 
 			const resultFast = calculateMatchXp({
 				won: true,
@@ -114,7 +114,7 @@ describe('XP Calculation Logic (xp.ts)', () => {
 				ballReturns: 0,
 				maxDeficit: 0
 			});
-			expect(resultFast.bonuses).toContainEqual({ name: 'Speed Bonus', amount: 10 });
+			expect(resultFast.bonuses).toContainEqual({ name: 'levelUpModal.bonuses.speedBonus', amount: 10 });
 		});
 	});
 

@@ -2,6 +2,7 @@
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { formatDate } from '$lib/utils/format_date';
 	import { speedEmoji } from '$lib/utils/format_game';
+	import { _ } from 'svelte-i18n';
 
 	type H2hMatch = {
 		id: number;
@@ -62,8 +63,8 @@
 
 			<!-- Header -->
 			<div class="modal-header">
-					<h2 class="modal-title">Head to Head</h2>
-					<span class="games-badge">{total} games{total !== 1 ? 's' : ''}</span>
+					<h2 class="modal-title">{$_('common.headToHead')}</h2>
+					<span class="games-badge">{total} {$_('common.games')}{total !== 1 ? 's' : ''}</span>
 			</div>
 
 			<!-- Avatars + Score -->
@@ -72,7 +73,7 @@
 						<div class="player-avatar">
 							<UserAvatar username={you.username} displayName={you.name} avatarUrl={you.avatarUrl} size="xl" />
 						</div>
-						<span class="player-name">You</span>
+						<span class="player-name">{$_('dashboard.you')}</span>
 					</div>
 
 					<div class="score-center">
@@ -96,8 +97,8 @@
 			<!-- Win percentage bar -->
 			<div class="win-bar-section">
 				<div class="h2h-bar-header">
-					<span class="win-pct">{yourWinPct}% wins</span>
-					<span class="win-pct">{theirWinPct}% wins</span>
+					<span class="win-pct">{yourWinPct}% {$_('common.wins')}</span>
+					<span class="win-pct">{theirWinPct}% {$_('common.wins')}</span>
 				</div>
 				<div class="win-bar">
 					<div class="you-fill" style="width: {yourWinPct}%"></div>
@@ -109,26 +110,26 @@
 			<div class="stats-row">
 				<div class="stat">
 					<span class="stat-value">{total}</span>
-					<span class="stat-label">Total</span>
+					<span class="stat-label">{$_('dashboard.levelUpModal.total')}</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{avgScore}</span>
-					<span class="stat-label">Avg Score</span>
+					<span class="stat-label">{$_('common.avgScore')}</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{bestWin}</span>
-					<span class="stat-label">Best Win</span>
+					<span class="stat-label">{$_('common.bestWin')}</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{lastPlayed ? formatDate(lastPlayed) : '—'}</span>
-					<span class="stat-label">Last Played</span>
+					<span class="stat-label">{$_('common.bestWin')}</span>
 				</div>
 			</div>
 
 			<!-- Recent matches -->
 			{#if recentMatches.length > 0}
 				<div class="recent-section">
-					<span class="recent-title">Recent matches</span>
+					<span class="recent-title">{$_('common.recent')}</span>
 					<div class="recent-list">
 						{#each recentMatches as match (match.id)}
 							<div class="recent-row" class:won={match.won} class:lost={!match.won}>
@@ -148,6 +149,8 @@
 			<div class="modal-actions">
 				<button class="action-btn challenge-btn" onclick={() => { onclose(); onChallenge?.(); }}>🎮 Challenge Again</button>
 				<button class="action-btn view-btn" onclick={onclose}>Close</button>
+				<button class="action-btn challenge-btn">🎮 {$_('common.challenge')}</button>
+				<button class="action-btn view-btn" onclick={onclose}>{$_('common.close')}</button>
 			</div>
 
 		</div>

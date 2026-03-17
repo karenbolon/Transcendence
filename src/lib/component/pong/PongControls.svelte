@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameMode } from './gameEngine';
+	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		gameMode: GameMode;
@@ -10,18 +11,18 @@
 
 <div class="controls-hint">
 	<div class="control-group">
-		<span class="control-label">Player 1</span>
+		<span class="control-label">{$_('common.player1')}</span>
 		<div class="keys">
-			<kbd>W</kbd> <span>up</span>
-			<kbd>S</kbd> <span>down</span>
+			<kbd>W</kbd> <span>{$_('common.up')}</span>
+			<kbd>S</kbd> <span>{$_('common.down')}</span>
 		</div>
 	</div>
 	{#if gameMode === 'local'}
 		<div class="control-group">
-			<span class="control-label">Player 2</span>
+			<span class="control-label">{$_('common.player1')}</span>
 			<div class="keys">
-				<kbd>↑</kbd> <span>up</span>
-				<kbd>↓</kbd> <span>down</span>
+				<kbd>↑</kbd> <span>{$_('common.up')}</span>
+				<kbd>↓</kbd> <span>{$_('common.down')}</span>
 			</div>
 		</div>
 	{:else}

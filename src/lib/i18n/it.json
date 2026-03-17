@@ -31,7 +31,21 @@
     "play": "Gioca",
     "player1": "Giocatore 1",
     "player2": "Giocatore 2",
-    "games": "Partite"
+    "games": "Partite",
+    "game": "Partita",
+    "go": "Via!",
+    "up": "Su",
+    "down": "Giù",
+    "computer": "Computer",
+    "headToHead": "Scontro diretto",
+    "wins": "vittorie",
+    "avgScore": "Punteggio medio",
+    "bestWin": "Migliore vittoria",
+    "lastPlayed": "Ultima partita",
+    "recent": "Partite recenti",
+    "challenge": "Sfida di nuovo",
+    "close": "Chiudi",
+    "local": "Locale"
   },
   "errors": {
     "username_taken": "Nome utente già in uso",
@@ -274,17 +288,20 @@
   "matches": {
     "status": {
       "play": "Premi SPAZIO per giocare",
+      "playAgain": "Premi SPAZIO per giocare di nuovo",
       "get_ready": "Preparati...",
-      "saved": "Partita salvata"
-    },
-    "success": {
-      "saved_match": "Partita salvata! {winnerName} vince {score}"
-    },
-    "validation": {
-      "win_score_invalid": "Il punteggio per vincere deve essere 3, 5, 7 o 11",
-      "score_must_equal_win_score": "Uno dei punteggi deve essere uguale al punteggio di vittoria",
-      "winner_must_have_winning_score": "Il vincitore deve avere il punteggio di vittoria"
+      "savingMatch": "Salvataggio della partita...",
+      "saved": "Partita salvata",
+      "notSaved": "Partita non salvata (non hai effettuato l'accesso?)"
     }
+  },
+  "success": {
+    "saved_match": "Partita salvata! {winnerName} vince {score}"
+  },
+  "validation": {
+    "win_score_invalid": "Il punteggio per vincere deve essere 3, 5, 7 o 11",
+    "score_must_equal_win_score": "Uno dei punteggi deve essere uguale al punteggio di vittoria",
+    "winner_must_have_winning_score": "Il vincitore deve avere il punteggio di vittoria"
   },
   "user_profile": {
     "member": "Membro dal ",
@@ -299,7 +316,7 @@
       "games": "Partite",
       "wins": "Vittorie",
       "losses": "Sconfitte",
-      "winRate": "Percentuale di vittorie",
+      "winRate": "di vittorie",
       "milestonesTitle": "Traguardi e Obiettivi",
       "noAchievements": "Nessun obiettivo ancora. Gioca delle partite per sbloccarli!",
       "matchHistoryTitle": "Cronologia partite",
@@ -352,10 +369,12 @@
     },
     "level": {
       "label": "Livello {level}",
+      "next": "Livello {level + 1}",
+      "label2": "Livello",
+      "levelShort": "LVL",
       "xp_progress": "{currentXp} / {xpToNextLevel} XP",
       "no_xp": "0 XP guadagnati",
-      "level_label": "Livello",
-      "lvl": "LIV"
+      "level_label": "Livello"
     },
     "badges": {
       "recent": "Badge recenti",
@@ -533,6 +552,9 @@
       "computer": "🤖 contro il computer",
       "guest": "Ospite"
     },
+    "player2": {
+      "label": "Giocatore 2"
+    },
     "win_score": {
       "label": "Punti per vincere"
     },
@@ -556,13 +578,84 @@
     "copyright": "© {year} ft_transcendence™ — Tutti i diritti riservati."
   },
   "leaderboard": {
-    "title": "Classifica"
+    "title": "Classifica",
+    "youRank": "La tua posizione:",
+    "unranked": "Non classificato",
+    "you": "TU",
+    "youLower": "Tu",
+    "win": "vitt.",
+    "wins": "vittorie",
+    "wins2": "Vitt.",
+    "losses": "Sconf.",
+    "games": "partite",
+    "games2": "Part.",
+    "player": "GIOCATORE",
+    "player2": "Giocatore",
+    "global": "Globale",
+    "friends": "Amici",
+    "addFriends": "Aggiungi amici per vedere la loro posizione qui!",
+    "globalLeaderboard": "Visualizza la classifica globale",
+    "noGames": "Nessuna partita giocata finora!",
+    "first": "Sii il primo a giocare"
   },
   "tournaments": {
     "title": "Tornei"
   },
   "friends": {
-    "title": "Amici"
+    "title": "Amici",
+    "titleLower": "amici",
+    "online": "online",
+    "searchPlaceholder": "Cerca utenti...",
+    "findFriends": "Trova amici",
+    "allFriends": "Tutti gli amici",
+    "searching": "Ricerca in corso...",
+    "resultsFor": "{count} risultato{suffix} per \"{query}\"",
+    "noPlayersFound": "Nessun giocatore trovato",
+    "tryDifferentName": "Prova con un nome o username diverso.",
+    "searchPrompt": "Cerca utenti da aggiungere come amici",
+    "typeAtLeastTwo": "Digita almeno 2 caratteri per cercare.",
+    "noMatchesFor": "Nessun risultato per \"{query}\"",
+    "noFriendsYet": "Non hai ancora amici. Cerca utenti da aggiungere!",
+    "onlineSection": "ONLINE",
+    "offlineSection": "OFFLINE",
+    "findFriendsTab": "Prova con un altro nome o controlla la scheda «Trova amici».",
+    "requests": "Richieste",
+    "status": {
+      "accepted": "Amici",
+      "pending": "In sospeso",
+      "blocked": "Bloccato",
+      "sent": "Inviato",
+      "away": "Assente",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "actions": {
+      "addFriend": "Aggiungi amico",
+      "challenge": "Sfida",
+      "message": "Messaggio",
+      "block": "Blocca",
+      "unfriend": "Rimuovi amico",
+      "accept": "Accetta",
+      "decline": "Rifiuta",
+      "cancel": "Annulla",
+      "unblock": "Sblocca"
+    },
+    "empty": {
+      "noPendingRequests": "Nessuna richiesta in sospeso",
+      "noSentRequests": "Nessuna richiesta inviata",
+      "noBlockedUsers": "Nessun utente bloccato"
+    },
+    "toast": {
+      "requestSent": "Richiesta di amicizia inviata",
+      "friendAdded": "Amico aggiunto!",
+      "requestDeclined": "Richiesta rifiutata",
+      "requestCancelled": "Richiesta annullata",
+      "userBlocked": "Utente bloccato",
+      "userUnblocked": "Utente sbloccato",
+      "friendRemoved": "Amico rimosso",
+      "somethingWentWrong": "Qualcosa è andato storto",
+      "networkError": "Errore di rete"
+    }
   },
   "about": {
     "title": "Chi siamo",
@@ -571,7 +664,6 @@
     "subtitleLine1": "ft_transcendence è il progetto finale del core curriculum di 42.",
     "subtitleLine2": "Un'applicazione web full-stack sviluppata da zero da un team.",
     "heroBadge": "42 Berlin · Progetto finale · 2025/2026",
-
     "projectTitle": "Il progetto",
     "projectIntroLine1": "In questo progetto finale abbiamo scelto di sviluppare un gioco Pong multigiocatore.",
     "projectIntroLine2": "Con gameplay in tempo reale, un'interfaccia utente moderna e responsive e funzionalità social.",
@@ -587,7 +679,6 @@
     "projectParagraph4": "L'intera applicazione è containerizzata con Docker per garantire portabilità, isolamento e distribuzioni coerenti tra diversi ambienti.",
     "goalLabel": "Il nostro obiettivo:",
     "goalText": "creare qualcosa che non sia solo funzionale, ma anche davvero divertente da giocare e bello da vedere. 🏓✨",
-
     "techStackTitle": "Stack tecnologico",
     "techSveltekit": "Frontend e Backend",
     "techPostgresql": "Database",
@@ -595,48 +686,47 @@
     "techDocker": "Containerizzazione",
     "techTypescript": "Sicurezza dei tipi",
     "techLucia": "Autenticazione",
-
     "teamTitle": "Il team",
     "teamSubtitle": "Quattro studenti, un obiettivo: realizzare qualcosa di cui essere orgogliosi.",
     "karenRole": "Product Owner · Frontend",
     "jamesRole": "Sviluppatore · Backend",
     "finnRole": "Sviluppatore · Backend",
     "kellenRole": "Sviluppatore · Frontend",
-
     "schoolDescription": "è una rete globale di scuole di programmazione gratuite con un modello di apprendimento peer-to-peer. Non ci sono insegnanti né lezioni — gli studenti imparano costruendo progetti reali e aiutandosi a vicenda. Ft_transcendence è il progetto finale del common core e richiede a un team di costruire la prova definitiva di tutto ciò che abbiamo imparato.",
     "schoolFooter": "Nessun insegnante. Nessuna lezione. Solo codice, collaborazione e tanto Pong."
   },
   "dashboard": {
-    "title": "Classifica Globale",
+    "title": "Classifica globale",
     "viewAll": "Vedi tutto",
     "noGames": "Nessuna partita giocata finora",
+    "welcome": "Benvenuto,",
     "welcomeBack": "Bentornato,",
-    "readyMatch": "Pronto per un’altra partita?",
+    "readyMatch": "Pronto per un'altra partita?",
+    "readyFirst": "Pronto per la tua prima partita?",
     "playNow": "Gioca ora",
     "friendsLeaderboard": "Classifica amici",
-    "friendsEmpty": "Aggiungi amici per vedere le loro classifiche!",
+    "friendsEmpty": "Aggiungi amici per vedere le loro posizioni!",
     "recentActivity": "Attività recente",
-    "activityEmpty": "Gioca qualche partita per vedere l’attività qui!",
+    "activityEmpty": "Gioca qualche partita per vedere attività qui!",
     "you": "Tu",
     "unlocked": "ha sbloccato",
     "beat": "ha battuto",
     "openTournaments": "Tornei aperti",
-    "browseAll": "Sfoglia tutti",
+    "browseAll": "Vedi tutto",
     "noOpenTournaments": "Nessun torneo aperto al momento. Torna presto!",
     "statusOpen": "Aperto",
     "statusScheduled": "Programmato",
     "playersCount": "{playerCount} / {maxPlayers} giocatori",
-    "joinTournament": "Partecipa al torneo",
+    "joinTournament": "Unisciti al torneo",
     "full": "Completo",
     "quickPlay": "Partita veloce",
-    "findMatch": "Trova una partita",
+    "findMatch": "Trova partita",
     "findMatchDesc": "Gioca contro qualcuno online",
     "local1v1": "1v1 locale",
     "local1v1Desc": "Stessa tastiera, due giocatori",
     "vsComputer": "Contro il computer",
-    "vsComputerDesc": "Allenati contro l’IA",
-    "statsLine": "{totalGames} partite · {winRate}% di vittorie",
-    "winsShort": "{wins} V",
+    "vsComputerDesc": "Allenati contro l'IA",
+    "winRate": "de victoires",
     "activityAchievement": "{name} ha sbloccato {achievement}",
     "activityMatch": "{winner} ha battuto {loser} {winnerScore}–{loserScore}"
   },
@@ -677,6 +767,121 @@
       "description": "Si è verificato un errore imprevisto.",
       "footer": "Qualcosa di inaspettato è successo nel gioco! 🕹️"
     }
+  },
+  "levelUpModal": {
+    "title": "Livello aumentato!",
+    "matchComplete": "Partita completata",
+    "total": "Totale",
+    "newAchievements": "Nuovi obiettivi",
+    "continue": "Continua",
+    "levelAbbrev": "Lv.",
+    "bonuses": {
+      "shutout": "Porta inviolata",
+      "winStreak": "Serie di vittorie",
+      "comeback": "Rimonta",
+      "speedBonus": "Bonus velocità"
+    }
+  },
+  "achievements": {
+    "shutout_bronze": {
+      "name": "Vittoria perfetta",
+      "description": "Vinci una partita in cui il tuo avversario segna 0 punti"
+    },
+    "shutout_silver": {
+      "name": "Artista dello shutout",
+      "description": "Vinci 10 partite senza subire punti"
+    },
+    "streak_bronze": {
+      "name": "Serie vincente",
+      "description": "Vinci 3 partite di fila"
+    },
+    "streak_silver": {
+      "name": "In fiamme",
+      "description": "Vinci 7 partite di fila"
+    },
+    "streak_gold": {
+      "name": "Inarrestabile",
+      "description": "Vinci 15 partite di fila"
+    },
+    "points_bronze": {
+      "name": "Collezionista di punti",
+      "description": "Segna 50 punti in totale"
+    },
+    "points_silver": {
+      "name": "Tiratore scelto",
+      "description": "Segna 200 punti in totale"
+    },
+    "points_gold": {
+      "name": "Macchina di punti",
+      "description": "Segna 500 punti in totale"
+    },
+    "first_match": {
+      "name": "Prima partita",
+      "description": "Completa una partita"
+    },
+    "first_victory": {
+      "name": "Prima vittoria",
+      "description": "Vinci la tua prima partita"
+    },
+    "first_defeat": {
+      "name": "Prima sconfitta",
+      "description": "Perdi la tua prima partita"
+    },
+    "profile_avatar": {
+      "name": "Il volto del gioco",
+      "description": "Carica o seleziona un avatar"
+    },
+    "profile_bio": {
+      "name": "Esprimi te stesso",
+      "description": "Scrivi una bio"
+    },
+    "social_first_friend": {
+      "name": "Primo amico",
+      "description": "Aggiungi il tuo primo amico"
+    },
+    "social_circle": {
+      "name": "Cerchia sociale",
+      "description": "Avere 5 amici accettati"
+    },
+    "pvp_first_match": {
+      "name": "Primo PvP",
+      "description": "Gioca la tua prima partita online"
+    },
+    "pvp_first_win": {
+      "name": "Prima vittoria PvP",
+      "description": "Vinci la tua prima partita online"
+    },
+    "night_owl": {
+      "name": "Gufo notturno",
+      "description": "Gioca una partita dopo mezzanotte"
+    },
+    "veteran_bronze": {
+      "name": "Veterano",
+      "description": "Gioca 10 partite"
+    },
+    "veteran_silver": {
+      "name": "Giocatore esperto",
+      "description": "Gioca 50 partite"
+    },
+    "veteran_gold": {
+      "name": "Leggenda",
+      "description": "Gioca 100 partite"
+    },
+    "comeback_bronze": {
+      "name": "Re della rimonta",
+      "description": "Vinci dopo essere stato sotto di 3 o più punti"
+    },
+    "comeback_silver": {
+      "name": "Non mollare mai",
+      "description": "Vinci 5 partite in rimonta"
+    },
+    "speed_demon": {
+      "name": "Demone della velocità",
+      "description": "Vinci una partita in modalità veloce"
+    },
+    "marathon": {
+      "name": "Partita maratona",
+      "description": "Gioca una partita che dura più di 5 minuti"
+    }
   }
 }
- 

@@ -16,7 +16,7 @@
 	<div class="welcome-row">
 		<div>
 			<h1 class="welcome-title">
-				{user.totalGames > 0 ? $_('dashboard.welcomeBack') : $_('dashboard.welcome')} <span class="accent">{user.displayName || user.username} 👋</span>
+				{user.totalGames > 0 ? $_('dashboard.welcomeBack') : $_('dashboard.welcome')} <span class="accent"> {user.displayName || user.username} 👋</span>
 			</h1>
 			<p class="welcome-sub">{user.totalGames > 0 ? $_('dashboard.readyMatch') : $_('dashboard.readyFirst')}</p>
 		</div>
@@ -47,7 +47,7 @@
 						<div class="podium-info">
 							<div class="podium-name">{player.displayName || player.username}</div>
 							<div class="podium-stat">
-								{player.totalGames} games · {player.winRate}% win rate
+								{player.totalGames} {$_('common.games')} · {player.winRate}% {$_('dashboard.winRate')}
 							</div>
 						</div>
 						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>
@@ -80,7 +80,7 @@
 						<div class="podium-info">
 							<div class="podium-name">{player.displayName || player.username}</div>
 							<div class="podium-stat">
-								{player.totalGames} games · {player.winRate}% win rate
+								{player.totalGames} {$_('common.game')} · {player.winRate}% {$_('dashboard.winRate')}
 							</div>
 						</div>
 						<span class="podium-wins rank-{i + 1}">{player.wins} W</span>

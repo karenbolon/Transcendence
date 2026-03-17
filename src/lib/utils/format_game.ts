@@ -1,9 +1,9 @@
 /** Format game mode code for display */
 export function formatMode(mode: string): string {
 	switch (mode) {
-		case 'local': return 'Local PvP';
-		case 'computer': return 'vs Computer';
-		case 'online': return 'Online';
+		case 'local': return 'pong_settings.game_mode.local';
+		case 'computer': return 'pong_settings.game_mode.computer';
+		case 'online': return 'instructions.modes.online.name';
 		default: return mode;
 	}
 };

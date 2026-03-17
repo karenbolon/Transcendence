@@ -3,6 +3,7 @@
 	import BadgeDisplay from '$lib/component/BadgeDisplay.svelte';
 	import { formatDate, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji, formatMode } from '$lib/utils/format_game';
+	import { _ } from 'svelte-i18n';
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
@@ -96,13 +97,13 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div class="h2h-card" onclick={() => showH2hModal = true}>
 				<div class="h2h-header">
-					<h2 class="section-title">Head to Head</h2>
-					<span class="h2h-badge">{data.headToHead.total} games</span>
+					<h2 class="section-title">{$_('common.headToHead')}</h2>
+					<span class="h2h-badge">{data.headToHead.total} {$_('common.games')}</span>
 				</div>
 				<div class="h2h-versus">
 					<div class="h2h-player you">
 						<div class="h2h-avatar you-av">🎮</div>
-						<span class="h2h-name">You</span>
+						<span class="h2h-name">{$_('dashboard.you')}</span>
 					</div>
 
 					<div class="h2h-score-area">
@@ -144,15 +145,15 @@
 	<section class="stats-grid">
 		<div class="stat-card total">
 			<span class="stat-value">{data.stats.totalGames}</span>
-			<span class="stat-label">Games</span>
+			<span class="stat-label">{$_('common.games')}</span>
 		</div>
 		<div class="stat-card wins">
 			<span class="stat-value">{data.stats.wins}</span>
-			<span class="stat-label">Wins</span>
+			<span class="stat-label">{$_('user_profile.dashboard.wins')}</span>
 		</div>
 		<div class="stat-card losses">
 			<span class="stat-value">{data.stats.losses}</span>
-			<span class="stat-label">Losses</span>
+			<span class="stat-label">{$_('user_profile.dashboard.losses')}</span>
 		</div>
 		<div class="stat-card rate">
 			<div class="rate-ring">
@@ -163,14 +164,14 @@
 				</svg>
 				<span class="rate-number">{data.stats.winRate}%</span>
 			</div>
-			<span class="stat-label">Win Rate</span>
+			<span class="stat-label">{$_('user_profile.dashboard.winRate')}</span>
 		</div>
 	</section>
 
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">
-			<h2 class="section-title">Achievements</h2>
+			<h2 class="section-title">{$_('user_profile.achievements.title')}</h2>
 		</div>
 		{#if data.achievements && data.achievements.length > 0}
 			<BadgeDisplay badges={data.achievements}
@@ -182,17 +183,17 @@
 				viewAllHref="/friends/{data.friend.id}/achievements"
 			/>
 		{:else}
-			<p class="empty-achievements">No achievements yet.</p>
+			<p class="empty-achievements">{$_('user_profile.dashboard.noAchievements')}</p>
 		{/if}
 	</section>
 
 	<!-- Match History -->
 	<section class="match-history">
-		<h2 class="section-title">Match History</h2>
+		<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">
-				<p>No matches played yet.</p>
+				<p>{$_('user_profile.dashboard.noMatchesTitle')}</p>
 			</div>
 		{:else}
 			<div class="matches-list">
@@ -205,7 +206,7 @@
 							<span class="opponent-score">{match.opponentScore}</span>
 						</span>
 						<span class="match-opponent">{match.opponentName}</span>
-						<span class="match-mode">{formatMode(match.gameMode)}</span>
+							<span class="match-mode">{$_(formatMode(match.gameMode), { default: match.gameMode })}</span>
 						<span class="match-speed">{speedEmoji(match.speedPreset)}</span>
 						<span class="match-duration">{formatDuration(match.durationSeconds)}</span>
 						<span class="match-time">{formatDate(match.playedAt)}</span>

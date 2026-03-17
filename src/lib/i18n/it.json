@@ -288,17 +288,20 @@
   "matches": {
     "status": {
       "play": "Premi SPAZIO per giocare",
+      "playAgain": "Premi SPAZIO per giocare di nuovo",
       "get_ready": "Preparati...",
-      "saved": "Partita salvata"
-    },
-    "success": {
-      "saved_match": "Partita salvata! {winnerName} vince {score}"
-    },
-    "validation": {
-      "win_score_invalid": "Il punteggio per vincere deve essere 3, 5, 7 o 11",
-      "score_must_equal_win_score": "Uno dei punteggi deve essere uguale al punteggio di vittoria",
-      "winner_must_have_winning_score": "Il vincitore deve avere il punteggio di vittoria"
+      "savingMatch": "Salvataggio della partita...",
+      "saved": "Partita salvata",
+      "notSaved": "Partita non salvata (non hai effettuato l'accesso?)"
     }
+  },
+  "success": {
+    "saved_match": "Partita salvata! {winnerName} vince {score}"
+  },
+  "validation": {
+    "win_score_invalid": "Il punteggio per vincere deve essere 3, 5, 7 o 11",
+    "score_must_equal_win_score": "Uno dei punteggi deve essere uguale al punteggio di vittoria",
+    "winner_must_have_winning_score": "Il vincitore deve avere il punteggio di vittoria"
   },
   "user_profile": {
     "member": "Membro dal ",
@@ -549,6 +552,9 @@
       "computer": "🤖 contro il computer",
       "guest": "Ospite"
     },
+    "player2": {
+      "label": "Giocatore 2"
+    },
     "win_score": {
       "label": "Punti per vincere"
     },
@@ -572,7 +578,25 @@
     "copyright": "© {year} ft_transcendence™ — Tutti i diritti riservati."
   },
   "leaderboard": {
-    "title": "Classifica"
+    "title": "Classifica",
+    "youRank": "La tua posizione:",
+    "unranked": "Non classificato",
+    "you": "TU",
+    "youLower": "Tu",
+    "win": "vitt.",
+    "wins": "vittorie",
+    "wins2": "Vitt.",
+    "losses": "Sconf.",
+    "games": "partite",
+    "games2": "Part.",
+    "player": "GIOCATORE",
+    "player2": "Giocatore",
+    "global": "Globale",
+    "friends": "Amici",
+    "addFriends": "Aggiungi amici per vedere la loro posizione qui!",
+    "globalLeaderboard": "Visualizza la classifica globale",
+    "noGames": "Nessuna partita giocata finora!",
+    "first": "Sii il primo a giocare"
   },
   "tournaments": {
     "title": "Tornei"

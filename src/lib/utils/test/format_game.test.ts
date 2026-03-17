@@ -3,9 +3,9 @@ import { formatMode, speedEmoji, formatTournamentFormat, calcWinRate, modeEmoji 
 
 describe('formatMode', () => {
 	it('should format known modes', () => {
-		expect(formatMode('local')).toBe('Local PvP');
-		expect(formatMode('computer')).toBe('vs Computer');
-		expect(formatMode('online')).toBe('Online');
+		expect(formatMode('local')).toBe('pong_settings.game_mode.local');
+		expect(formatMode('computer')).toBe('pong_settings.game_mode.computer');
+		expect(formatMode('online')).toBe('instructions.modes.online.name');
 	});
 
 	it('should return raw string for unknown mode', () => {

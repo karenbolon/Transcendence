@@ -288,17 +288,20 @@
   "matches": {
     "status": {
       "play": "Pressione ESPAÇO para jogar",
+      "playAgain": "Pressione ESPAÇO para jogar novamente",
       "get_ready": "Prepare-se...",
-      "saved": "Partida salva"
-    },
-    "success": {
-      "saved_match": "Partida salva! {winnerName} vence {score}"
-    },
-    "validation": {
-      "win_score_invalid": "A pontuação para vencer deve ser 3, 5, 7 ou 11",
-      "score_must_equal_win_score": "Uma pontuação deve ser igual à pontuação de vitória",
-      "winner_must_have_winning_score": "O vencedor deve ter a pontuação de vitória"
+      "savingMatch": "Salvando partida...",
+      "saved": "Partida salva",
+      "notSaved": "Partida não salva (não está conectado?)"
     }
+  },
+  "success": {
+    "saved_match": "Partida salva! {winnerName} vence {score}"
+  },
+  "validation": {
+    "win_score_invalid": "A pontuação para vencer deve ser 3, 5, 7 ou 11",
+    "score_must_equal_win_score": "Uma pontuação deve ser igual à pontuação de vitória",
+    "winner_must_have_winning_score": "O vencedor deve ter a pontuação de vitória"
   },
   "user_profile": {
     "member": "Membro desde ",
@@ -543,19 +546,22 @@
   },
   "pong_settings": {
     "game_mode": {
-      "label": "Modalità di gioco",
-      "local": "👥 PvP locale",
-      "computer": "🤖 contro il computer",
-      "guest": "Ospite"
+      "label": "Modo de jogo",
+      "local": "👥 PvP local",
+      "computer": "🤖 contra o computador",
+      "guest": "Convidado"
+    },
+    "player2": {
+      "label": "Jogador 2"
     },
     "win_score": {
-      "label": "Punti per vincere"
+      "label": "Pontos para vencer"
     },
     "ball_speed": {
-      "label": "Velocità della palla",
-      "chill": "🐢 Relax",
-      "normal": "🏓 Normale",
-      "fast": "🔥 Veloce"
+      "label": "Velocidade da bola",
+      "chill": "🐢 Relaxado",
+      "normal": "🏓 Normal",
+      "fast": "🔥 Rápido"
     }
   },
   "footer": {
@@ -571,7 +577,25 @@
     "copyright": "© {year} ft_transcendence™ — Tutti i diritti riservati."
   },
   "leaderboard": {
-    "title": "Classifica"
+    "title": "Classificação",
+    "youRank": "Sua posição:",
+    "unranked": "Sem classificação",
+    "you": "VOCÊ",
+    "youLower": "Você",
+    "win": "vit.",
+    "wins": "vitórias",
+    "wins2": "Vit.",
+    "losses": "Der.",
+    "games": "jogos",
+    "games2": "Jogos",
+    "player": "JOGADOR",
+    "player2": "Jogador",
+    "global": "Global",
+    "friends": "Amigos",
+    "addFriends": "Adicione amigos para ver a classificação deles aqui!",
+    "globalLeaderboard": "Ver classificação global",
+    "noGames": "Nenhum jogo jogado ainda!",
+    "first": "Seja o primeiro a jogar"
   },
   "tournaments": {
     "title": "Tornei"

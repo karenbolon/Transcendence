@@ -288,17 +288,20 @@
   "matches": {
     "status": {
       "play": "Appuyez sur ESPACE pour jouer",
+      "playAgain": "Appuyez sur ESPACE pour rejouer",
       "get_ready": "Préparez-vous...",
-      "saved": "Match enregistré"
-    },
-    "success": {
-      "saved_match": "Match enregistré ! {winnerName} gagne {score}"
-    },
-    "validation": {
-      "win_score_invalid": "Le score de victoire doit être 3, 5, 7 ou 11",
-      "score_must_equal_win_score": "Un score doit être égal au score de victoire",
-      "winner_must_have_winning_score": "Le gagnant doit avoir le score de victoire"
+      "savingMatch": "Enregistrement de la partie...",
+      "saved": "Partie enregistrée",
+      "notSaved": "Partie non enregistrée (non connecté ?)"
     }
+  },
+  "success": {
+    "saved_match": "Match enregistré ! {winnerName} gagne {score}"
+  },
+  "validation": {
+    "win_score_invalid": "Le score de victoire doit être 3, 5, 7 ou 11",
+    "score_must_equal_win_score": "Un score doit être égal au score de victoire",
+    "winner_must_have_winning_score": "Le gagnant doit avoir le score de victoire"
   },
   "user_profile": {
     "member": "Membre depuis ",
@@ -550,6 +553,9 @@
       "computer": "🤖 contre l'ordinateur",
       "guest": "Invité"
     },
+    "player2": {
+      "label": "Joueur 2"
+    },
     "win_score": {
       "label": "Points pour gagner"
     },
@@ -573,7 +579,25 @@
     "copyright": "© {year} ft_transcendence™ — Tous droits réservés."
   },
   "leaderboard": {
-    "title": "Classement"
+    "title": "Classement",
+    "youRank": "Ton classement :",
+    "unranked": "Non classé",
+    "you": "TOI",
+    "youLower": "Toi",
+    "win": "vic.",
+    "wins": "victoires",
+    "wins2": "Victo.",
+    "losses": "Déf.",
+    "games": "parties",
+    "games2": "Part.",
+    "player": "JOUEUR",
+    "player2": "Joueur",
+    "global": "Global",
+    "friends": "Amis",
+    "addFriends": "Ajoute des amis pour voir leur classement ici !",
+    "globalLeaderboard": "Voir le classement global",
+    "noGames": "Aucune partie jouée pour le moment !",
+    "first": "Sois le premier à jouer"
   },
   "tournaments": {
     "title": "Tournois"

@@ -3,10 +3,10 @@
 	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
 	import { formatDate, formatDuration } from "$lib/utils/format_date";
 	import { speedEmoji, formatMode } from "$lib/utils/format_game";
+	import { _ } from 'svelte-i18n';
 	import type { PageData } from "./$types";
 	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
 	import type { ProfileEditData } from "$lib/types/utils";
-	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -152,7 +152,7 @@
 
 						<!-- Mode + Speed -->
 						<span class="match-mode"
-							>{formatMode(match.gameMode)}</span
+							>{$_(formatMode(match.gameMode), { default: match.gameMode })}</span
 						>
 						<span class="match-speed"
 							>{speedEmoji(match.speedPreset)}</span

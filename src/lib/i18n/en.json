@@ -288,8 +288,11 @@
   "matches": {
     "status": {
       "play": "Press SPACE to play",
+      "playAgain": "Press SPACE to play again",
       "get_ready": "Get ready...",
-      "saved": "Match saved"
+      "savingMatch": "Saving match...",
+      "saved": "Match saved",
+      "notSaved": "Match not saved (not logged in?)"
     },
     "success": {
       "saved_match": "Match saved! {winnerName} wins {score}"
@@ -546,6 +549,9 @@
       "computer": "🤖 vs Computer",
       "guest": "Guest"
     },
+    "player2": {
+      "label": "Player 2"
+    },
     "win_score": {
       "label": "Points to win"
     },
@@ -569,7 +575,25 @@
     "copyright": "© {year} ft_transcendence™ — All rights reserved."
   },
   "leaderboard": {
-    "title": "Leaderboard"
+    "title": "Leaderboard",
+    "youRank": "You rank:",
+    "unranked": "Unranked",
+    "you": "YOU",
+    "youLower": "You",
+    "win": "Win",
+    "wins": "wins",
+    "wins2": "Wins",
+    "losses": "Losses",
+    "games": "games",
+    "games2": "Games",
+    "player": "PLAYER",
+    "player2": "Player",
+    "global": "Global",
+    "friends": "Friends",
+    "addFriends": "Add friends to see their rankings here!",
+    "globalLeaderboard": "View global leaderboard",
+    "noGames": "No games played yet!",
+    "first": "Be the first to play"
   },
   "tournaments": {
     "title": "Tournaments"

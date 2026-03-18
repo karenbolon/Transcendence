@@ -10,6 +10,7 @@
 	BALL_RADIUS,
 	} from './gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
+	import { interpolateSnapshots } from './interpolation';
 
 	type Props = {
 		roomId: string;
@@ -22,7 +23,9 @@
 	let { roomId, side, player1, player2, onGameOver }: Props = $props();
 
 	let canvas: HTMLCanvasElement;
-	let latestState: GameStateSnapshot | null = $state(null);
+	// Snapshot interpolation buffer (not reactive — read/written imperatively)
+	let prevSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
+	let currSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let disconnectedPlayer: number | null = $state(null);
 
 	// ── Keyboard Input ──────────────────────────────────────────
@@ -78,7 +81,8 @@
 
 		// Listen for state updates from the server (60 per second)
 		socket.on('game:state', (state: GameStateSnapshot) => {
-			latestState = state;
+			prevSnapshot = currSnapshot;
+			currSnapshot = { state, receivedAt: performance.now() };
 		});
 
 		socket.on('game:over', (result: any) => {
@@ -97,11 +101,26 @@
 			disconnectedPlayer = null;
 		});
 
-		// Render loop — just draws the latest state, NO physics
+		// Render loop — interpolates between the two most recent server snapshots
 		let animFrame: number;
 		function renderLoop() {
-			if (latestState) {
-				draw(ctx!, latestState);
+			if (currSnapshot) {
+				let stateToRender: GameStateSnapshot;
+
+				if (prevSnapshot) {
+					const elapsed = performance.now() - prevSnapshot.receivedAt;
+					const interval = currSnapshot.receivedAt - prevSnapshot.receivedAt;
+					const t = interval > 0 ? elapsed / interval : 1;
+					stateToRender = interpolateSnapshots(
+						prevSnapshot.state,
+						currSnapshot.state,
+						t,
+					);
+				} else {
+					stateToRender = currSnapshot.state;
+				}
+
+				draw(ctx!, stateToRender);
 			}
 			animFrame = requestAnimationFrame(renderLoop);
 		}

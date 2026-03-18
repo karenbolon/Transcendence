@@ -1,4 +1,5 @@
 import type { GameStateSnapshot } from '$lib/types/game';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, BALL_RADIUS } from './gameEngine';
 
 /** Linear interpolation between two numbers. */
 export function lerp(a: number, b: number, t: number): number {
@@ -55,5 +56,46 @@ export function interpolateSnapshots(
 		ballY: lerp(from.ballY, to.ballY, clamped),
 		ballSpin: lerp(from.ballSpin, to.ballSpin, clamped),
 		ballRotation: lerp(from.ballRotation, to.ballRotation, clamped),
+	};
+}
+
+// Max time to extrapolate forward (3 server ticks = ~50ms).
+// Beyond this, something is genuinely wrong — don't overshoot.
+const MAX_EXTRAPOLATION_S = 0.05;
+
+/**
+ * Project a snapshot forward by `dt` seconds using the ball's last known velocity.
+ * Used when the client has consumed past `currSnapshot` and the next packet hasn't
+ * arrived yet — keeps the ball moving instead of freezing.
+ *
+ * Only extrapolates ball position/rotation. Paddles are left at their last known
+ * position (we don't have paddle velocity in the snapshot, and paddle drift is
+ * much less visually jarring than a frozen ball).
+ *
+ * Includes naïve wall clamping so the ball doesn't visibly exit the canvas.
+ */
+export function extrapolateSnapshot(
+	snapshot: GameStateSnapshot,
+	dt: number,
+): GameStateSnapshot {
+	const safeDt = Math.min(dt, MAX_EXTRAPOLATION_S);
+
+	let ballX = snapshot.ballX + snapshot.ballVX * safeDt;
+	let ballY = snapshot.ballY + snapshot.ballVY * safeDt;
+
+	// Naïve wall clamp — prevents the ball visually leaving the canvas
+	// during extrapolation. The server will correct on the next snapshot.
+	ballX = Math.max(BALL_RADIUS, Math.min(CANVAS_WIDTH  - BALL_RADIUS, ballX));
+	ballY = Math.max(BALL_RADIUS, Math.min(CANVAS_HEIGHT - BALL_RADIUS, ballY));
+
+	// Approximate rotation: continue spinning at the same rate as the engine does
+	// (engine applies: ballRotation += ballSpin * 15 * dt)
+	const ballRotation = snapshot.ballRotation + snapshot.ballSpin * 15 * safeDt;
+
+	return {
+		...snapshot,
+		ballX,
+		ballY,
+		ballRotation,
 	};
 }

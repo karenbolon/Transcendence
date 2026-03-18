@@ -10,7 +10,7 @@
 	BALL_RADIUS,
 	} from './gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
-	import { interpolateSnapshots } from './interpolation';
+	import { interpolateSnapshots, extrapolateSnapshot } from './interpolation';
 
 	type Props = {
 		roomId: string;
@@ -111,11 +111,26 @@
 					const elapsed = performance.now() - prevSnapshot.receivedAt;
 					const interval = currSnapshot.receivedAt - prevSnapshot.receivedAt;
 					const t = interval > 0 ? elapsed / interval : 1;
-					stateToRender = interpolateSnapshots(
-						prevSnapshot.state,
-						currSnapshot.state,
-						t,
-					);
+
+					if (t <= 1) {
+						// Normal case: smoothly slide between the two snapshots
+						stateToRender = interpolateSnapshots(
+							prevSnapshot.state,
+							currSnapshot.state,
+							t,
+						);
+					} else {
+						// Client has consumed past currSnapshot and the next packet
+						// hasn't arrived yet. Instead of freezing the ball at currSnapshot,
+						// project it forward using its last known velocity.
+						// Only during 'playing' — no point drifting a frozen menu ball.
+						const overTimeSec = (performance.now() - currSnapshot.receivedAt) / 1000;
+						if (currSnapshot.state.phase === 'playing') {
+							stateToRender = extrapolateSnapshot(currSnapshot.state, overTimeSec);
+						} else {
+							stateToRender = currSnapshot.state;
+						}
+					}
 				} else {
 					stateToRender = currSnapshot.state;
 				}

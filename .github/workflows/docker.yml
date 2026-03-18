@@ -104,21 +104,29 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
-      - name: Pull images
+      - name: Check pod existence
+        id: check-pod
         env:
-          IMAGE_REF: ${{ steps.vars.outputs.image_ref }}
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
         run: |
-          echo "Pulling app image: $IMAGE_REF"
-          curl -sSf -X POST \
+          echo "Checking if pod exists: $POD_NAME"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
-            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$IMAGE_REF"
+            "$PERMITD_URL/$API_VERSION/libpod/pods/$POD_NAME/json")
+          echo "Check returned: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "pod_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Pod exists — will use update path"
+          elif [ "$STATUS" = "404" ]; then
+            echo "pod_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Pod not found — will use full create path"
+          else
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
 
-          echo "Pulling postgres image: $POSTGRES_IMAGE"
-          curl -sSf -X POST \
-            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
-            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$POSTGRES_IMAGE"
-
-      - name: Stop existing pod
+      - name: Stop pod (update)
+        if: steps.check-pod.outputs.pod_exists == 'true'
         env:
           POD_NAME: ${{ steps.vars.outputs.pod_name }}
         run: |
@@ -132,7 +140,117 @@ jobs:
             exit 1
           fi
 
+      - name: Inspect app container
+        if: steps.check-pod.outputs.pod_exists == 'true'
+        id: inspect-app
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Inspecting app container: ${POD_NAME}-app"
+          STATUS=$(curl -s -o /tmp/inspect-app.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/${POD_NAME}-app/json")
+          echo "Inspect returned: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            OLD_IMAGE=$(jq -r '.Image' /tmp/inspect-app.json)
+            echo "old_image_id=$OLD_IMAGE" >> "$GITHUB_OUTPUT"
+            echo "app_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Old image ID: $OLD_IMAGE"
+          elif [ "$STATUS" = "404" ]; then
+            echo "app_exists=false" >> "$GITHUB_OUTPUT"
+            echo "App container not found — skipping remove/image cleanup"
+          else
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Remove app container
+        if: steps.check-pod.outputs.pod_exists == 'true' && steps.inspect-app.outputs.app_exists == 'true'
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Removing app container: ${POD_NAME}-app"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/${POD_NAME}-app?force=true")
+          echo "Remove returned: $STATUS"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Delete old app image
+        if: steps.check-pod.outputs.pod_exists == 'true' && steps.inspect-app.outputs.app_exists == 'true'
+        env:
+          OLD_IMAGE_ID: ${{ steps.inspect-app.outputs.old_image_id }}
+        run: |
+          echo "Deleting old image: $OLD_IMAGE_ID"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/$OLD_IMAGE_ID?force=true")
+          echo "Delete returned: $STATUS"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ]; then
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Pull app image (update)
+        if: steps.check-pod.outputs.pod_exists == 'true'
+        env:
+          IMAGE_REF: ${{ steps.vars.outputs.image_ref }}
+        run: |
+          echo "Pulling app image: $IMAGE_REF"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$IMAGE_REF"
+
+      - name: Check postgres container
+        if: steps.check-pod.outputs.pod_exists == 'true'
+        id: check-postgres
+        env:
+          POD_NAME: ${{ steps.vars.outputs.pod_name }}
+        run: |
+          echo "Checking postgres container: ${POD_NAME}-postgres"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/containers/${POD_NAME}-postgres/json")
+          echo "Check returned: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "postgres_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Postgres container exists"
+          elif [ "$STATUS" = "404" ]; then
+            echo "postgres_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Postgres container missing — will recreate"
+          else
+            echo "Unexpected status code: $STATUS"
+            exit 1
+          fi
+
+      - name: Pull postgres image (update, if missing)
+        if: steps.check-pod.outputs.pod_exists == 'true' && steps.check-postgres.outputs.postgres_exists == 'false'
+        run: |
+          echo "Pulling postgres image: $POSTGRES_IMAGE"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$POSTGRES_IMAGE"
+
+      - name: Pull images
+        if: steps.check-pod.outputs.pod_exists == 'false'
+        env:
+          IMAGE_REF: ${{ steps.vars.outputs.image_ref }}
+        run: |
+          echo "Pulling app image: $IMAGE_REF"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$IMAGE_REF"
+
+          echo "Pulling postgres image: $POSTGRES_IMAGE"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
+            "$PERMITD_URL/$API_VERSION/libpod/images/pull?reference=$POSTGRES_IMAGE"
+
       - name: Remove existing pod
+        if: steps.check-pod.outputs.pod_exists == 'false'
         env:
           POD_NAME: ${{ steps.vars.outputs.pod_name }}
         run: |
@@ -147,6 +265,7 @@ jobs:
           fi
 
       - name: Create volume
+        if: steps.check-pod.outputs.pod_exists == 'false'
         env:
           VOLUME_NAME: ${{ steps.vars.outputs.volume_name }}
         run: |
@@ -164,6 +283,7 @@ jobs:
           fi
 
       - name: Create pod
+        if: steps.check-pod.outputs.pod_exists == 'false'
         env:
           POD_NAME: ${{ steps.vars.outputs.pod_name }}
           HOSTNAME: ${{ steps.vars.outputs.hostname }}
@@ -185,6 +305,7 @@ jobs:
             "$PERMITD_URL/$API_VERSION/libpod/pods/create"
 
       - name: Create postgres container
+        if: steps.check-pod.outputs.pod_exists == 'false' || steps.check-postgres.outputs.postgres_exists == 'false'
         env:
           POD_NAME: ${{ steps.vars.outputs.pod_name }}
           VOLUME_NAME: ${{ steps.vars.outputs.volume_name }}

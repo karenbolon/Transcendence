@@ -9,7 +9,6 @@
 		validatePassword,
 		validateConfirmPassword
 	} from '$lib/validation/frontend';
-	import { _ } from 'svelte-i18n';
 
 	let { form }: { form: RegisterFormResult } = $props();
 
@@ -19,6 +18,17 @@
 	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
+
+	const registerErrors: Record<string, string> = {
+		'errors.accept_terms_required': 'You must accept the Terms of Service and Privacy Policy',
+		'errors.server_error': 'Something went wrong. Please try again.',
+		'errors.passwords_do_not_match': 'Passwords do not match'
+	};
+
+	function getRegisterErrorMessage(key?: string) {
+		if (!key) return '';
+		return registerErrors[key] ?? key;
+	}
 
 	let touched = $state({
 		username: false,
@@ -63,8 +73,8 @@
 <div class="register-page flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
 	<div class="container">
 	<div class="text-center">
-		<h1 class="brand-name text-4xl mb-2">{$_('common.signup')}</h1>
-		<p >{$_('auth.register.subtitle')}</p>
+		<h1 class="brand-name text-4xl mb-2">Sign up</h1>
+		<p >Join the game and start playing!</p>
 	</div>
 
 	<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
@@ -77,17 +87,17 @@
 
 		{#if form?.errorKey}
 			<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
-				{$_(form.errorKey)}
+				{getRegisterErrorMessage(form.errorKey)}
 			</div>
 		{/if}
 
 		<div class="form-group">
-			<label for="username">{$_('common.username')}</label>
+			<label for="username">Username</label>
 			<input class="form-fill"
 				type="text"
 				id="username"
 				name="username"
-				placeholder={$_('common.register_username')}
+				placeholder="Choose a username"
 				minlength="3"
 				maxlength="20"
 				required
@@ -98,17 +108,17 @@
 				<p class="text-red-500 text-sm mt-1">{usernameError}</p>
 			{/if}
 			{#if form?.errors?.username}
-				<p class="text-red-500 text-sm mt-1">{$_(form.errors.username)}</p>
+				<p class="text-red-500 text-sm mt-1">{form.errors.username}</p>
 			{/if}
 		</div>
 
 		<div class="form-group">
-			<label for="email">{$_('common.email')}</label>
+			<label for="email">Email</label>
 			<input class="form-fill"
 				type="email"
 				id="email"
 				name="email"
-				placeholder={$_('common.email_pattern')}
+				placeholder="your.email@example.com"
 				required
 				bind:value={email}
 				onfocusout={() => touched.email = true}
@@ -117,16 +127,16 @@
 				<p class="text-red-400 text-sm mt-1">{emailError}</p>
 			{/if}
 			{#if form?.errors?.email}
-				<p class="text-red-500 text-sm mt-1">{$_(form.errors.email)}</p>
+				<p class="text-red-500 text-sm mt-1">{form.errors.email}</p>
 			{/if}
 		</div>
 
 		<div class="form-group">
-			<label for="password">{$_('common.password')}</label>
+			<label for="password">Password</label>
 			<PasswordInput
 				id="password"
 				name="password"
-				placeholder={$_('common.register_password')}
+				placeholder="Create a password"
 				minlength={8}
 				required
 				bind:value={password}
@@ -136,18 +146,18 @@
 				<p class="text-red-500 text-sm mt-1">{passwordError}</p>
 			{/if}
 			{#if form?.errors?.password}
-				<p class="text-red-500 text-sm mt-1">{$_(form.errors.password)}</p>
+				<p class="text-red-500 text-sm mt-1">{form.errors.password}</p>
 			{/if}
 
 			<PasswordStrength {password} />
 		</div>
 
 		<div class="form-group">
-			<label for="confirmPassword">{$_('common.confirm_password')}</label>
+			<label for="confirmPassword">Confirm password</label>
 			<PasswordInput
 				id="confirmPassword"
 				name="confirmPassword"
-				placeholder={$_('common.confirm_password')}
+				placeholder="Confirm password"
 				required
 				bind:value={confirmPassword}
 				onfocusout={() => touched.confirmPassword = true}
@@ -156,40 +166,40 @@
 				<p class="text-red-500 text-sm mt-1">{confirmPasswordError}</p>
 			{/if}
 			{#if form?.errors?.confirmPassword}
-				<p class="text-red-500 text-sm mt-1">{$_(form.errors.confirmPassword)}</p>
+				<p class="text-red-500 text-sm mt-1">{getRegisterErrorMessage(form.errors.confirmPassword)}</p>
 			{/if}
 		</div>
 
 		<div >
 			<label class="items-start gap-2">
 				<input type="checkbox" name="acceptTerms" required class="mt-1" />
-				{$_('auth.register.accept_terms_prefix')} <a href="/terms" class="link" target="_blank">{$_('auth.register.terms_link')}</a> {$_('auth.register.and')}
-				<a href="/privacy" class="link" target="_blank">{$_('auth.register.privacy_link')}</a>
+				I agree to the <a href="/terms" class="link" target="_blank">Terms of Service</a> and
+				<a href="/privacy" class="link" target="_blank">Privacy Policy</a>
 			</label>
 			<p class="text-[0.65rem] text-gray-400">
 				<br>
-				{$_('auth.register.privacy_note')}
+				We use your email and username to create and secure your accounts. No tracking or analytics cookies are used.
 			</p>
 		</div>
 
 		<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 			{#if loading}
-				{$_('common.signing_up')}
+				Signing up...
 			{:else}
-				{$_('common.signup')}
+				Sign up
 			{/if}
 		</button>
 	</form>
 
 		<div class="text-center text-sm text-gray-400">
-			{$_('auth.register.have_account')}
-			<a href="/login" class="link">{$_('common.login')}</a>
+			Already have an account?
+			<a href="/login" class="link">Login</a>
 		</div>
 
 		<!-- OAuth Section (Future) -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
-				<span class="px-2 bg-pong-darker text-gray-400">{$_('auth.register.or_signup_with')}</span>
+				<span class="px-2 bg-pong-darker text-gray-400">Or sign up with</span>
 			</div>
 		</div>
 
@@ -197,12 +207,12 @@
 			<button
 				type="button"
 				class="login py-2 text-sm" disabled>
-				{$_('auth.register.oauth_42_coming')}
+				42 OAuth (coming soon)
 			</button>
 			<button
 			type="button"
 			class="login py-2 text-sm" disabled>
-				{$_('auth.register.oauth_coming')}
+				OAuth (coming soon)
 			</button>
 		</div>
 	</div>

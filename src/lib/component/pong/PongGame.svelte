@@ -17,7 +17,6 @@
 		PADDLE_OFFSET,
 		BALL_RADIUS,
 	} from './gameEngine';
-	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		settings: GameSettings;
@@ -31,15 +30,6 @@
 
 	let { settings, onGameOver }: Props = $props();
 	let game = $state<GameState>(createGameState());
-	
-	// Reactive translation labels
-	const goLabel = $derived($_('common.go') || 'GO!');
-	const titleLabel = $derived($_('common.title') || 'PONG');
-	const pressSpaceLabel = $derived($_('canvas_game.press_space') || 'PRESS SPACE');
-	const controlsLabel = $derived($_('canvas_game.controls_reminder') || 'Player 1: W / S          Player 2: ↑ / ↓');
-	const gameOverLabel = $derived($_('canvas_game.game_over') || 'GAME OVER');
-	const winsSuffixLabel = $derived($_('canvas_game.wins_suffix') || 'Wins!');
-	const escQuitLabel = $derived($_('canvas_game.esc_quit') || 'ESC to quit');
 
 	// Expose game state for the parent to read (phase, scores, etc.)
 	export function getGameState(): GameState {
@@ -121,7 +111,7 @@
 		const prevPhase = game.phase;
 
 		// Update game state via engine
-		update(game, safeDt, input, settings, goLabel);
+		update(game, safeDt, input, settings);
 
 		// Check if countdown just finished
 		if (game.phase === 'countdown' && game.countdownTimer <= 0) {
@@ -244,7 +234,7 @@
 			ctx.fillStyle = 'rgba(107, 114, 128, 0.4)';
 			ctx.font = "10px 'Inter', sans-serif";
 			ctx.textAlign = 'right';
-			ctx.fillText(escQuitLabel, CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
+			ctx.fillText('ESC to quit', CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
 			ctx.textAlign = 'center';  // Reset
 		}
 
@@ -264,7 +254,7 @@
 		ctx.shadowBlur = 30;
 		ctx.font = "48px 'Press Start 2P', monospace";
 		ctx.textAlign = 'center';
-		ctx.fillText(titleLabel, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
+		ctx.fillText('PONG', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
 		ctx.shadowBlur = 0;
 
 		// Pulsing "PRESS SPACE"
@@ -272,13 +262,13 @@
 		ctx.globalAlpha = pulse;
 		ctx.fillStyle = '#ffffff';
 		ctx.font = "16px 'Press Start 2P', monospace";
-		ctx.fillText(pressSpaceLabel, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+		ctx.fillText('PRESS SPACE', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
 		ctx.globalAlpha = 1.0;
 
 		// Controls reminder
 		ctx.fillStyle = '#6b7280';
 		ctx.font = "12px 'Inter', sans-serif";
-		ctx.fillText(controlsLabel, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+		ctx.fillText('Player 1: W / S          Player 2: ↑ / ↓', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 	}
 
 	function drawCountdownOverlay(ctx: CanvasRenderingContext2D) {
@@ -286,12 +276,11 @@
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 		const fractional = game.countdownTimer % 1;
-		const isGo = game.countdownDisplay ===goLabel;
-		const scale = isGo ? 1.2 : 1 + fractional * 0.3;
+		const scale = game.countdownDisplay === 'GO!' ? 1.2 : 1 + fractional * 0.3;
 		const fontSize = Math.round(72 * scale);
 
-		ctx.fillStyle = isGo ? "#ff6b9d" : "#ffffff";
-		ctx.shadowColor = isGo ? "#ff6b9d" : "#ffffff";
+		ctx.fillStyle = game.countdownDisplay === 'GO!' ? '#ff6b9d' : '#ffffff';
+		ctx.shadowColor = game.countdownDisplay === 'GO!' ? '#ff6b9d' : '#ffffff';
 		ctx.shadowBlur = 20;
 		ctx.font = `${fontSize}px 'Press Start 2P', monospace`;
 		ctx.textAlign = 'center';
@@ -308,13 +297,13 @@
 		ctx.fillStyle = '#ffffff';
 		ctx.font = "36px 'Press Start 2P', monospace";
 		ctx.textAlign = 'center';
-		ctx.fillText(gameOverLabel, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70);
+		ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 70);
 
 		ctx.fillStyle = '#ff6b9d';
 		ctx.shadowColor = '#ff6b9d';
 		ctx.shadowBlur = 20;
 		ctx.font = "24px 'Press Start 2P', monospace";
-		ctx.fillText(`${game.winner} ${winsSuffixLabel}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 15);
+		ctx.fillText(`${game.winner} Wins!`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 15);
 		ctx.shadowBlur = 0;
 
 		ctx.fillStyle = '#9ca3af';

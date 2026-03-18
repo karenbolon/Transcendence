@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { formatDate, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji, formatMode, modeEmoji } from '$lib/utils/format_game';
-	import { _ } from 'svelte-i18n';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -57,8 +56,8 @@
 <div class="match-history-page">
 	<!-- Header -->
 	<div class="page-header">
-		<a href="/profile" class="back-link">{$_('user_profile.labels.back_profile')}</a>
-		<h1 class="page-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h1>
+		<a href="/profile" class="back-link">← Back to Profile</a>
+		<h1 class="page-title">Match History</h1>
 	</div>
 
 	<!-- Game type tabs -->
@@ -69,14 +68,14 @@
 			class:active={data.gameMode === null}
 			onclick={() => filterByMode(null)}
 		>
-			🎮 {$_('user_profile.labels.all')}
+			🎮 All
 		</button>
 		<button
 			class="game-tab"
 			class:active={data.gameMode === 'local'}
 			onclick={() => filterByMode('local')}
 		>
-			👥 {$_('common.local')}
+			👥 Local
 		</button>
 		<button
 			class="game-tab"
@@ -154,7 +153,7 @@
 					</span>
 
 					<span class="match-opponent">{match.opponentName}</span>
-					<span class="match-mode">{$_(formatMode(match.gameMode), { default: match.gameMode })}</span>
+					<span class="match-mode">{formatMode(match.gameMode)}</span>
 					<span class="match-speed">{speedEmoji(match.speedPreset)}</span>
 					<span class="match-duration">{formatDuration(match.durationSeconds)}</span>
 					<span class="match-time">{formatDate(match.playedAt)}</span>

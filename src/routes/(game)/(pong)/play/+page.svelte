@@ -14,7 +14,6 @@
 		type GameMode,
 		type GameSettings,
 	} from "$lib/component/pong/gameEngine";
-	import { _ } from 'svelte-i18n';
 
 	let layoutData = $derived($page.data);
 
@@ -177,21 +176,21 @@
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
 		{#if gamePhase === "menu"}
-			<span class="status-text">{$_('matches.status.play')}</span>
+			<span class="status-text">Press SPACE to play</span>
 		{:else if gamePhase === "countdown"}
-			<span class="status-text">{$_('matches.status.get_ready')}</span>
+			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
-				<span class="status-text">{$_('matches.status.playAgain')}</span>
+				<span class="status-text">Press SPACE to play again</span>
 				{#if saveStatus === "saving"}
-					<span class="save-indicator saving">{$_('matches.status.savingMatch')}</span>
+					<span class="save-indicator saving">Saving match...</span>
 				{:else if saveStatus === "saved"}
-					<span class="save-indicator saved">✓ {$_('matches.status.saved')}</span>
+					<span class="save-indicator saved">✓ Match saved</span>
 				{:else if saveStatus === "error"}
 					<span class="save-indicator error"
-						>{$_('matches.status.notSaved')}</span
+						>Match not saved (not logged in?)</span
 					>
 				{/if}
 			</div>

@@ -5,7 +5,6 @@
 	import { formatJoinDate } from '$lib/utils/format_date';
 	import type { Progression, FriendshipStatus } from '$lib/types/progression';
 	import { DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
-	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		username: string;
@@ -71,7 +70,7 @@
 				<p class="banner-bio">{bio}</p>
 			{/if}
 
-			<p class="banner-member">{$_('user_profile.member')} {formatJoinDate(createdAt)}</p>
+			<p class="banner-member">Member since {formatJoinDate(createdAt)}</p>
 
 			<!-- {#if variant === 'own' && email}
 				<p class="banner-email">{email}</p>
@@ -81,27 +80,27 @@
 		<div class="banner-actions">
 			{#if variant === 'own'}
 				<button class="banner-btn banner-btn--primary" onclick={oneditprofile}>
-					✏️ {$_('user_profile.profile')}
+					✏️ Edit Profile
 				</button>
 				<a href="/settings" class="banner-btn">
-					⚙️ {$_('user_profile.settings')}
+					⚙️ Settings
 				</a>
 			{:else}
-				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 {$_('user_profile.challenge')}</button>
+				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 Challenge</button>
 				{#if isFriend}
 					{#if onmessage}
-						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 {$_('user_profile.message')}</button>
+						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 Message</button>
 					{/if}
-					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>{$_('user_profile.unfriend')}</button>
+					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>Unfriend</button>
 				{:else if friendshipStatus === 'pending'}
-					<button class="banner-btn banner-btn--pending" disabled>⏳ {$_('user_profile.sentRequest')}</button>
+					<button class="banner-btn banner-btn--pending" disabled>⏳ Request Sent</button>
 				{:else}
-					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 {$_('user_profile.addFriend')}</button>
+					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 Add Friend</button>
 				{/if}
 			{/if}
 		</div>
 	</div>
-	<!-- XP bar section -->
+
 	<div class="banner-xp">
 		<div class="xp-row">
 			<LevelProgress level={prog.level} size="md" />
@@ -118,12 +117,9 @@
 
 <style>
 	.banner {
-		/* background: linear-gradient(135deg, #16213e 0%, #1a1a2e 50%, #1e1533 100%); */
 		background: linear-gradient(135deg, rgba(22, 22, 58, 0.9), rgba(16, 16, 42, 0.95));
 		border: 1px solid rgba(255, 107, 157, 0.1);
-		/* border: 1px solid rgba(255, 255, 255, 0.06); */
 		border-radius: 1.25rem;
-		/* padding: 2rem; */
 		position: relative;
 		overflow: hidden;
 	}
@@ -152,17 +148,6 @@
 		100% { background-position: 40px 40px; }
 	}
 
-	/* Subtle top glow */
-	/* .banner::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, rgba(255, 107, 157, 0.3), rgba(192, 132, 252, 0.3), transparent);
-	} */
-
 	.banner-content {
 		display: flex;
 		align-items: flex-start;
@@ -181,34 +166,10 @@
 		position: relative;
 	}
 
-	/* ── Level pip ── */
-	/* .level-pip {
-		position: absolute;
-		top: 2px;
-		right: -10px;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		background: linear-gradient(135deg, #ff6b9d, #e84393);
-		border: 2px solid var(--bg, #0a0a1a);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.6rem;
-		font-weight: 700;
-		color: #fff;
-		box-shadow: 0 2px 8px rgba(255, 107, 157, 0.3);
-		z-index: 3;
-	} */
-
 	.banner-info {
 		flex: 1;
 		min-width: 0;
 		padding-top: 3rem;
-		/* display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		padding-top: 0.25rem; */
 	}
 
 	.banner-name {
@@ -219,9 +180,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		/* color: #f3f4f6;
-		margin: 0;
-		line-height: 1.2; */
 	}
 
 	.banner-handle {
@@ -237,7 +195,6 @@
 		margin: 0.5rem 0 0 0;
 		line-height: 1.5;
 		display: -webkit-box;
-		/* -webkit-line-clamp: 2; */
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
@@ -248,21 +205,9 @@
 		margin: 0.4rem 0 0 0;
 	}
 
-	/* .banner-email {
-		color: #6b7280;
-		font-size: 0.8rem;
-		margin: 0;
-	} */
-
-	/* Action buttons */
 	.banner-actions {
 		flex-shrink: 0;
 		padding-top: 3.25rem;
-		/* display: flex;
-		flex-direction: row;
-		gap: 0.5rem;
-		align-self: flex-start;
-		margin-top: 0.25rem; */
 	}
 
 	.banner-btn {
@@ -327,7 +272,6 @@
 		border-color: rgba(248, 113, 113, 0.4);
 	}
 
-	/* ── XP Bar Section ── */
 	.banner-xp {
 		padding: 1rem 1.75rem 1.25rem;
 		border-top: 1px solid rgba(255, 255, 255, 0.04);
@@ -346,7 +290,6 @@
 		gap: 0.2rem;
 	}
 
-	/* Responsive */
 	@media (max-width: 640px) {
 		.banner {
 			padding: 1.25rem;

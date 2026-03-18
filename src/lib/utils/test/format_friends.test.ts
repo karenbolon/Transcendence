@@ -11,10 +11,10 @@ const mockItems: FriendItem[] = [
 
 describe('getStatusLabel', () => {
 	it('should return correct labels', () => {
-		expect(getStatusLabel('playing')).toBe('friends.status.inGame');
-		expect(getStatusLabel('away')).toBe('friends.status.away');
-		expect(getStatusLabel('online')).toBe('friends.status.online');
-		expect(getStatusLabel('offline')).toBe('friends.status.offline');
+		expect(getStatusLabel('playing')).toBe('In Game');
+		expect(getStatusLabel('away')).toBe('Away');
+		expect(getStatusLabel('online')).toBe('Online');
+		expect(getStatusLabel('offline')).toBe('Offline');
 	});
 });
 

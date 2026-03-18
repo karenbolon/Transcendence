@@ -3,7 +3,6 @@
 	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
 	import { formatDate, formatDuration } from "$lib/utils/format_date";
 	import { speedEmoji, formatMode } from "$lib/utils/format_game";
-	import { _ } from 'svelte-i18n';
 	import type { PageData } from "./$types";
 	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
 	import type { ProfileEditData } from "$lib/types/utils";
@@ -55,15 +54,15 @@
 	<section class="stats-grid">
 		<div class="stat-card total">
 			<span class="stat-value">{data.stats.totalGames}</span>
-			<span class="stat-label">{$_('common.games')}</span>
+			<span class="stat-label">Games</span>
 		</div>
 		<div class="stat-card wins">
 			<span class="stat-value">{data.stats.wins}</span>
-			<span class="stat-label">{$_('user_profile.dashboard.wins')}</span>
+			<span class="stat-label">Wins</span>
 		</div>
 		<div class="stat-card losses">
 			<span class="stat-value">{data.stats.losses}</span>
-			<span class="stat-label">{$_('user_profile.dashboard.losses')}</span>
+			<span class="stat-label">Losses</span>
 		</div>
 		<div class="stat-card rate">
 			<div class="rate-ring">
@@ -75,7 +74,7 @@
 				<span class="rate-number">{data.stats.winRate}%</span>
 			</div>
 			<!-- <span class="stat-value rate">{data.stats.winRate}%</span> -->
-			<span class="stat-label">{$_('user_profile.dashboard.winRate')}</span>
+			<span class="stat-label">Win Rate</span>
 		</div>
 		<!-- <div class="stat-card">
 			<span class="stat-value best">{data.stats.bestScore}</span>
@@ -89,7 +88,7 @@
 	<!-- Achievements -->
 	<section class="user-achievements">
 		<div class="section-header">
-			<h2 class="section-title">{$_('user_profile.dashboard.milestonesTitle')}</h2>
+			<h2 class="section-title">Milestones and Achievements</h2>
 		</div>
 			{#if data.achievements && data.achievements.length > 0}
 				<BadgeDisplay badges={data.achievements ?? []}
@@ -101,7 +100,7 @@
 				/>
 			{:else}
 				<p class="empty-achievements">
-					{$_('user_profile.dashboard.noAchievements')}
+					No achievements yet. Play matches to unlock them!
 				</p>
 			{/if}
 	</section>
@@ -111,7 +110,7 @@
 	═══════════════════════════════════════════════════════════ -->
 	<section class="match-history">
 		<div class="section-header">
-			<h2 class="section-title">{$_('user_profile.dashboard.matchHistoryTitle')}</h2>
+			<h2 class="section-title">Match History</h2>
 			{#if data.matches.length > 0}
 				<a href="/match-history" class="view-all-link">View all →</a>
 			{/if}
@@ -120,10 +119,10 @@
 
 		{#if data.matches.length === 0}
 			<div class="empty-state">
-				<h3>{$_('user_profile.dashboard.noMatchesTitle')}</h3>
-				<p>{$_('user_profile.dashboard.noMatchesText')}</p>
+				<h3>No matches yet!</h3>
+				<p>Play your first game to see your match history here.</p>
 				<a href="/play" class="play-link"
-					>🎮 {$_('user_profile.dashboard.playFirstGame')} →</a
+					>🎮 Play your first game →</a
 				>
 			</div>
 		{:else}
@@ -152,9 +151,7 @@
 						<span class="match-opponent">{match.opponentName}</span>
 
 						<!-- Mode + Speed -->
-						<span class="match-mode"
-							>{$_(formatMode(match.gameMode), { default: match.gameMode })}</span
-						>
+						<span class="match-mode">{formatMode(match.gameMode)}</span>
 						<span class="match-speed"
 							>{speedEmoji(match.speedPreset)}</span
 						>

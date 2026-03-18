@@ -3,13 +3,21 @@
 	import type { LoginFormResult } from '$lib/types/form';
 	import { validateUsername } from '$lib/validation/frontend';
 	import PasswordInput from '$lib/component/PasswordInput.svelte';	
-	import { _ } from 'svelte-i18n';
 
 	let { form }: { form: LoginFormResult | null } = $props();
-	const loginError = $derived(form?.errorKey);
 	let loading = $state(false);
 	let username = $state('');
 	let password = $state('');
+
+	const loginErrors: Record<string, string> = {
+		'errors.all_fields_required': 'Please fill in all fields',
+		'errors.invalid_credentials': 'Invalid username or password'
+	};
+
+	function getLoginErrorMessage(key?: string) {
+		if (!key) return '';
+		return loginErrors[key] ?? key;
+	}
 
 	// Sync username with form data when form prop changes
 	$effect(() => {
@@ -30,7 +38,7 @@
 
 	let passwordError = $derived.by(() => {
 		if (!touched.password || !password) return '';
-		if (password.length < 1) return $_('common.password_enter');
+		if (password.length < 1) return 'Enter your password';
 		return '';
 	});
 
@@ -43,8 +51,8 @@
 <div class="flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
 	<div class="container">
 		<div class="text-center">
-			<h1 class="brand-name text-4xl mb-2">{$_('common.login')}</h1>
-			<p >{$_('auth.login.subtitle')}</p>
+			<h1 class="brand-name text-4xl mb-2">Login</h1>
+			<p >Welcome back! Ready to play?</p>
 		</div>
 
 		<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
@@ -56,17 +64,17 @@
 		}}>
 			{#if form?.errorKey}
 				<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
-					{$_(form.errorKey)}
+					{getLoginErrorMessage(form.errorKey)}
 				</div>
 			{/if}
 
 			<div class="form-group">
-				<label for="username">{$_('common.username')}</label>
+				<label for="username">Username</label>
 				<input class="form-fill"
 					type="text"
 					id="username"
 					name="username"
-					placeholder={$_('common.username_enter')}
+					placeholder="Enter your username"
 					required
 					bind:value={username}
 					onfocusout={() => touched.username = true}
@@ -77,11 +85,11 @@
 			</div>
 
 			<div class="form-group">
-				<label for="password">{$_('common.password')}</label>
+				<label for="password">Password</label>
 				<PasswordInput
 					id="password"
 					name="password"
-					placeholder={$_('common.password_enter')}
+					placeholder="Enter your password"
 					bind:value={password}
 					onfocusout={() => touched.password = true}
 				/>
@@ -93,31 +101,31 @@
 			<div class="flex items-center justify-between text-sm">
 				<label >
 					<input type="checkbox" name="rememberMe" />
-					{$_('auth.login.remember_me')}
+					Remember me
 				</label>
 				<a href=/forgot-password class="link text-sm">
-					{$_('auth.login.forgot_password')}
+					Forgot password?
 				</a>
 			</div>
 
 			<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
 				{#if loading}
-					{$_('common.logging_in')}
+					Logging in...
 				{:else}
-					{$_('common.login')}
+					Login
 				{/if}
 			</button>
 		</form>
 
 		<div class="text-center text-sm text-gray-400">
-			{$_('auth.login.no_account')}
-			<a href="/register" class="link">{$_('common.signup')}</a>
+			Don't have an account?
+			<a href="/register" class="link">Sign up</a>
 		</div>
 
 			<!-- coming soon -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
-				<span class="px-2 bg-pong-darker text-gray-400">{$_('auth.login.continue_with')}</span>
+				<span class="px-2 bg-pong-darker text-gray-400">Or continue with</span>
 			</div>
 		</div>
 
@@ -125,12 +133,12 @@
 			<button
 				type="button"
 				class="btn-secondary py-2 text-sm">
-				{$_('common.oauth_42')}
+				🔗 42 Intra
 			</button>
 			<button
 			type="button"
 			class="btn-secondary py-2 text-sm">
-				{$_('common.oauth')}
+				👤 OAuth
 			</button>
 		</div>
 	</div>

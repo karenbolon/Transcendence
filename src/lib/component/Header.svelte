@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { _ } from 'svelte-i18n';
 	import logo from '$lib/assets/favicon.ico';
 	import Logout from '$lib/component/Logout.svelte';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
@@ -49,13 +48,13 @@
 
 			<div class="nav-links">
 				{#if user}
-					<a href="/play" class="nav-link">{$_('common.play')}</a>
-					<a href="/leaderboard" class="nav-link">{$_('leaderboard.title')}</a>
-					<a href="/tournaments" class="nav-link">{$_('tournaments.title')}</a>
-					<a href="/friends" class="nav-link">{$_('friends.title')}</a>
+					<a href="/play" class="nav-link">Play</a>
+					<a href="/leaderboard" class="nav-link">Leaderboard</a>
+					<a href="/tournaments" class="nav-link">Tournaments</a>
+					<a href="/friends" class="nav-link">Friends</a>
 				{:else}
-					<a href="/instructions" class="nav-link">{$_('instructions.title')}</a>
-					<a href="/about" class="nav-link">{$_('about.title')}</a>
+					<a href="/instructions" class="nav-link">Instructions</a>
+					<a href="/about" class="nav-link">About</a>
 				{/if}
 			</div>
 

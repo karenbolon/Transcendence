@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		open: boolean;
@@ -17,7 +16,7 @@
 		deleteError = '';
 
 		if (!deletePassword.trim()) {
-			deleteError = $_('common.password_required');
+			deleteError = "Password is required to access your account";
 			return;
 		}
 
@@ -38,12 +37,12 @@
 
 			if (!res.ok) {
 				const result = await res.json();
-				deleteError = result?.data?.error ?? $_('errors.deletionFailed');
+				deleteError = result?.data?.error ?? "Failed to delete account.";
 			} else {
 				window.location.href = '/';
 			}
 		} catch {
-			deleteError = $_('errors.server_error');
+			deleteError = "Something went wrong. Please try again.";
 		} finally {
 			isDeleting = false;
 		}
@@ -62,17 +61,13 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="modal-backdrop" onclick={handleBackdropClick}>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="modal" onclick={(e) => e.stopPropagation()}>
-			<h2 class="modal-title">⚠️ $_('danger.delete_account')</h2>
-			<p class="modal-desc">
-				$_('settings.danger.action') <strong>$_('settings.danger.action2') </strong>. $_('settings.danger.action3') 
+			<h2 class="modal-title">Delete Account</h2>
+			<p class="modal-desc">This action is <strong>permanent</strong>. Your account,profile, and stats will be removed. Your match history will be preserved for other players.
 			</p>
 
 			<form onsubmit={handleSubmit}>
-				<label class="modal-label" for="delete-password">
-					$_('common.register_confirm_password')
+				<label class="modal-label" for="delete-password">Confirm password
 				</label>
 				<input
 					id="delete-password"
@@ -103,7 +98,7 @@
 						class="modal-btn modal-btn--delete"
 						disabled={isDeleting}
 					>
-						{isDeleting ? $_('common.saving'): $_('settings.danger.delete_account')}
+						{isDeleting ? 'Saving...': 'Delete Account'}
 					</button>
 				</div>
 			</form>

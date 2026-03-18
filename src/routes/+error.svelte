@@ -1,51 +1,50 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { _ } from 'svelte-i18n';
 
 	let statusCode = $derived($page.status || 500);
-	let errorMessage = $derived($page.error?.message || $_('error_pages.default_message'));
+	let errorMessage = $derived($page.error?.message || 'An error occurred');
 
 	let errorInfo = $derived.by(() => ({
 		404: {
 			emoji: '🎯',
-			title: $_('error_pages.404.title'),
-			description: $_('error_pages.404.description'),
-			footer: $_('error_pages.404.footer')
+			title: 'Page Not Found',
+			description: "Looks like this page doesn't exist. It's out of bounds!",
+			footer: "The ball went out of bounds and we couldn't find it... 🏓"
 		},
 		401: {
 			emoji: '🔒',
-			title: $_('error_pages.401.title'),
-			description: $_('error_pages.401.description'),
-			footer: $_('error_pages.401.footer')
+			title: 'Not authenticated',
+			description: 'You need to be logged in to access this page.',
+			footer: 'Please log in to continue. 🔐'
 		},
 		403: {
 			emoji: '🚫',
-			title: $_('error_pages.403.title'),
-			description: $_('error_pages.403.description'),
-			footer: $_('error_pages.403.footer')
+			title: 'Access Denied',
+			description: "You don't have permission to access this resource.",
+			footer: 'This area is off-limits. You need the right paddle to enter! 🔐'
 		},
 		500: {
 			emoji: '💥',
-			title: $_('error_pages.500.title'),
-			description: $_('error_pages.500.description'),
-			footer: $_('error_pages.500.footer')
+			title: 'Server Error',
+			description: "Something went wrong on our end. We're working to fix it!",
+			footer: 'Our server missed the ball. Game over! 🎮'
 		},
 		503: {
 			emoji: '🔧',
-			title: $_('error_pages.503.title'),
-			description: $_('error_pages.503.description'),
-			footer: $_('error_pages.503.footer')
+			title: 'Under maintenance',
+			description: "We're doing some upgrades. Please check back in a few minutes.",
+			footer: 'The server is taking a break. Come back soon! 🛠️'
 		}
 	}));
 
 	let fallback = $derived({
 		emoji: '⚠️',
-		title: $_('error_pages.fallback.title'),
-		description: $_('error_pages.fallback.description'),
-		footer: $_('error_pages.fallback.footer')
+		title: 'Error',
+		description: 'An unexpected error occurred.',
+		footer: 'Something unexpected happened in the game! 🕹️'
 	});
 
-	let info = $derived(errorInfo[statusCode] || fallback);
+	let info = $derived(errorInfo[statusCode as 401 | 403 | 404 | 500 | 503] || fallback);
 </script>
 
 <svelte:head>
@@ -67,13 +66,13 @@
 		{/if}
 
 		<div class="error-actions">
-			<a href="/" class="btn-login">🏠 {$_('error_pages.actions.go_home')}</a>
+			<a href="/" class="btn-login">🏠 Go Home</a>
 			<button onclick={() => window.history.back()} class="btn-signup">
-				{$_('error_pages.actions.go_back')}
+				Go Back
 			</button>
 			{#if statusCode === 500}
 				<button onclick={() => window.location.reload()} class="btn-signup">
-					{$_('error_pages.actions.retry')}
+					Retry
 				</button>
 			{/if}
 		</div>

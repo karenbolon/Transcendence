@@ -24,15 +24,15 @@ export const TIER_EMOJIS: Record<string, string> = {
 export const RANK_MEDALS = ['🥇', '🥈', '🥉'] as const;
 
 export const MILESTONES = [
-	{ minLevel: 50, icon: '👑', titleKey: 'user_profile.milestones.transcendent' },
-	{ minLevel: 30, icon: '🦄', titleKey: 'user_profile.milestones.legend' },
-	{ minLevel: 20, icon: '💎', titleKey: 'user_profile.milestones.diamond' },
-	{ minLevel: 10, icon: '🔥', titleKey: 'user_profile.milestones.flame' },
-	{ minLevel: 5,  icon: '⚡', titleKey: 'user_profile.milestones.spark' },
-	{ minLevel: 0,  icon: '🌱', titleKey: 'user_profile.milestones.seedling' },
+	{ minLevel: 50, icon: '👑', title: 'Transcendent' },
+	{ minLevel: 30, icon: '🦄', title: 'Legend' },
+	{ minLevel: 20, icon: '💎', title: 'Diamond' },
+	{ minLevel: 10, icon: '🔥', title: 'Flame' },
+	{ minLevel: 5,  icon: '⚡', title: 'Spark' },
+	{ minLevel: 0,  icon: '🌱', title: 'Seedling' },
 ] as const;
 
-export function getStreakInfo(streak: number): { emoji: string; labelKey: string; count: number } {
+export function getStreakInfo(streak: number): { emoji: string; label: string; count: number } {
 	let emoji: string;
 	if (streak >= 5) emoji = '💫';
 	else if (streak >= 3) emoji = '🔥';
@@ -41,7 +41,7 @@ export function getStreakInfo(streak: number): { emoji: string; labelKey: string
 
 	return {
 			emoji,
-			labelKey: 'user_profile.streak.wins',
+			label: 'wins',
 			count: streak
 	};
 }
@@ -62,11 +62,11 @@ export function xpPercent(currentXp: number, xpToNextLevel: number): number {
 };
 
 export function getTierColor(level: number) {
-	if (level >= 50) return { from: '#ffd700', to: '#ff8c00', labelKey: 'user_profile.tiers.legendary' };
-	if (level >= 30) return { from: '#a855f7', to: '#7c3aed', labelKey: 'user_profile.tiers.epic' };
-	if (level >= 20) return { from: '#ff6b9d', to: '#e84393', labelKey: 'user_profile.tiers.gold' };
-	if (level >= 10) return { from: '#60a5fa', to: '#3b82f6', labelKey: 'user_profile.tiers.silver' };
-	return { from: '#4ade80', to: '#22c55e', labelKey: 'user_profile.tiers.bronze' };
+	if (level >= 50) return { from: '#ffd700', to: '#ff8c00', label: 'legendary' };
+	if (level >= 30) return { from: '#a855f7', to: '#7c3aed', label: 'epic' };
+	if (level >= 20) return { from: '#ff6b9d', to: '#e84393', label: 'gold' };
+	if (level >= 10) return { from: '#60a5fa', to: '#3b82f6', label: 'silver' };
+	return { from: '#4ade80', to: '#22c55e', label: 'bronze' };
 };
 
 export function capitalize(str: string): string {
@@ -74,17 +74,17 @@ export function capitalize(str: string): string {
 };
 
 export const CATEGORYLABELS: Record<string, string> = {
-	onboarding: 'user_profile.categories.onboarding',
-	social: 'user_profile.categories.social',
-	origins: 'user_profile.categories.origins',
-	tournament: 'user_profile.categories.tournament',
-	shutout: 'user_profile.categories.shutout',
-	streak: 'user_profile.categories.streak',
-	scorer: 'user_profile.categories.scorer',
-	veteran: 'user_profile.categories.veteran',
-	comeback: 'user_profile.categories.comeback',
-	rally: 'user_profile.categories.rally',
-	secret: 'user_profile.categories.secret',
+	onboarding: '⭐ Onboarding',
+	social: '🤝 Social',
+	origins: '🌀 Origins',
+	tournament: '🏟️ Tournament',
+	shutout: '🛡️ Shutout',
+	streak: '🔥 Streaks',
+	scorer: '🎯 Scorer',
+	veteran: '🎮 Veteran',
+	comeback: '💪 Comeback',
+	rally: '🏓 Rally',
+	secret: '🕵️ Secret',
 };
 
 export const DEFAULT_PROGRESSION: Progression = {

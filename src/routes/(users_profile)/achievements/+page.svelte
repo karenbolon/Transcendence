@@ -5,7 +5,6 @@
 	import XpBar from '$lib/component/progression/XpBar.svelte';
 	import LevelBadge from '$lib/component/progression/LevelBadge.svelte';
 	import { CATEGORYLABELS, DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
-	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -41,7 +40,7 @@
 	<!-- Header -->
 	<section class="page-header">
 		<div class="header-top">
-			<h1 class="page-title">{$_('user_profile.achievements.title')}</h1>
+			<h1 class="page-title">Achievements</h1>
 			<!-- {#if data.progression}
 				<LevelBadge level={data.progression.level ?? 1} />
 			{/if} -->
@@ -52,7 +51,7 @@
 		<div class="completion-section">
 			<div class="completion-header">
 				<span class="completion-label">
-					{data.unlockedCount} / {data.totalCount} {$_('user_profile.labels.unlocked')}
+					{data.unlockedCount} / {data.totalCount} unlocked
 				</span>
 				<span class="completion-percent">{completionPercent}%</span>
 			</div>
@@ -80,7 +79,7 @@
 			class:active={selectedCategory === null}
 			onclick={() => (selectedCategory = null)}
 		>
-			{$_('user_profile.labels.all')}
+			All
 		</button>
 		{#each data.categories as cat}
 			<button
@@ -89,7 +88,7 @@
 				onclick={() => (selectedCategory = cat)}
 			>
 				{#if CATEGORYLABELS[cat]}
-					{$_(CATEGORYLABELS[cat])}
+					{CATEGORYLABELS[cat]}
 				{:else}
 					{cat}
 				{/if}
@@ -98,7 +97,7 @@
 	</nav>
 
 	<!-- Hint -->
-	<p class="hint">{$_('user_profile.achievements.hint')}</p>
+	<p class="hint">Tap any achievement for details</p>
 
 	<!-- Achievement Grid -->
 	<div class="achievement-list">
@@ -117,10 +116,10 @@
 	</div>
 
 	{#if filteredAchievements.length === 0}
-		<p class="empty-state">{$_('user_profile.achievements.empty')}</p>
+		<p class="empty-state">No achievements in this category yet.</p>
 	{/if}
 
-	<a href="/profile" class="back-link">{$_('user_profile.labels.back_profile')}</a>
+	<a href="/profile" class="back-link">← Back to Profile</a>
 </div>
 
 <!-- Detail Modal -->

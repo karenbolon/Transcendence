@@ -4,7 +4,6 @@
 	import AchievementCard from './progression/AchievementCard.svelte';
 	import { getStreakInfo, getMilestone } from '$lib/utils/format_progression';
 	import AchievementDetailModal from './progression/AchievementDetailModal.svelte';
-	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		badges: Achievement[];
@@ -54,19 +53,14 @@
 			<div class="milestone-card level-card">
 				<LevelBadge {level} size="md" />
 				<div class="milestone-info">
-					<span class="milestone-value">{$_(milestone.titleKey)}</span>
-					<span class="milestone-value">{$_('user_profile.level.label', { values: { level } })}</span>
+					<span class="milestone-value">{milestone.title}</span>
+					<span class="milestone-value">Level {level}</span>
 					{#if progression}
 						<span class="milestone-sub">
-							{$_('user_profile.level.xp_progress', {
-								values: {
-									currentXp: progression.currentXp.toLocaleString(),
-									xpToNextLevel: progression.xpToNextLevel.toLocaleString()
-								}
-							})}
+							{progression.currentXp.toLocaleString()} / {progression.xpToNextLevel.toLocaleString()} XP
 						</span>
 					{:else}
-						<span class="milestone-sub">{$_('user_profile.level.no_xp')}</span>
+						<span class="milestone-sub">No XP data</span>
 					{/if}
 				</div>
 			</div>
@@ -77,8 +71,8 @@
 					{streak.emoji}
 				</div>
 				<div class="milestone-info">
-					<span class="milestone-value">{$_(streak.labelKey, { values: { count: streak.count } })}</span>
-					<span class="milestone-sub">{$_('user_profile.streak.current')}</span>
+					<span class="milestone-value">{streak.label}</span>
+					<span class="milestone-sub">Current streak</span>
 				</div>
 				{#if currentStreak >= 3}
 					<div class="streak-glow"></div>
@@ -89,8 +83,8 @@
 			<div class="milestone-card best-card">
 				<div class="milestone-icon">🏆</div>
 				<div class="milestone-info">
-					<span class="milestone-value">{$_('user_profile.streak.wins', { values: { count: bestStreak } })}</span>
-					<span class="milestone-sub">{$_('user_profile.streak.best')}</span>
+					<span class="milestone-value">{bestStreak} win{bestStreak === 1 ? '' : 's'}</span>
+					<span class="milestone-sub">Best streak</span>
 				</div>
 			</div>
 		</div>
@@ -99,10 +93,9 @@
 	<!-- ═══ RECENT BADGES ═══ -->
 	<div class="recent-badges">
 		<div class="section-header">
-			<h2 class="section-title"><span class="bar purple"></span> {$_('user_profile.badges.recent')}</h2>
+			<h2 class="section-title"><span class="bar purple"></span> Recent badges</h2>
 			<a href={viewAllHref} class="see-all">
-				<!-- {badges.length} earned · View all →</a> -->
-				 {$_('user_profile.badges.view_all', { values: { count: badges.length } })}</a>
+				{badges.length} earned · View all →</a>
 		</div>
 
 		<div class="badge-grid">
@@ -133,7 +126,7 @@
 			{#if remaining > 0}
 				<a href="/achievements" class="badge-card ghost overflow-link">
 					<span class="overflow-num">+{remaining}</span>
-					<span class="overflow-text">{$_('user_profile.badges.more')}</span>
+					<span class="overflow-text">more</span>
 				</a>
 			{/if}
 
@@ -141,7 +134,7 @@
 			{#each Array(emptySlots) as slot, i}
 				<div class="badge-card ghost">
 					<span class="ghost-icon">🔒</span>
-					<span class="ghost-label">{$_('user_profile.badges.locked')}</span>
+					<span class="ghost-label">Locked</span>
 				</div>
 			{/each}
 		</div>

@@ -2,7 +2,6 @@
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { formatDate } from '$lib/utils/format_date';
 	import { speedEmoji } from '$lib/utils/format_game';
-	import { _ } from 'svelte-i18n';
 
 	type H2hMatch = {
 		id: number;
@@ -63,42 +62,42 @@
 
 			<!-- Header -->
 			<div class="modal-header">
-					<h2 class="modal-title">{$_('common.headToHead')}</h2>
-					<span class="games-badge">{total} {$_('common.games')}{total !== 1 ? 's' : ''}</span>
+				<h2 class="modal-title">Head to Head</h2>
+				<span class="games-badge">{total} Games{total !== 1 ? 's' : ''}</span>
 			</div>
 
 			<!-- Avatars + Score -->
 			<div class="versus">
-					<div class="player you-side">
-						<div class="player-avatar">
-							<UserAvatar username={you.username} displayName={you.name} avatarUrl={you.avatarUrl} size="xl" />
-						</div>
-						<span class="player-name">{$_('dashboard.you')}</span>
+				<div class="player you-side">
+					<div class="player-avatar">
+						<UserAvatar username={you.username} displayName={you.name} avatarUrl={you.avatarUrl} size="xl" />
 					</div>
+					<span class="player-name">You</span>
+				</div>
 
-					<div class="score-center">
-						<span class="win-count you-wins">{yourWins}</span>
-						<div class="h2h-divider">
-							<div class="h2h-dash"></div>
-							<span class="h2h-vs">vs</span>
-							<div class="h2h-dash"></div>
-						</div>
-						<span class="win-count them-wins">{theirWins}</span>
+				<div class="score-center">
+					<span class="win-count you-wins">{yourWins}</span>
+					<div class="h2h-divider">
+						<div class="h2h-dash"></div>
+						<span class="h2h-vs">vs</span>
+						<div class="h2h-dash"></div>
 					</div>
+					<span class="win-count them-wins">{theirWins}</span>
+				</div>
 
-					<div class="player them-side">
-						<div class="player-avatar">
-							<UserAvatar username={them.username} displayName={them.name} avatarUrl={them.avatarUrl} size="xl" />
-						</div>
-						<span class="player-name">{them.name}</span>
+				<div class="player them-side">
+					<div class="player-avatar">
+						<UserAvatar username={them.username} displayName={them.name} avatarUrl={them.avatarUrl} size="xl" />
 					</div>
+					<span class="player-name">{them.name}</span>
+				</div>
 			</div>
 
 			<!-- Win percentage bar -->
 			<div class="win-bar-section">
 				<div class="h2h-bar-header">
-					<span class="win-pct">{yourWinPct}% {$_('common.wins')}</span>
-					<span class="win-pct">{theirWinPct}% {$_('common.wins')}</span>
+					<span class="win-pct">{yourWinPct}% wins</span>
+					<span class="win-pct">{theirWinPct}% wins</span>
 				</div>
 				<div class="win-bar">
 					<div class="you-fill" style="width: {yourWinPct}%"></div>
@@ -110,26 +109,26 @@
 			<div class="stats-row">
 				<div class="stat">
 					<span class="stat-value">{total}</span>
-					<span class="stat-label">{$_('dashboard.levelUpModal.total')}</span>
+					<span class="stat-label">Total</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{avgScore}</span>
-					<span class="stat-label">{$_('common.avgScore')}</span>
+					<span class="stat-label">Avg Score</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{bestWin}</span>
-					<span class="stat-label">{$_('common.bestWin')}</span>
+					<span class="stat-label">Best Win</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value">{lastPlayed ? formatDate(lastPlayed) : '—'}</span>
-					<span class="stat-label">{$_('common.bestWin')}</span>
+					<span class="stat-label">Last Played</span>
 				</div>
 			</div>
 
 			<!-- Recent matches -->
 			{#if recentMatches.length > 0}
 				<div class="recent-section">
-					<span class="recent-title">{$_('common.recent')}</span>
+					<span class="recent-title">Recent matches</span>
 					<div class="recent-list">
 						{#each recentMatches as match (match.id)}
 							<div class="recent-row" class:won={match.won} class:lost={!match.won}>
@@ -149,8 +148,8 @@
 			<div class="modal-actions">
 				<button class="action-btn challenge-btn" onclick={() => { onclose(); onChallenge?.(); }}>🎮 Challenge Again</button>
 				<button class="action-btn view-btn" onclick={onclose}>Close</button>
-				<button class="action-btn challenge-btn">🎮 {$_('common.challenge')}</button>
-				<button class="action-btn view-btn" onclick={onclose}>{$_('common.close')}</button>
+				<button class="action-btn challenge-btn">🎮 Challenge Again</button>
+				<button class="action-btn view-btn" onclick={onclose}>Close</button>
 			</div>
 
 		</div>
@@ -192,7 +191,6 @@
 		to { opacity: 1; transform: scale(1) translateY(0); }
 	}
 
-	/* Header */
 	.modal-header {
 		display: flex;
 		justify-content: space-between;
@@ -227,7 +225,6 @@
 		font-weight: 500;
 	}
 
-	/* Versus section */
 	.versus {
 		display: flex;
 		align-items: center;
@@ -285,7 +282,6 @@
 	.you-wins { color: #ff6b9d; }
 	.them-wins { color: #a855f7; }
 
-	/* vs */
 	.h2h-divider {
 		display: flex;
 		flex-direction: column;
@@ -308,14 +304,10 @@
 		border-radius: 1px;
 	}
 
-	/* Win bar */
 	.win-bar-section {
 		padding: 0 1.5rem 1rem;
-		/* display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 1.25rem; */
 	}
+
 	.h2h-bar-header {
 		display: flex;
 		justify-content: space-between;
@@ -353,7 +345,6 @@
 		transition: width 0.8s;
 	}
 
-	/* Stats row */
 	.stats-row {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
@@ -386,7 +377,6 @@
 		letter-spacing: 0.06em;
 	}
 
-	/* Recent matches */
 	.recent-section {
 		padding: 0 1.5rem 1.25rem;
 	}
@@ -397,12 +387,6 @@
 		color: #9ca3af;
 		margin-bottom: 0.5rem;
 	}
-
-	/* .recent-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.3rem;
-	} */
 
 	.recent-row {
 		display: flex;
@@ -416,11 +400,10 @@
 		transition: background 0.15s;
 	}
 
-	/* /* .recent-row:nth-child(odd) { background: rgba(255, 255, 255, 0.03); } */
 	.recent-row.won .recent-result  {
 		background: rgba(74, 222, 128, 0.12);
 		color: #4ade80;
-	 }
+	}
 	.recent-row.lost .recent-result {
 		background: rgba(248, 113, 113, 0.1);
 		color: #f87171;
@@ -437,9 +420,6 @@
 		font-weight: 700;
 	}
 
-	/* .recent-row.won .recent-result  { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
-	.recent-row.lost .recent-result { background: rgba(248, 113, 113, 0.1); color: #f87171; } */
-
 	.recent-score {
 		font-weight: 600;
 		color: #d1d5db;
@@ -454,7 +434,6 @@
 		margin-left: auto;
 	}
 
-	/* Actions (commented out for now) */
 	.modal-actions {
 		padding: 0 1.5rem 1.25rem;
 		display: flex;
@@ -500,8 +479,6 @@
 		color: #fff;
 	}
 
-
-	/* Responsive */
 	@media (max-width: 640px) {
 		.stats-row {
 			grid-template-columns: repeat(2, 1fr);

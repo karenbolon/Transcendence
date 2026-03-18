@@ -5,7 +5,6 @@
 	import XpBar from '$lib/component/progression/XpBar.svelte';
 	import LevelBadge from '$lib/component/progression/LevelBadge.svelte';
 	import { CATEGORYLABELS, DEFAULT_PROGRESSION } from '$lib/utils/format_progression';
-	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -39,7 +38,7 @@
 <div class="achievements-page">
 	<section class="page-header">
 		<div class="header-top">
-			<h1 class="page-title">{$_('user_profile.achievements.title')}</h1>
+			<h1 class="page-title">Achievements</h1>
 			<LevelBadge level={data.progression?.level ?? 1} />
 		</div>
 
@@ -47,7 +46,7 @@
 		<div class="completion-section">
 			<div class="completion-header">
 				<span class="completion-label">
-					{data.unlockedCount} / {data.totalCount} {$_('user_profile.labels.unlocked')}
+					{data.unlockedCount} / {data.totalCount} unlocked
 				</span>
 				<span class="completion-percent">{completionPercent}%</span>
 			</div>
@@ -72,7 +71,7 @@
 			class:active={selectedCategory === null}
 			onclick={() => (selectedCategory = null)}
 		>
-			{$_('user_profile.labels.all')}
+			All
 		</button>
 
 		{#each data.categories as cat}
@@ -82,7 +81,7 @@
 				onclick={() => (selectedCategory = cat)}
 			>
 				{#if CATEGORYLABELS[cat]}
-					{$_(CATEGORYLABELS[cat])}
+					{CATEGORYLABELS[cat]}
 				{:else}
 					{cat}
 				{/if}
@@ -90,15 +89,15 @@
 		{/each}
 	</nav>
 
-	<p class="hint">{$_('user_profile.achievements.hint')}</p>
+	<p class="hint">Tap any achievement for details</p>
 
 	<!-- Achievement Grid -->
 	<div class="achievement-list">
 		{#each filteredAchievements as ach (ach.id)}
 			<AchievementCard
 				id={ach.id}
-				name={$_(`achievements.${ach.id}.name`)}
-				description={$_(`achievements.${ach.id}.description`)}
+				name={ach.name}
+				description={ach.description}
 				tier={ach.tier}
 				category={ach.category}
 				icon={ach.icon}
@@ -109,10 +108,10 @@
 	</div>
 
 	{#if filteredAchievements.length === 0}
-		<p class="empty-state">{$_('user_profile.achievements.empty')}</p>
+		<p class="empty-state">No achievements in this category yet.</p>
 	{/if}
 
-	<a href="/profile" class="back-link">{$_('user_profile.labels.back_profile')}</a>
+	<a href="/profile" class="back-link">← Back to Profile</a>
 </div>
 
 <AchievementDetailModal
@@ -120,8 +119,8 @@
 		selectedAchievement
 			? {
 					...selectedAchievement,
-					name: $_(`achievements.${selectedAchievement.id}.name`),
-					description: $_(`achievements.${selectedAchievement.id}.description`)
+					name: selectedAchievement.name,
+					description: selectedAchievement.description
 				}
 			: null
 	}

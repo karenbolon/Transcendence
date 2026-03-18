@@ -1,7 +1,6 @@
 
 <script lang="ts">
 	import type { SpeedPreset, GameMode } from './gameEngine';
-	import { _ } from 'svelte-i18n';
 
 	type Props = {
 		gameMode: GameMode;
@@ -16,23 +15,23 @@
 
 	let { gameMode, winScore, speedPreset, player2Name, onGameModeChange, onWinScoreChange, onSpeedChange, onPlayer2NameChange }: Props = $props();
 
-	const modeOptions = $derived([
-		{ key: 'local' as const,    label: $_('pong_settings.game_mode.local') || '👥 Local PvP' },
-		{ key: 'computer' as const, label: $_('pong_settings.game_mode.computer') || '🤖 vs Computer' },
-	]);
+	const modeOptions = [
+		{ key: 'local' as const,    label: '👥 Local PvP'},
+		{ key: 'computer' as const, label: '🤖 vs Computer'},
+	];
 	// Point options and speed presets defined here (display data only)
 	const pointOptions = [3, 5, 7, 11];
-	const speedOptions = $derived([
-		{ key: 'chill' as const,  label: $_('pong_settings.ball_speed.chill') || '🐢 Chill' },
-		{ key: 'normal' as const, label: $_('pong_settings.ball_speed.normal') || '🏓 Normal' },
-		{ key: 'fast' as const,   label: $_('pong_settings.ball_speed.fast') || '🔥 Fast' },
-	]);
+	const speedOptions = [
+		{ key: 'chill' as const,  label: '🐢 Chill' },
+		{ key: 'normal' as const, label: '🏓 Normal' },
+		{ key: 'fast' as const,   label: '🔥 Fast' },
+	];
 </script>
 
 <div class="settings-panel">
 	<!-- Game mode -->
 	<div class="setting-row">
-		<span class="setting-label">{$_('pong_settings.game_mode.label') || 'Game mode'}</span>
+		<span class="setting-label">Game mode</span>
 		<div class="setting-options">
 			{#each modeOptions as mode}
 				<button
@@ -48,11 +47,11 @@
 	<!-- Player 2 name (local mode only) -->
 	{#if gameMode === 'local'}
 		<div class="setting-row">
-			<span class="setting-label">{$_('pong_settings.player2.label') || 'Player 2'}</span>
+			<span class="setting-label">Player 2</span>
 			<input
 				class="name-input"
 				type="text"
-				placeholder={$_('pong_settings.game_mode.guest') || 'Guest'}
+				placeholder="Guest"
 				maxlength="100"
 				value={player2Name}
 				oninput={(e) => onPlayer2NameChange(e.currentTarget.value)}
@@ -62,7 +61,7 @@
 
 	<!-- Points to win -->
 	<div class="setting-row">
-		<span class="setting-label">{$_('pong_settings.win_score.label') || 'Points to win'}</span>
+		<span class="setting-label">Points to win</span>
 		<div class="setting-options">
 			{#each pointOptions as points}
 				<button
@@ -78,7 +77,7 @@
 
 	<!-- Ball speed -->
 	<div class="setting-row">
-		<span class="setting-label">{$_('pong_settings.ball_speed.label') || 'Ball speed'}</span>
+		<span class="setting-label">Ball speed</span>
 		<div class="setting-options">
 			{#each speedOptions as preset}
 				<button

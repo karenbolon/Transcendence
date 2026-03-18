@@ -2,7 +2,6 @@
 	import type { PageData } from './$types';
 	import { RANK_MEDALS } from '$lib/utils/format_progression';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
-	import { _ } from 'svelte-i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -14,14 +13,14 @@
 <div class="leaderboard-page">
 	<div class="page-header">
 		<div class="header-left">
-			<h1 class="page-title">{$_('leaderboard.title')}</h1>
+			<h1 class="page-title">Leaderboard</h1>
 			{#if data.myRank}
 				<span class="my-rank">
-					<span class="rank-label">{$_('leaderboard.youRank')} #{data.myRank}</span>
+					<span class="rank-label">You rank: #{data.myRank}</span>
 				</span>
 			{:else if data.isLoggedIn}
 				<span class="my-rank unranked">
-					<span class="rank-label">{$_('leaderboard.unranked')}</span>
+					<span class="rank-label">Unranked</span>
 				</span>
 			{/if}
 		</div>
@@ -32,7 +31,7 @@
 				<a href="/leaderboard"
 				class="tab-pill"
 				class:active={data.tab === 'global'} >
-					🌐 {$_('leaderboard.global')}
+					🌐 Global
 				</a>
 			</button>
 			{#if data.isLoggedIn}
@@ -40,7 +39,7 @@
 					<a href="/leaderboard?tab=friends"
 						class="tab-pill"
 						class:active={data.tab === 'friends'}>
-						👥 {$_('leaderboard.friends')}
+						👥 Friends
 					</a>
 				</button>
 			{/if}
@@ -52,12 +51,12 @@
 		<div class="empty-state">
 			{#if data.tab === 'friends'}
 				<span class="empty-emoji">👥</span>
-				<p>{$_('leaderboard.addFriends')}</p>
-				<a href="/leaderboard" class="play-link">{$_('leaderboard.globalLeaderboard')} →</a>
+				<p>Add friends to see their rankings here!</p>
+				<a href="/leaderboard" class="play-link">View global leaderboard →</a>
 			{:else}
 				<span class="empty-emoji">🏆</span>
-				<p>{$_('leaderboard.noGames')}</p>
-				<a href="/play" class="play-link">{$_('leaderboard.first')} →</a>
+				<p>No games played yet!</p>
+				<a href="/play" class="play-link">Be the first to play →</a>
 			{/if}
 		</div>
 	{:else}
@@ -82,11 +81,11 @@
 							<span class="podium-name">
 								<!-- <span class="podium-name-text">{player.name || player.username}</span> -->
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge">{$_('leaderboard.youLower')}</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
 							</span>
-							<span class="podium-wins">{player.wins} {$_('leaderboard.wins')}</span>
+							<span class="podium-wins">{player.wins} wins</span>
 							<div class="podium-stats">
-								<span class="podium-games">{player.totalGames} {$_('leaderboard.games')}</span>
+								<span class="podium-games">{player.totalGames} games</span>
 								<span class="podium-sep">·</span>
 								<span class="podium-rate">{player.winRate}%</span>
 							</div>
@@ -100,11 +99,11 @@
 		<section class="rankings-table">
 			<div class="table-header">
 				<span class="col-rank">#</span>
-				<span class="col-player">{$_('leaderboard.player2')}</span>
-				<span class="col-games">{$_('leaderboard.games2')}</span>
-				<span class="col-wins">{$_('leaderboard.wins2')}</span>
-				<span class="col-losses">{$_('leaderboard.losses')}</span>
-				<span class="col-rate">{$_('leaderboard.win')} %</span>
+				<span class="col-player">Player</span>
+				<span class="col-games">Games</span>
+				<span class="col-wins">Wins</span>
+				<span class="col-losses">Losses</span>
+				<span class="col-rate">Win %</span>
 			</div>
 
 			<!-- Show top 3 in table too if no separate table rows -->
@@ -121,7 +120,7 @@
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge-sm">{$_('leaderboard.youLower')}</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>
@@ -142,7 +141,7 @@
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge-sm">{$_('leaderboard.youLower')}</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>

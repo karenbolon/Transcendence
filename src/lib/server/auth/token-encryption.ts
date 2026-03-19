@@ -1,177 +1,199 @@
 /**
- * Token Encryption Module
+ * 🔐 OAuth Token Encryption Module
  * 
- * Provides secure encryption/decryption of OAuth tokens using AES-256-GCM.
- * - NIST-approved authenticated encryption algorithm
- * - Random IV per encryption prevents pattern analysis attacks
- * - Ensures data confidentiality and integrity
+ * Encrypts/decrypts OAuth access and refresh tokens using AES-256-GCM
+ * - Provides authenticated encryption (confidentiality + integrity)
+ * - Random IV per encryption (prevents pattern analysis)
+ * - NIST-approved algorithm (industry standard)
+ * 
+ * @module token-encryption
  */
 
-import crypto from 'crypto';
+import { webcrypto } from 'node:crypto';
 
-// Configuration
-const ALGORITHM = 'aes-256-gcm';
-const KEY_LENGTH = 32; // 256 bits
-const IV_LENGTH = 16; // 128 bits
-const TAG_LENGTH = 16; // 128 bits
-const ENCODING = 'hex';
-
-// Encryption key - should be loaded from environment
-let encryptionKey: Buffer | null = null;
+const ALGORITHM = 'AES-GCM';
+const KEY_LENGTH = 256; // bits
+const IV_LENGTH = 12; // bytes (96 bits recommended for GCM)
+const TAG_LENGTH = 128; // bits
 
 /**
- * Initialize the encryption key.
- * Must be called before any encrypt/decrypt operations.
- *
- * If no key is provided/found, logs a warning and OAuth token encryption
- * will be unavailable (encrypt/decrypt calls will throw at runtime).
- *
- * @param key - The 64-char hex key. If omitted, falls back to process.env.OAUTH_ENCRYPTION_KEY.
- * @throws {Error} if the key is provided but has an invalid format
+ * Validates that encryption is properly configured
+ * @returns {boolean} True if OAUTH_ENCRYPTION_KEY is set and valid
  */
-export function initializeEncryptionKey(key?: string): void {
-	const keyEnv = key ?? process.env.OAUTH_ENCRYPTION_KEY;
-
-	if (!keyEnv) {
-		console.warn('OAUTH_ENCRYPTION_KEY is not set — OAuth token encryption is disabled. Set this variable to enable third-party OAuth.');
-		return;
-	}
-
-	if (keyEnv.length !== KEY_LENGTH * 2) {
-		throw new Error(`OAUTH_ENCRYPTION_KEY must be ${KEY_LENGTH * 2} hex characters (${KEY_LENGTH} bytes)`);
-	}
-
-	try {
-		encryptionKey = Buffer.from(keyEnv, ENCODING);
-		if (encryptionKey.length !== KEY_LENGTH) {
-			throw new Error('Invalid key length after conversion');
-		}
-	} catch (error) {
-		throw new Error(`OAUTH_ENCRYPTION_KEY is not valid hex: ${error instanceof Error ? error.message : ''}`);
-	}
+export function isTokenEncryptionConfigured(): boolean {
+	const key = process.env.OAUTH_ENCRYPTION_KEY;
+	if (!key) return false;
+	
+	// Key should be 64 hex characters (32 bytes)
+	return /^[a-f0-9]{64}$/.test(key.toLowerCase());
 }
 
 /**
- * Generates a random encryption key suitable for storing in environment
- * @returns {string} 64-character hex string (256-bit key)
+ * Gets the encryption key from environment
+ * @throws {Error} If key is not configured
  */
-export function generateEncryptionKey(): string {
-	return crypto.randomBytes(KEY_LENGTH).toString(ENCODING);
+async function getEncryptionKey(): Promise<CryptoKey> {
+	const keyString = process.env.OAUTH_ENCRYPTION_KEY;
+	
+	if (!keyString) {
+		throw new Error(
+			'OAUTH_ENCRYPTION_KEY environment variable is not set. ' +
+			'Generate one with: openssl rand -hex 32'
+		);
+	}
+	
+	if (!/^[a-f0-9]{64}$/.test(keyString.toLowerCase())) {
+		throw new Error(
+			'OAUTH_ENCRYPTION_KEY must be 64 hexadecimal characters (32 bytes). ' +
+			`Received: ${keyString.length} characters`
+		);
+	}
+	
+	// Convert hex string to buffer
+	const buffer = Buffer.from(keyString, 'hex');
+	
+	// Import as a crypto key
+	const key = await webcrypto.subtle.importKey(
+		'raw',
+		buffer,
+		{ name: ALGORITHM },
+		false, // not extractable
+		['encrypt', 'decrypt']
+	);
+	
+	return key as CryptoKey;
 }
 
 /**
- * Encrypts a token string using AES-256-GCM
+ * Encrypts an OAuth token
  * 
- * @param token - The token string to encrypt
- * @returns {Promise<string>} Encrypted token in format: iv:authTag:encryptedData (all hex-encoded)
- * @throws {Error} if encryption key is not initialized or token is empty
+ * @param {string} token - Plain text OAuth token
+ * @returns {Promise<string>} Base64-encoded encrypted token
+ * @throws {Error} If token is empty or encryption fails
+ * 
+ * @example
+ * ```typescript
+ * const plainToken = 'gho_abc123...';
+ * const encrypted = await encryptToken(plainToken);
+ * // Store encrypted in database
+ * ```
  */
 export async function encryptToken(token: string): Promise<string> {
-	if (!encryptionKey) {
-		throw new Error('Encryption key not initialized. Call initializeEncryptionKey() first.');
+	if (!token || token.trim() === '') {
+		throw new Error('Token cannot be empty');
 	}
-	
-	if (!token || typeof token !== 'string') {
-		throw new Error('Token must be a non-empty string');
-	}
-	
-	// Generate random IV for this encryption
-	const iv = crypto.randomBytes(IV_LENGTH);
-	
-	// Create cipher
-	const cipher = crypto.createCipheriv(ALGORITHM, encryptionKey, iv);
-	
-	// Encrypt the token
-	let encrypted = cipher.update(token, 'utf8', ENCODING);
-	encrypted += cipher.final(ENCODING);
-	
-	// Get authentication tag
-	const authTag = cipher.getAuthTag();
-	
-	// Return as: iv:authTag:encryptedData
-	return `${iv.toString(ENCODING)}:${authTag.toString(ENCODING)}:${encrypted}`;
-}
-
-/**
- * Decrypts a token encrypted by encryptToken()
- * 
- * @param encryptedToken - The encrypted token string in format: iv:authTag:encryptedData
- * @returns {Promise<string>} The decrypted token
- * @throws {Error} if decryption key is not initialized, token format is invalid, or decryption fails
- */
-export async function decryptToken(encryptedToken: string): Promise<string> {
-	if (!encryptionKey) {
-		throw new Error('Encryption key not initialized. Call initializeEncryptionKey() first.');
-	}
-	
-	if (!encryptedToken || typeof encryptedToken !== 'string') {
-		throw new Error('Encrypted token must be a non-empty string');
-	}
-	
-	// Parse the encrypted token
-	const parts = encryptedToken.split(':');
-	if (parts.length !== 3) {
-		throw new Error('Invalid encrypted token format. Expected: iv:authTag:encryptedData');
-	}
-	
-	const [ivHex, authTagHex, encryptedData] = parts;
 	
 	try {
-		// Convert hex strings back to buffers
-		const iv = Buffer.from(ivHex, ENCODING);
-		const authTag = Buffer.from(authTagHex, ENCODING);
+		// Get encryption key
+		const key = await getEncryptionKey();
 		
-		// Validate buffer lengths
-		if (iv.length !== IV_LENGTH) {
-			throw new Error(`Invalid IV length: expected ${IV_LENGTH}, got ${iv.length}`);
-		}
-		if (authTag.length !== TAG_LENGTH) {
-			throw new Error(`Invalid auth tag length: expected ${TAG_LENGTH}, got ${authTag.length}`);
-		}
+		// Generate random IV
+		const iv = webcrypto.getRandomValues(new Uint8Array(IV_LENGTH));
 		
-		// Create decipher
-		const decipher = crypto.createDecipheriv(ALGORITHM, encryptionKey, iv);
-		decipher.setAuthTag(authTag);
+		// Convert token string to buffer
+		const tokenBuffer = new TextEncoder().encode(token);
 		
-		// Decrypt the token
-		let decrypted = decipher.update(encryptedData, ENCODING, 'utf8');
-		decrypted += decipher.final('utf8');
+		// Encrypt the token
+		const encryptedBuffer = await webcrypto.subtle.encrypt(
+			{
+				name: ALGORITHM,
+				iv,
+				tagLength: TAG_LENGTH
+			},
+			key,
+			tokenBuffer
+		);
 		
-		return decrypted;
+		// Combine IV + encrypted data
+		const combined = Buffer.concat([
+			Buffer.from(iv),
+			Buffer.from(encryptedBuffer)
+		]);
+		
+		// Return as base64 for database storage
+		return combined.toString('base64');
 	} catch (error) {
-		if (error instanceof Error && error.message.includes('Unsupported state or unable to authenticate data')) {
-			throw new Error('Token integrity check failed. The token may have been tampered with.');
+		if (error instanceof Error) {
+			throw new Error(`Token encryption failed: ${error.message}`);
 		}
 		throw error;
 	}
 }
 
 /**
- * Validates an encrypted token without decrypting it
- * Useful for checking if a token is in valid format before processing
+ * Decrypts an OAuth token
  * 
- * @param encryptedToken - The encrypted token string
- * @returns {boolean} true if token format is valid
+ * @param {string} encryptedToken - Base64-encoded encrypted token from database
+ * @returns {Promise<string>} Original plain text token
+ * @throws {Error} If token is corrupted or decryption fails
+ * 
+ * @example
+ * ```typescript
+ * const encrypted = account.access_token; // from database
+ * const plain = await decryptToken(encrypted);
+ * // Use plain token for API calls
+ * ```
  */
-export function isValidEncryptedTokenFormat(encryptedToken: string): boolean {
-	if (!encryptedToken || typeof encryptedToken !== 'string') {
-		return false;
+export async function decryptToken(encryptedToken: string): Promise<string> {
+	if (!encryptedToken || encryptedToken.trim() === '') {
+		throw new Error('Encrypted token cannot be empty');
 	}
-	
-	const parts = encryptedToken.split(':');
-	if (parts.length !== 3) {
-		return false;
-	}
-	
-	const [ivHex, authTagHex, encryptedData] = parts;
 	
 	try {
-		// Check if all parts are valid hex
-		const iv = Buffer.from(ivHex, ENCODING);
-		const authTag = Buffer.from(authTagHex, ENCODING);
+		// Get encryption key
+		const key = await getEncryptionKey();
 		
-		return iv.length === IV_LENGTH && authTag.length === TAG_LENGTH && encryptedData.length > 0;
+		// Decode from base64
+		const combined = Buffer.from(encryptedToken, 'base64');
+		
+		// Extract IV (first 12 bytes) and encrypted data (rest)
+		const iv = combined.slice(0, IV_LENGTH);
+		const encryptedData = combined.slice(IV_LENGTH);
+		
+		if (iv.length !== IV_LENGTH) {
+			throw new Error('Invalid encrypted token: IV length mismatch');
+		}
+		
+		// Decrypt the token
+		const decryptedBuffer = await webcrypto.subtle.decrypt(
+			{
+				name: ALGORITHM,
+				iv,
+				tagLength: TAG_LENGTH
+			},
+			key,
+			encryptedData
+		);
+		
+		// Convert buffer back to string
+		return new TextDecoder().decode(decryptedBuffer);
+	} catch (error) {
+		if (error instanceof Error) {
+			// Distinguish between corruption and other errors
+			if (error.message.includes('Unsupported state or unable to authenticate data')) {
+				throw new Error(
+					'Token decryption failed: Token is corrupted, tampered with, or encryption key has changed'
+				);
+			}
+			throw new Error(`Token decryption failed: ${error.message}`);
+		}
+		throw error;
+	}
+}
+
+/**
+ * Verifies a token can be decrypted without actually retrieving it
+ * Useful for checking token validity/corruption
+ * 
+ * @param {string} encryptedToken - Base64-encoded encrypted token
+ * @returns {Promise<boolean>} True if token can be decrypted
+ */
+export async function isTokenValid(encryptedToken: string): Promise<boolean> {
+	try {
+		await decryptToken(encryptedToken);
+		return true;
 	} catch {
 		return false;
 	}
 }
+

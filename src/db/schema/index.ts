@@ -186,3 +186,4 @@ export type NewPlayerProgression = typeof player_progression.$inferInsert;
 
 export type AchievementDefinition = typeof achievement_definitions.$inferSelect;
 export type NewAchievementDefinition = typeof achievement_definitions.$inferInsert;
+

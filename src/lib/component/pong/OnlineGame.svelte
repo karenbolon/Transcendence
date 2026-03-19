@@ -119,13 +119,23 @@
 							currSnapshot.state,
 							t,
 						);
-					} else {
+						} else {
 						// Client has consumed past currSnapshot and the next packet
 						// hasn't arrived yet. Instead of freezing the ball at currSnapshot,
 						// project it forward using its last known velocity.
-						// Only during 'playing' — no point drifting a frozen menu ball.
+						//
+						// Guard: only extrapolate if the ball actually moved between the
+						// two snapshots. During score pause the server freezes the ball at
+						// center but already has ballVX/ballVY set to the next serve
+						// direction — extrapolating those values would drift the ball off
+						// center and snap it back every frame, causing the exact jitter
+						// we are trying to fix.
 						const overTimeSec = (performance.now() - currSnapshot.receivedAt) / 1000;
-						if (currSnapshot.state.phase === 'playing') {
+						const ballMoved =
+							Math.abs(currSnapshot.state.ballX - prevSnapshot.state.ballX) > 0.1 ||
+							Math.abs(currSnapshot.state.ballY - prevSnapshot.state.ballY) > 0.1;
+
+						if (currSnapshot.state.phase === 'playing' && ballMoved) {
 							stateToRender = extrapolateSnapshot(currSnapshot.state, overTimeSec);
 						} else {
 							stateToRender = currSnapshot.state;

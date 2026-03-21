@@ -10,6 +10,8 @@
 	BALL_RADIUS,
 	} from './gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
+	import { MetricsCollector } from './debugMetrics';
+	import { drawDebugHud } from './debugHud';
 
 	type Props = {
 		roomId: string;
@@ -24,6 +26,8 @@
 	let canvas: HTMLCanvasElement;
 	let latestState: GameStateSnapshot | null = $state(null);
 	let disconnectedPlayer: number | null = $state(null);
+	const debugEnabled = import.meta.env.VITE_DEBUG_HUD === 'true';
+	const metrics = debugEnabled ? new MetricsCollector() : null;
 
 	// ── Keyboard Input ──────────────────────────────────────────
 	// Track individual keys to handle simultaneous presses correctly.
@@ -79,6 +83,7 @@
 		// Listen for state updates from the server (60 per second)
 		socket.on('game:state', (state: GameStateSnapshot) => {
 			latestState = state;
+			if (metrics) metrics.recordSnapshot(state.timestamp);
 		});
 
 		socket.on('game:over', (result: any) => {
@@ -97,12 +102,31 @@
 			disconnectedPlayer = null;
 		});
 
+		if (debugEnabled) {
+			socket.on('game:pong', (data: { clientTimestamp: number }) => {
+				metrics!.recordPong(data.clientTimestamp);
+			});
+		}
+
 		// Render loop — just draws the latest state, NO physics
 		let animFrame: number;
 		function renderLoop() {
-			if (latestState) {
+			if (debugEnabled) {
+				const now = performance.now();
+				metrics!.recordFrame(now);
+
+				if (latestState) {
+					draw(ctx!, latestState);
+					drawDebugHud(ctx!, metrics!.getMetrics());
+				}
+
+				if (metrics!.shouldPing(now)) {
+					socket.emit('game:ping', { timestamp: Date.now() });
+				}
+			} else if (latestState) {
 				draw(ctx!, latestState);
 			}
+
 			animFrame = requestAnimationFrame(renderLoop);
 		}
 		animFrame = requestAnimationFrame(renderLoop);
@@ -110,11 +134,13 @@
 		// Cleanup when component is destroyed
 		return () => {
 			cancelAnimationFrame(animFrame);
+			if (metrics) metrics.reset();
 			socket.off('game:state');
 			socket.off('game:over');
 			socket.off('game:forfeit');
 			socket.off('game:player-disconnected');
 			socket.off('game:player-reconnected');
+			if (debugEnabled) socket.off('game:pong');
 		};
 	});
 

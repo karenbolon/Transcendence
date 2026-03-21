@@ -1,7 +1,14 @@
+// Must be first: Vite 7's SSR module runner does not populate process.env from .env files.
+// dotenv/config loads .env directly into process.env before any other module reads from it.
+import 'dotenv/config';
+
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { lucia } from '$lib/server/auth/lucia';
 import { clearSessionCookie } from '$lib/server/auth/helpers';
 import { logger } from '$lib/server/logger';
+import { initializeEncryptionKey } from '$lib/server/auth/token-encryption';
+
+initializeEncryptionKey();
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get(lucia.sessionCookieName);

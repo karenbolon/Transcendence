@@ -209,6 +209,20 @@ jobs:
             }' \
             "$PERMITD_URL/$API_VERSION/libpod/containers/create"
 
+      - name: Resolve OAuth callback base URL
+        id: callback
+        run: |
+          # Use environment-level variable if set (e.g. production), otherwise
+          # fall back to the dynamic branch hostname so preview deployments work
+          # without extra configuration. You still need to register each preview
+          # URL in your OAuth app, or use a dedicated dev OAuth app for previews.
+          BASE="${{ secrets.OAUTH_CALLBACK_BASE_URL }}"
+          if [ -z "$BASE" ]; then
+            BASE="https://${{ steps.vars.outputs.hostname }}"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "Callback base: $BASE"
+
       - name: Create app container
         env:
           POD_NAME: ${{ steps.vars.outputs.pod_name }}
@@ -226,7 +240,21 @@ jobs:
               "pod": "'"$POD_NAME"'",
               "env": {
                 "DATABASE_URL": "postgresql://transcendence:transcendence@localhost:5432/transcendence",
-                "NODE_ENV": "production"
+                "NODE_ENV": "production",
+                "OAUTH_ENCRYPTION_KEY": "${{ secrets.OAUTH_ENCRYPTION_KEY }}",
+                "GITHUB_CLIENT_ID": "${{ secrets.OAUTH_GITHUB_CLIENT_ID }}",
+                "GITHUB_CLIENT_SECRET": "${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}",
+                "GITHUB_AUTHORIZE_URL": "https://github.com/login/oauth/authorize",
+                "GITHUB_TOKEN_URL": "https://github.com/login/oauth/access_token",
+                "GITHUB_USER_URL": "https://api.github.com/user",
+                "GITHUB_USER_EMAILS_URL": "https://api.github.com/user/emails",
+                "GITHUB_CALLBACK_URL": "${{ steps.callback.outputs.base }}/auth/callback/github",
+                "FORTYTWO_CLIENT_ID": "${{ secrets.OAUTH_FORTYTWO_CLIENT_ID }}",
+                "FORTYTWO_CLIENT_SECRET": "${{ secrets.OAUTH_FORTYTWO_CLIENT_SECRET }}",
+                "FORTYTWO_AUTHORIZE_URL": "https://api.intra.42.fr/oauth/authorize",
+                "FORTYTWO_TOKEN_URL": "https://api.intra.42.fr/oauth/token",
+                "FORTYTWO_USER_URL": "https://api.intra.42.fr/v2/me",
+                "FORTYTWO_CALLBACK_URL": "${{ steps.callback.outputs.base }}/auth/callback/42"
               },
               "labels": {
                 "app": "'"$REPO_NAME"'",

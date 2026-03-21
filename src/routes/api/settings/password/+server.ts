@@ -42,6 +42,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'User not found' }, { status: 404 });
 	}
 
+	// OAuth-only users cannot change password (they don't have one)
+	if (!user.password_hash) {
+		return json({ error: 'OAuth-only accounts do not have passwords' }, { status: 400 });
+	}
+
 	const isValid = await verifyPassword(user.password_hash, currentPassword);
 	if (!isValid) {
 		return json({ error: 'Current password is incorrect' }, { status: 400 });

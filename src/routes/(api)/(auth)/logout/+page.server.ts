@@ -2,8 +2,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { lucia } from '$lib/server/auth/lucia';
 import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, oauthStates } from '$lib/server/db/schema';
+import { eq, lt } from 'drizzle-orm';
 
 export const actions: Actions = {
 	default: async ({ locals, cookies }) => {
@@ -20,9 +20,12 @@ export const actions: Actions = {
 
 		await lucia.invalidateSession(locals.session.id);
 
+		// Clean up expired OAuth states
+		await db.delete(oauthStates).where(lt(oauthStates.expiresAt, new Date()));
+
 		const sessionCookie = lucia.createBlankSessionCookie();
 		cookies.set(sessionCookie.name, sessionCookie.value, {
-			path: '.',
+			path: '/',
 			...sessionCookie.attributes
 		});
 

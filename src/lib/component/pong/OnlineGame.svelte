@@ -26,7 +26,7 @@
 	let canvas: HTMLCanvasElement;
 	let latestState: GameStateSnapshot | null = $state(null);
 	let disconnectedPlayer: number | null = $state(null);
-	const debugEnabled = import.meta.env.VITE_DEBUG_HUD === 'true';
+	const debugEnabled = true;
 	const metrics = debugEnabled ? new MetricsCollector() : null;
 
 	// ── Keyboard Input ──────────────────────────────────────────

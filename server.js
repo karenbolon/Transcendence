@@ -818,6 +818,12 @@ io.on('connection', (socket) => {
 		room.handleInput(userId, data.direction);
 	});
 
+	// ── RTT ping ─────────────────────────────────────────────────
+	socket.on('game:ping', (data) => {
+		if (!data?.timestamp) return;
+		socket.emit('game:pong', { clientTimestamp: data.timestamp });
+	});
+
 	// ── Leave / forfeit ───────────────────────────────────────────
 	socket.on('game:leave', () => {
 		const room = getRoomByPlayerId(userId);

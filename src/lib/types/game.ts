@@ -34,3 +34,12 @@ export interface GameResult {
 	durationSeconds: number;
 	settings: { speedPreset: string; winScore: number };
 }
+
+/** Real-time debug metrics displayed in the game HUD */
+export interface DebugMetrics {
+	fps: number;
+	snapshotDelta: number;   // ms between last two snapshots received
+	snapshotJitter: number;  // standard deviation of recent snapshot deltas
+	rtt: number;             // round-trip time in ms
+	stateAge: number;        // ms since the snapshot was created on server
+}

@@ -21,6 +21,9 @@ export class MetricsCollector {
     // State age
     private lastStateAge = 0;
 
+    // Frame-by-frame recording for export
+    private recordings: string[] = [];
+
     /** Call this every render frame (inside requestAnimationFrame) */
     recordFrame(now: number): void {
         this.frameCount++;
@@ -29,6 +32,14 @@ export class MetricsCollector {
             this.frameCount = 0;
             this.lastFpsUpdate = now;
         }
+        this.recordings.push(JSON.stringify({
+            t: Date.now(),
+            fps: this.currentFps,
+            delta: Math.round(this.lastSnapshotDelta),
+            jitter: Math.round(this.calculateJitter()),
+            rtt: this.currentRtt,
+            age: this.lastStateAge,
+        }));
     }
 
     /** Call this when a game:state snapshot arrives */
@@ -78,6 +89,18 @@ export class MetricsCollector {
         return Math.sqrt(variance);
     }
 
+    /** Download all recorded frames as a JSONL file */
+    downloadRecording(): void {
+        if (this.recordings.length === 0) return;
+        const blob = new Blob([this.recordings.join('\n')], { type: 'application/jsonl' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pong-metrics-${new Date().toISOString().replace(/:/g, '-')}.jsonl`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
     /** Reset all metrics (call on cleanup) */
     reset(): void {
         this.frameCount = 0;
@@ -89,5 +112,6 @@ export class MetricsCollector {
         this.currentRtt = 0;
         this.lastPingSent = 0;
         this.lastStateAge = 0;
+        this.recordings = [];
     }
 }

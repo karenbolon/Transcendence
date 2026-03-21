@@ -87,10 +87,12 @@
 		});
 
 		socket.on('game:over', (result: any) => {
+			metrics?.downloadRecording();
 			onGameOver?.(result);
 		});
 
 		socket.on('game:forfeit', (result: any) => {
+			metrics?.downloadRecording();
 			onGameOver?.(result);
 		});
 

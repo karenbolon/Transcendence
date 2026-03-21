@@ -77,7 +77,7 @@
 		<p >Join the game and start playing!</p>
 	</div>
 
-	<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
+	<form method="POST" action="?/password" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
 		loading = true;
 		return async ({ update }) => {
 			loading = false;
@@ -196,7 +196,7 @@
 			<a href="/login" class="link">Login</a>
 		</div>
 
-		<!-- OAuth Section (Future) -->
+		<!-- OAuth Section -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
 				<span class="px-2 bg-pong-darker text-gray-400">Or sign up with</span>
@@ -204,16 +204,20 @@
 		</div>
 
 		<div class="grid grid-cols-2 gap-3">
-			<button
-				type="button"
-				class="login py-2 text-sm" disabled>
-				42 OAuth (coming soon)
-			</button>
-			<button
-			type="button"
-			class="login py-2 text-sm" disabled>
-				OAuth (coming soon)
-			</button>
+			<form method="POST" action="?/oauth42" class="w-full">
+				<button
+					type="submit"
+					class="btn-secondary w-full py-2 text-sm">
+					🔗 42 Intra
+				</button>
+			</form>
+			<form method="POST" action="?/github" class="w-full">
+				<button
+					type="submit"
+					class="btn-secondary w-full py-2 text-sm">
+					👤 GitHub
+				</button>
+			</form>
 		</div>
 	</div>
 </div>

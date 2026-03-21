@@ -285,15 +285,15 @@ describe('Users Schema - Integration Tests', () => {
 
 	describe('CONSTRAINTS - Not null fields', () => {
 		it('should require all mandatory fields', async () => {
-			// Missing password_hash should fail
-			await expect(
-				db.insert(users).values({
-					username: 'test',
-					name: 'Test',
-					email: 'test@example.com'
-					// password_hash is missing!
-				} as any)
-			).rejects.toThrow();
+			// password_hash is nullable (OAuth-only users have no password)
+			// Verify a user can be inserted without it (OAuth case)
+			const result = await db.insert(users).values({
+				username: 'test_oauth',
+				name: 'Test',
+				email: 'test_oauth@example.com'
+				// password_hash intentionally omitted
+			} as any).returning();
+			expect(result[0].password_hash).toBeNull();
 		});
 	});
 

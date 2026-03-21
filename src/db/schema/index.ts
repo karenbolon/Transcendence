@@ -9,8 +9,10 @@ import { friendships } from './friendships';
 import { achievements } from './achievements';
 import { player_progression } from './player_progression';
 import { achievement_definitions } from './achievement_definitions';
+import { oauthAccounts } from './oauth_accounts';
+import { oauthStates } from './oauth_states';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions, oauthAccounts, oauthStates };
 
 export const usersRelations = relations(users, ({ one, many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),

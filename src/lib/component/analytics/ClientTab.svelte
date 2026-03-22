@@ -35,6 +35,8 @@
 	};
 
 	onMount(() => {
+		if (browserDist.length === 0 && viewportDist.length === 0) return;
+
 		// ── Browser pie / donut chart ──
 		pieChart = echarts.init(pieChartEl, 'dark');
 		pieChart.setOption({

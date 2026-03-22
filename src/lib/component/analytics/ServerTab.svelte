@@ -45,77 +45,83 @@
 	}
 
 	onMount(() => {
+		if (!hasApiData && !hasDbData && socketConnections === 0) return;
+
 		// ── API latency line chart ──
-		apiChart = echarts.init(apiChartEl, 'dark');
-		apiChart.setOption({
-			backgroundColor: 'transparent',
-			title: { text: 'API Latency', textStyle: { color: '#fff', fontSize: 14 } },
-			tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v.toFixed(1)} ms` },
-			grid: { top: 50, right: 20, bottom: 30, left: 50 },
-			xAxis: {
-				type: 'category',
-				data: apiLatencyTrend.map((r) => formatTime(r.recordedAt)),
-				axisLabel: { color: '#9ca3af', rotate: 30, fontSize: 10 }
-			},
-			yAxis: {
-				type: 'value',
-				name: 'ms',
-				nameTextStyle: { color: '#9ca3af' },
-				axisLabel: { color: '#9ca3af' },
-				splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
-			},
-			series: [
-				{
-					type: 'line',
-					data: apiLatencyTrend.map((r) => r.value),
-					smooth: true,
-					lineStyle: { color: '#ff6b9d', width: 2 },
-					itemStyle: { color: '#ff6b9d' },
-					areaStyle: {
-						color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-							{ offset: 0, color: 'rgba(255,107,157,0.2)' },
-							{ offset: 1, color: 'rgba(255,107,157,0)' }
-						])
+		if (hasApiData) {
+			apiChart = echarts.init(apiChartEl, 'dark');
+			apiChart.setOption({
+				backgroundColor: 'transparent',
+				title: { text: 'API Latency', textStyle: { color: '#fff', fontSize: 14 } },
+				tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v.toFixed(1)} ms` },
+				grid: { top: 50, right: 20, bottom: 30, left: 50 },
+				xAxis: {
+					type: 'category',
+					data: apiLatencyTrend.map((r) => formatTime(r.recordedAt)),
+					axisLabel: { color: '#9ca3af', rotate: 30, fontSize: 10 }
+				},
+				yAxis: {
+					type: 'value',
+					name: 'ms',
+					nameTextStyle: { color: '#9ca3af' },
+					axisLabel: { color: '#9ca3af' },
+					splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+				},
+				series: [
+					{
+						type: 'line',
+						data: apiLatencyTrend.map((r) => r.value),
+						smooth: true,
+						lineStyle: { color: '#ff6b9d', width: 2 },
+						itemStyle: { color: '#ff6b9d' },
+						areaStyle: {
+							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+								{ offset: 0, color: 'rgba(255,107,157,0.2)' },
+								{ offset: 1, color: 'rgba(255,107,157,0)' }
+							])
+						}
 					}
-				}
-			]
-		});
+				]
+			});
+		}
 
 		// ── DB query duration line chart ──
-		dbChart = echarts.init(dbChartEl, 'dark');
-		dbChart.setOption({
-			backgroundColor: 'transparent',
-			title: { text: 'DB Query Duration', textStyle: { color: '#fff', fontSize: 14 } },
-			tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v.toFixed(1)} ms` },
-			grid: { top: 50, right: 20, bottom: 30, left: 50 },
-			xAxis: {
-				type: 'category',
-				data: dbQueryTrend.map((r) => formatTime(r.recordedAt)),
-				axisLabel: { color: '#9ca3af', rotate: 30, fontSize: 10 }
-			},
-			yAxis: {
-				type: 'value',
-				name: 'ms',
-				nameTextStyle: { color: '#9ca3af' },
-				axisLabel: { color: '#9ca3af' },
-				splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
-			},
-			series: [
-				{
-					type: 'line',
-					data: dbQueryTrend.map((r) => r.value),
-					smooth: true,
-					lineStyle: { color: '#60a5fa', width: 2 },
-					itemStyle: { color: '#60a5fa' },
-					areaStyle: {
-						color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-							{ offset: 0, color: 'rgba(96,165,250,0.2)' },
-							{ offset: 1, color: 'rgba(96,165,250,0)' }
-						])
+		if (hasDbData) {
+			dbChart = echarts.init(dbChartEl, 'dark');
+			dbChart.setOption({
+				backgroundColor: 'transparent',
+				title: { text: 'DB Query Duration', textStyle: { color: '#fff', fontSize: 14 } },
+				tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v.toFixed(1)} ms` },
+				grid: { top: 50, right: 20, bottom: 30, left: 50 },
+				xAxis: {
+					type: 'category',
+					data: dbQueryTrend.map((r) => formatTime(r.recordedAt)),
+					axisLabel: { color: '#9ca3af', rotate: 30, fontSize: 10 }
+				},
+				yAxis: {
+					type: 'value',
+					name: 'ms',
+					nameTextStyle: { color: '#9ca3af' },
+					axisLabel: { color: '#9ca3af' },
+					splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+				},
+				series: [
+					{
+						type: 'line',
+						data: dbQueryTrend.map((r) => r.value),
+						smooth: true,
+						lineStyle: { color: '#60a5fa', width: 2 },
+						itemStyle: { color: '#60a5fa' },
+						areaStyle: {
+							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+								{ offset: 0, color: 'rgba(96,165,250,0.2)' },
+								{ offset: 1, color: 'rgba(96,165,250,0)' }
+							])
+						}
 					}
-				}
-			]
-		});
+				]
+			});
+		}
 
 		// ── Socket connections gauge ──
 		gaugeChart = echarts.init(gaugeChartEl, 'dark');

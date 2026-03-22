@@ -32,6 +32,8 @@
 	}
 
 	onMount(() => {
+		if (networkTrend.length === 0) return;
+
 		const dates = networkTrend.map((r) => formatDate(r.date));
 
 		// ── RTT line chart ──

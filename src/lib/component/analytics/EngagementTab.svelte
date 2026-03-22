@@ -34,6 +34,8 @@
 	]);
 
 	onMount(() => {
+		if (matchesPerDay.length === 0) return;
+
 		areaChart = echarts.init(areaChartEl, 'dark');
 		areaChart.setOption({
 			backgroundColor: 'transparent',

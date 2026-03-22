@@ -527,6 +527,19 @@ class ServerGameRoom {
 		this.gameEnded = true;
 		this.stop();
 		const loser = winner === this.player1 ? this.player2 : this.player1;
+		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
+		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+
+		if (gameNotStarted || bothZero) {
+			const reason = gameNotStarted ? 'Player left before game started' : 'Player disconnected at 0-0';
+			broadcastRoomEvent(this.roomId, 'game:cancelled', {
+				roomId: this.roomId, reason,
+				leftUserId: loser.userId, stayedUserId: winner.userId,
+				stayedUsername: winner.username, settings: this.rawSettings,
+			});
+			return;
+		}
+
 		endGameState(this.state, winner.username);
 		const result = {
 			roomId: this.roomId,
@@ -538,7 +551,6 @@ class ServerGameRoom {
 			settings: this.rawSettings,
 		};
 		broadcastRoomEvent(this.roomId, 'game:forfeit', result);
-		// Clear playerRoomMap immediately so players can challenge again
 		playerRoomMap.delete(this.player1.userId);
 		playerRoomMap.delete(this.player2.userId);
 		saveOnlineMatch(result);
@@ -637,6 +649,150 @@ async function saveOnlineMatch(result) {
 		destroyGameRoom(result.roomId);
 	}
 }
+
+// ── Matchmaking Queue (inline — mirrors MatchmakingQueue.ts) ──────
+
+const matchQueue = new Map(); // userId → QueueEntry
+
+function resolveQueueSettings(mode, customSettings) {
+	if (mode === 'quick') return { speedPreset: 'normal', winScore: 5 };
+	if (mode === 'wild') return { speedPreset: 'normal', winScore: 5 }; // placeholder
+	return customSettings;
+}
+
+function randomWildSettings() {
+	const speeds = ['chill', 'normal', 'fast'];
+	const scores = [3, 5, 7, 11];
+	return {
+		speedPreset: speeds[Math.floor(Math.random() * speeds.length)],
+		winScore: scores[Math.floor(Math.random() * scores.length)],
+	};
+}
+
+function isQueueCompatible(a, b) {
+	const now = Date.now();
+	const aFlexible = now >= a.flexibleAt;
+	const bFlexible = now >= b.flexibleAt;
+	const aDesperate = now >= a.joinedAt + 60000;
+	const bDesperate = now >= b.joinedAt + 60000;
+
+	if (a.mode === 'wild' && b.mode === 'wild') return { player1: a, player2: b, settings: randomWildSettings() };
+	if (a.mode === 'wild') return { player1: a, player2: b, settings: b.settings };
+	if (b.mode === 'wild') return { player1: a, player2: b, settings: a.settings };
+	if (a.mode === 'quick' && b.mode === 'quick') return { player1: a, player2: b, settings: { speedPreset: 'normal', winScore: 5 } };
+	if (a.mode === 'quick' && b.mode === 'custom' && b.settings.speedPreset === 'normal' && b.settings.winScore === 5) return { player1: a, player2: b, settings: a.settings };
+	if (b.mode === 'quick' && a.mode === 'custom' && a.settings.speedPreset === 'normal' && a.settings.winScore === 5) return { player1: a, player2: b, settings: b.settings };
+	if (a.mode === 'custom' && b.mode === 'custom' && a.settings.speedPreset === b.settings.speedPreset && a.settings.winScore === b.settings.winScore) return { player1: a, player2: b, settings: a.settings };
+	if (aFlexible || bFlexible) {
+		if (a.mode === 'custom' && b.mode === 'custom' && a.settings.speedPreset === b.settings.speedPreset) {
+			return { player1: a, player2: b, settings: a.joinedAt <= b.joinedAt ? a.settings : b.settings };
+		}
+		if ((a.mode === 'quick' && b.mode === 'custom') || (a.mode === 'custom' && b.mode === 'quick')) {
+			const customPlayer = a.mode === 'custom' ? a : b;
+			return { player1: a, player2: b, settings: customPlayer.settings };
+		}
+	}
+	if (aDesperate || bDesperate) return { player1: a, player2: b, settings: a.joinedAt <= b.joinedAt ? a.settings : b.settings };
+	return null;
+}
+
+function addToMatchQueue(userId, username, avatarUrl, displayName, socketId, mode, customSettings) {
+	if (matchQueue.has(userId)) return null;
+	const now = Date.now();
+	const entry = { userId, username, avatarUrl, displayName, socketId, mode, settings: resolveQueueSettings(mode, customSettings), joinedAt: now, flexibleAt: now + 30000 };
+	matchQueue.set(userId, entry);
+	for (const [otherId, other] of matchQueue) {
+		if (otherId === userId) continue;
+		const result = isQueueCompatible(entry, other);
+		if (result) { matchQueue.delete(result.player1.userId); matchQueue.delete(result.player2.userId); return result; }
+	}
+	return null;
+}
+
+function removeFromMatchQueue(userId) { return matchQueue.delete(userId); }
+function isInMatchQueue(userId) { return matchQueue.has(userId); }
+function getMatchQueueSize() { return matchQueue.size; }
+function getMatchQueuePosition(userId) {
+	if (!matchQueue.has(userId)) return 0;
+	const entries = Array.from(matchQueue.values()).sort((a, b) => a.joinedAt - b.joinedAt);
+	return entries.findIndex(e => e.userId === userId) + 1;
+}
+function getMatchQueueEntries(excludeUserId) {
+	const result = [];
+	for (const [uid, entry] of matchQueue) { if (uid !== excludeUserId) result.push(entry); }
+	return result;
+}
+function getFriendsInMatchQueue(friendIds) {
+	const result = [];
+	for (const fid of friendIds) { const e = matchQueue.get(fid); if (e) result.push(e); }
+	return result;
+}
+function scanMatchQueue() {
+	const matches = [];
+	const matched = new Set();
+	const entries = Array.from(matchQueue.values());
+	for (let i = 0; i < entries.length; i++) {
+		if (matched.has(entries[i].userId)) continue;
+		for (let j = i + 1; j < entries.length; j++) {
+			if (matched.has(entries[j].userId)) continue;
+			const result = isQueueCompatible(entries[i], entries[j]);
+			if (result) {
+				matches.push(result);
+				matched.add(entries[i].userId);
+				matched.add(entries[j].userId);
+				matchQueue.delete(entries[i].userId);
+				matchQueue.delete(entries[j].userId);
+				break;
+			}
+		}
+	}
+	return matches;
+}
+function removeExpiredFromQueue() {
+	const now = Date.now();
+	const expired = [];
+	for (const [userId, entry] of matchQueue) {
+		if (now - entry.joinedAt > 5 * 60 * 1000) { matchQueue.delete(userId); expired.push(userId); }
+	}
+	return expired;
+}
+
+function startGameFromQueueMatch(match) {
+	const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	createGameRoom(roomId, { userId: match.player1.userId, username: match.player1.username }, { userId: match.player2.userId, username: match.player2.username }, match.settings);
+	const gameData = {
+		roomId,
+		player1: { userId: match.player1.userId, username: match.player1.username, avatarUrl: match.player1.avatarUrl, displayName: match.player1.displayName },
+		player2: { userId: match.player2.userId, username: match.player2.username, avatarUrl: match.player2.avatarUrl, displayName: match.player2.displayName },
+		settings: match.settings,
+	};
+	for (const uid of [match.player1.userId, match.player2.userId]) {
+		const sockets = userSockets.get(uid);
+		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:start', gameData); } }
+	}
+}
+
+async function notifyFriendsOfQueueChange(userId, username, mode, action) {
+	const friendIds = await getFriendIds(userId);
+	for (const fid of friendIds) {
+		const sockets = userSockets.get(fid);
+		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:queue-friend-update', { userId, username, mode, action }); } }
+	}
+}
+
+// Periodic queue scanner
+setInterval(() => {
+	const matches = scanMatchQueue();
+	for (const match of matches) startGameFromQueueMatch(match);
+}, 10000);
+
+setInterval(() => {
+	const expired = removeExpiredFromQueue();
+	for (const userId of expired) {
+		const sockets = userSockets.get(userId);
+		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:queue-expired'); } }
+	}
+}, 30000);
 
 // ── Socket.IO connection handler ──────────────────────────────────
 io.use(socketAuthMiddleware);
@@ -822,7 +978,82 @@ io.on('connection', (socket) => {
 	socket.on('game:leave', () => {
 		const room = getRoomByPlayerId(userId);
 		if (!room) return;
+		const roomId = room.roomId;
+		const opponentUserId = userId === room.player1.userId ? room.player2.userId : room.player1.userId;
+		const opponentUsername = userId === room.player1.userId ? room.player2.username : room.player1.username;
+		const settings = room.rawSettings;
+		const snapshot = room._getSnapshot();
+		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
+		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
+
 		room.forfeitByPlayer(userId);
+		if (activeRooms.has(roomId)) destroyGameRoom(roomId);
+
+		// Re-queue the remaining player if game was cancelled
+		if (isCancellable && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+			const opponentSockets = userSockets.get(opponentUserId);
+			if (opponentSockets && opponentSockets.size > 0) {
+				const firstSocketId = opponentSockets.values().next().value;
+				const match = addToMatchQueue(opponentUserId, opponentUsername, null, null, firstSocketId, 'custom', settings);
+				if (match) {
+					startGameFromQueueMatch(match);
+				} else {
+					for (const sid of opponentSockets) {
+						io.to(sid).emit('game:queue-joined', { queueSize: getMatchQueueSize(), position: getMatchQueuePosition(opponentUserId) });
+					}
+				}
+			}
+		}
+	});
+
+	// ── Queue handlers ───────────────────────────────────────────
+	socket.on('game:queue-join', async (data) => {
+		if (isPlayerInGame(userId)) { socket.emit('game:error', { message: 'You are already in a game' }); return; }
+		if (isInMatchQueue(userId)) { socket.emit('game:error', { message: 'You are already in the queue' }); return; }
+
+		const match = addToMatchQueue(userId, username, socket.data.avatarUrl ?? null, socket.data.displayName ?? null, socket.id, data.mode, data.settings);
+		if (match) {
+			startGameFromQueueMatch(match);
+			notifyFriendsOfQueueChange(match.player1.userId, match.player1.username, match.player1.mode, 'matched');
+			notifyFriendsOfQueueChange(match.player2.userId, match.player2.username, match.player2.mode, 'matched');
+		} else {
+			socket.emit('game:queue-joined', { queueSize: getMatchQueueSize(), position: getMatchQueuePosition(userId) });
+			notifyFriendsOfQueueChange(userId, username, data.mode, 'joined');
+		}
+	});
+
+	socket.on('game:queue-leave', () => {
+		const wasInQueue = removeFromMatchQueue(userId);
+		if (wasInQueue) {
+			socket.emit('game:queue-left');
+			notifyFriendsOfQueueChange(userId, username, null, 'left');
+		}
+	});
+
+	socket.on('game:queue-status', async (callback) => {
+		const friendIds = await getFriendIds(userId);
+		const friendsInQueue = getFriendsInMatchQueue(friendIds);
+		const queueEntries = getMatchQueueEntries(userId);
+		const response = {
+			queueSize: getMatchQueueSize(),
+			myPosition: getMatchQueuePosition(userId),
+			friendsInQueue: friendsInQueue.map(f => ({ userId: f.userId, username: f.username, mode: f.mode, settings: f.settings })),
+			queuePlayers: queueEntries.filter(e => !friendIds.includes(e.userId)).map(e => ({ id: e.userId, username: e.username, avatarUrl: e.avatarUrl, wins: 0, queueSettings: e.settings })),
+		};
+		if (typeof callback === 'function') callback(response);
+		else socket.emit('game:queue-status', response);
+	});
+
+	socket.on('game:invite-cancel', () => {
+		for (const [inviteId, invite] of activeInvites) {
+			if (invite.fromUserId === userId) {
+				clearTimeout(invite.timeout);
+				activeInvites.delete(inviteId);
+				const targetSockets = userSockets.get(invite.toUserId);
+				if (targetSockets) { for (const sid of targetSockets) { io.to(sid).emit('game:invite-cancelled', { inviteId }); } }
+				break;
+			}
+		}
 	});
 
 	// ── Disconnect ────────────────────────────────────────────────
@@ -835,6 +1066,12 @@ io.on('connection', (socket) => {
 			if (sockets.size === 0) {
 				userSockets.delete(userId);
 			}
+		}
+
+		// Queue cleanup
+		if (isInMatchQueue(userId)) {
+			removeFromMatchQueue(userId);
+			notifyFriendsOfQueueChange(userId, username, null, 'left');
 		}
 
 		// Clean up game invites

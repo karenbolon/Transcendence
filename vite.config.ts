@@ -25,7 +25,8 @@ function socketIODevPlugin() {
 						const { initSocketIO } = await server.ssrLoadModule('$lib/server/socket/index.ts');
 						const { socketAuthMiddleware, registerPresence } = await server.ssrLoadModule('$lib/server/socket/auth.ts');
 						const { registerFriendHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/friends.ts');
-						const { registerGameHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/game.ts');
+						const { registerGameHandlers, startGameFromMatch } = await server.ssrLoadModule('$lib/server/socket/handlers/game.ts');
+						const { scanForMatches, removeExpired } = await server.ssrLoadModule('$lib/server/socket/game/MatchmakingQueue.ts');
 
 						const io = initSocketIO(server.httpServer!);
 						io.use(socketAuthMiddleware);
@@ -40,6 +41,18 @@ function socketIODevPlugin() {
 								socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User disconnected');
 							});
 						});
+
+						// Periodic queue scanner
+						setInterval(() => {
+							const matches = scanForMatches();
+							for (const match of matches) {
+								startGameFromMatch(match);
+							}
+						}, 10000);
+
+						setInterval(() => {
+							removeExpired();
+						}, 30000);
 
 						socketLog.info('Attached to Vite dev server');
 					} catch (err) {

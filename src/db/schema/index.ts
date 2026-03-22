@@ -9,8 +9,10 @@ import { friendships } from './friendships';
 import { achievements } from './achievements';
 import { player_progression } from './player_progression';
 import { achievement_definitions } from './achievement_definitions';
+import { game_metrics } from './game_metrics';
+import { server_metrics } from './server_metrics';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions, game_metrics, server_metrics };
 
 export const usersRelations = relations(users, ({ one, many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),
@@ -25,6 +27,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 	tournamentsWon: many(tournaments, { relationName: 'wonTournaments' }),
 	analyticsEvents: many(analytics, { relationName: 'userAnalytics' }),
 	achievements: many(achievements, { relationName: 'userAchievements' }),
+	gameMetrics: many(game_metrics, { relationName: 'userGameMetrics' }),
 	progression: one(player_progression, {
 		fields: [users.id],
 		references: [player_progression.user_id],
@@ -49,7 +52,8 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
 		relationName: 'winner'
 	}),
 	messages: many(messages, { relationName: 'gameMessages' }),
-	analyticsEvents: many(analytics, { relationName: 'gameAnalytics' })
+	analyticsEvents: many(analytics, { relationName: 'gameAnalytics' }),
+	metrics: many(game_metrics, { relationName: 'gameMetrics' }),
 }));
 
 export const friendshipsRelations = relations(friendships, ({ one }) => ({
@@ -155,6 +159,19 @@ export const analyticsRelations = relations(analytics, ({ one }) => ({
 	})
 }));
 
+export const gameMetricsRelations = relations(game_metrics, ({ one }) => ({
+	game: one(games, {
+		fields: [game_metrics.game_id],
+		references: [games.id],
+		relationName: 'gameMetrics'
+	}),
+	user: one(users, {
+		fields: [game_metrics.user_id],
+		references: [users.id],
+		relationName: 'userGameMetrics'
+	})
+}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -184,3 +201,9 @@ export type NewPlayerProgression = typeof player_progression.$inferInsert;
 
 export type AchievementDefinition = typeof achievement_definitions.$inferSelect;
 export type NewAchievementDefinition = typeof achievement_definitions.$inferInsert;
+
+export type GameMetric = typeof game_metrics.$inferSelect;
+export type NewGameMetric = typeof game_metrics.$inferInsert;
+
+export type ServerMetric = typeof server_metrics.$inferSelect;
+export type NewServerMetric = typeof server_metrics.$inferInsert;

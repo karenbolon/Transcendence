@@ -12,3 +12,4 @@ export const dbLogger = logger.child({ component: 'drizzle' });
 export const authLogger = logger.child({ component: 'auth' });
 export const socketLogger = logger.child({ component: 'socket.io' });
 export const apiLogger = logger.child({ component: 'api' });
+export const gameLogger = logger.child({ component: 'game' });

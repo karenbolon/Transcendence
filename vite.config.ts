@@ -22,6 +22,9 @@ function socketIODevPlugin() {
 					ioAttached = true;
 
 					try {
+						const { initTelemetry } = await server.ssrLoadModule('$lib/server/telemetry/index.ts');
+						initTelemetry();
+
 						const { initSocketIO } = await server.ssrLoadModule('$lib/server/socket/index.ts');
 						const { socketAuthMiddleware, registerPresence } = await server.ssrLoadModule('$lib/server/socket/auth.ts');
 						const { registerFriendHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/friends.ts');

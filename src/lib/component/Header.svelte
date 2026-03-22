@@ -52,6 +52,7 @@
 					<a href="/leaderboard" class="nav-link">Leaderboard</a>
 					<a href="/tournaments" class="nav-link">Tournaments</a>
 					<a href="/friends" class="nav-link">Friends</a>
+					<a href="/analytics" class="nav-link">Analytics</a>
 				{:else}
 					<a href="/instructions" class="nav-link">Instructions</a>
 					<a href="/about" class="nav-link">About</a>

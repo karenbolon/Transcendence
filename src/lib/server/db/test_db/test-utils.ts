@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '../index';
-import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, player_progression, achievements, achievement_definitions } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, player_progression, achievements, achievement_definitions, game_metrics, server_metrics } from '../schema';
 import type { User } from '../schema';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -28,6 +28,8 @@ export async function cleanDatabase() {
 	// 7. Tournaments depend on Users
 	// 8. Users have no dependencies
 
+	await db.delete(game_metrics).execute().catch(() => { });
+	await db.delete(server_metrics).execute().catch(() => { });
 	await db.delete(analytics).execute().catch(() => { });
 	await db.delete(messages).execute().catch(() => { });
 	await db.delete(sessions).execute().catch(() => { });

@@ -226,8 +226,9 @@ jobs:
               "pod": "'"$POD_NAME"'",
               "env": {
                 "DATABASE_URL": "postgresql://transcendence:transcendence@localhost:5432/transcendence",
-                "NODE_ENV": "production"
-              },
+                "NODE_ENV": "production",
+                "VITE_DEBUG_HUD": "true"  
+             },
               "labels": {
                 "app": "'"$REPO_NAME"'",
                 "branch": "'"$BRANCH_SLUG"'"

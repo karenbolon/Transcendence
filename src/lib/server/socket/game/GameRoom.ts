@@ -11,6 +11,7 @@ import {
 	type SpeedPreset,
 } from '$lib/component/pong/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
+import { gameLogger } from '$lib/server/logger';
 
 export type { GameResult, GameStateSnapshot };
 
@@ -55,6 +56,12 @@ export class GameRoom {
 	private disconnectTimers = new Map<number, ReturnType<typeof setTimeout>>();
 	private destroyed = false;
 	private gameEnded = false;
+
+	// ── Tick Profiling ───────────────────────────────────────
+	private tickDurations: number[] = [];
+	private tickCount = 0;
+	private lastProfileLog = 0;
+	private readonly PROFILE_INTERVAL = 5000; // Log every 5 seconds
 
 	constructor(options: GameRoomOptions) {
 		this.roomId = options.roomId;
@@ -182,6 +189,8 @@ export class GameRoom {
 	private tick(): void {
 		if (this.destroyed) return;
 
+		const tickStart = performance.now();
+
 		// Calculate delta time since last tick
 		const now = Date.now();
 		const dt = (now - this.lastTick) / 1000;  // Convert to seconds
@@ -215,8 +224,49 @@ export class GameRoom {
 			return;
 		}
 
+		// ── Tick Profiling ───────────────────────────────────
+		const tickDuration = performance.now() - tickStart;
+		this.tickDurations.push(tickDuration);
+		this.tickCount++;
+
+		if (tickDuration > TICK_INTERVAL * 0.8) {
+			gameLogger.warn({
+				roomId: this.roomId,
+				tickMs: +tickDuration.toFixed(2),
+				budgetMs: +TICK_INTERVAL.toFixed(2),
+			}, 'Slow tick exceeded 80% of budget');
+		}
+
+		if (now - this.lastProfileLog >= this.PROFILE_INTERVAL) {
+			this.logTickProfile();
+			this.lastProfileLog = now;
+		}
+
 		// Send current state to both players
 		this.broadcastState(this.roomId, this.getSnapshot());
+	}
+
+	// ── Tick Profiling ───────────────────────────────────────
+	private logTickProfile(): void {
+		if (this.tickDurations.length === 0) return;
+
+		const durations = this.tickDurations;
+		const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+		const max = Math.max(...durations);
+		const min = Math.min(...durations);
+		const overBudget = durations.filter(d => d > TICK_INTERVAL).length;
+
+		gameLogger.info({
+			roomId: this.roomId,
+			tickCount: this.tickCount,
+			avgTickMs: +avg.toFixed(2),
+			maxTickMs: +max.toFixed(2),
+			minTickMs: +min.toFixed(2),
+			overBudgetTicks: overBudget,
+			sampleSize: durations.length,
+		}, 'Tick profile');
+
+		this.tickDurations = [];
 	}
 
 	// ── State Snapshot ────────────────────────────────────────
@@ -314,6 +364,7 @@ export class GameRoom {
 
 	/** Full cleanup — stop loop + cancel all timers */
 	destroy(): void {
+		this.logTickProfile(); // Flush remaining profiling data
 		this.destroyed = true;
 		this.stop();
 		for (const timer of this.disconnectTimers.values()) {

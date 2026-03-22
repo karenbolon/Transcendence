@@ -122,11 +122,14 @@
 		// Render loop — interpolates between the two most recent server snapshots
 		let animFrame: number;
 		function renderLoop() {
+			const now = performance.now();
+			if (debugEnabled) metrics!.recordFrame(now);
+
 			if (currSnapshot) {
 				let stateToRender: GameStateSnapshot;
 
 				if (prevSnapshot) {
-					const elapsed = performance.now() - prevSnapshot.receivedAt;
+					const elapsed = now - prevSnapshot.receivedAt;
 					const interval =
 						currSnapshot.receivedAt - prevSnapshot.receivedAt;
 					const t = interval > 0 ? elapsed / interval : 1;
@@ -150,8 +153,7 @@
 						// center and snap it back every frame, causing the exact jitter
 						// we are trying to fix.
 						const overTimeSec =
-							(performance.now() - currSnapshot.receivedAt) /
-							1000;
+							(now - currSnapshot.receivedAt) / 1000;
 						const ballMoved =
 							Math.abs(
 								currSnapshot.state.ballX -
@@ -179,6 +181,11 @@
 				}
 
 				draw(ctx!, stateToRender);
+				if (debugEnabled) drawDebugHud(ctx!, metrics!.getMetrics());
+			}
+
+			if (debugEnabled && metrics!.shouldPing(now)) {
+				socket!.emit("game:ping", { timestamp: Date.now() });
 			}
 
 			animFrame = requestAnimationFrame(renderLoop);

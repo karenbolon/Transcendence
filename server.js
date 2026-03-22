@@ -642,6 +642,38 @@ async function saveOnlineMatch(result) {
 			WHERE id = ${result.player2.userId}
 		`;
 
+		// Auto-detect preferences for both players
+		for (const playerId of [result.player1.userId, result.player2.userId]) {
+			try {
+				const recentGames = await sql`
+					SELECT speed_preset, winner_score
+					FROM games
+					WHERE (player1_id = ${playerId} OR player2_id = ${playerId})
+					  AND status = 'finished'
+					ORDER BY finished_at DESC
+					LIMIT 6
+				`;
+				if (recentGames.length >= 4) {
+					const comboCounts = new Map();
+					for (const g of recentGames) {
+						const key = `${g.speed_preset}:${g.winner_score}`;
+						comboCounts.set(key, (comboCounts.get(key) ?? 0) + 1);
+					}
+					for (const [key, count] of comboCounts) {
+						if (count >= 4) {
+							const [speedPreset, winScoreStr] = key.split(':');
+							const winScore = Number(winScoreStr);
+							await sql`
+								UPDATE users SET game_preferences = ${JSON.stringify({ speedPreset, winScore })}::jsonb
+								WHERE id = ${playerId}
+							`;
+							break;
+						}
+					}
+				}
+			} catch (e) { /* silently fail — preferences are a nice-to-have */ }
+		}
+
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
 	} catch (err) {
 		console.error('[GameRoom] Failed to save match:', err);

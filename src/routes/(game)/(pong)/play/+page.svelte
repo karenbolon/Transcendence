@@ -10,6 +10,8 @@
 	import NoiseGrain from "$lib/component/effect/NoiseGrain.svelte";
 	import {
 		SPEED_CONFIGS,
+		pauseGame,
+		resumeGame,
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
@@ -33,6 +35,7 @@
 	type OnlineFriend = {
 		id: number;
 		username: string;
+		displayName: string | null;
 		avatarUrl: string | null;
 		isOnline: boolean;
 		inQueue: boolean;
@@ -59,26 +62,24 @@
 	let matchFound = $state(false);
 	let matchData = $state<{ roomId: string; player1: any; player2: any; settings: any } | null>(null);
 
-	// Initialize friends from layout data
-	function initFriendsFromLayout() {
-		onlineFriends = (layoutData?.friends ?? []).map((f: any) => ({
-			id: f.id,
-			username: f.username,
-			avatarUrl: f.avatar_url,
-			isOnline: f.is_online ?? false,
-			inQueue: false,
-		}));
-	}
+	// Track queue status separately so it doesn't cause re-render loops
+	let friendQueueMap = new Map<number, { speedPreset: string; winScore: number } | undefined>();
 
-	// Refresh friends when switching to online tab
+	// Keep friends in sync with layout data (auto-updates on invalidateAll)
+	let baseFriends = $derived((layoutData?.friends ?? []).map((f: any) => ({
+		id: f.id as number,
+		username: f.username as string,
+		displayName: (f.name ?? f.username) as string | null,
+		avatarUrl: f.avatar_url as string | null,
+		isOnline: (f.is_online ?? false) as boolean,
+	})));
+
 	$effect(() => {
-		if (gameMode === 'online' && isLoggedIn) {
-			// Re-fetch layout data to get fresh friend online status from DB
-			invalidateAll().then(() => {
-				initFriendsFromLayout();
-				fetchQueueStatus();
-			});
-		}
+		onlineFriends = baseFriends.map((f: typeof baseFriends[number]) => ({
+			...f,
+			inQueue: friendQueueMap.has(f.id),
+			queueSettings: friendQueueMap.get(f.id),
+		}));
 	});
 
 	function fetchQueueStatus() {
@@ -89,18 +90,10 @@
 			queueSize = data.queueSize ?? 0;
 			queuePlayers = data.queuePlayers ?? [];
 			if (isSearching) queuePosition = data.myPosition ?? 0;
-			// Update friends' queue status
-			const friendsInQueueIds = new Set(
-				(data.friendsInQueue ?? []).map((f: any) => f.userId)
-			);
-			const friendsQueueMap = new Map<number, { speedPreset: string; winScore: number }>(
+			// Update friends' queue status via the map (triggers $effect to rebuild onlineFriends)
+			friendQueueMap = new Map<number, { speedPreset: string; winScore: number } | undefined>(
 				(data.friendsInQueue ?? []).map((f: any) => [f.userId, f.settings])
 			);
-			onlineFriends = onlineFriends.map(f => ({
-				...f,
-				inQueue: friendsInQueueIds.has(f.id),
-				queueSettings: friendsQueueMap.get(f.id) ?? undefined,
-			}));
 		});
 	}
 
@@ -108,7 +101,6 @@
 	onMount(() => {
 		if (!isLoggedIn) return;
 		connectSocket();
-		initFriendsFromLayout();
 
 		const socket = getSocket();
 		if (!socket) return;
@@ -129,17 +121,9 @@
 			} else if (isSearching) {
 				queuePosition = myPos;
 			}
-			const friendsInQueueIds = new Set(
-				(data.friendsInQueue ?? []).map((f: any) => f.userId)
-			);
-			const friendsQueueMap = new Map<number, { speedPreset: string; winScore: number }>(
+			friendQueueMap = new Map<number, { speedPreset: string; winScore: number } | undefined>(
 				(data.friendsInQueue ?? []).map((f: any) => [f.userId, f.settings])
 			);
-			onlineFriends = onlineFriends.map(f => ({
-				...f,
-				inQueue: friendsInQueueIds.has(f.id),
-				queueSettings: friendsQueueMap.get(f.id) ?? undefined,
-			}));
 		});
 
 		function handleGameStart(data: { roomId: string; player1: any; player2: any; settings: any }) {
@@ -154,33 +138,25 @@
 				// Playing local/computer — pause game and show match found modal
 				matchFound = true;
 				matchData = data;
-				if (pongGame) pongGame.pause();
+				if (pongGame) pauseGame(pongGame.getGameState());
 			}
 		}
 
-		function handleFriendOnline(data: { userId: number }) {
-			onlineFriends = onlineFriends.map(f =>
-				f.id === data.userId ? { ...f, isOnline: true } : f
-			);
-		}
-
-		function handleFriendOffline(data: { userId: number }) {
-			onlineFriends = onlineFriends.map(f =>
-				f.id === data.userId ? { ...f, isOnline: false, inQueue: false } : f
-			);
-		}
+		// Layout already calls invalidateAll on friend:online/offline
+		// which updates baseFriends via layoutData — no need to handle here
+		function handleFriendOnline() {}
+		function handleFriendOffline() {}
 
 		function handleQueueFriendUpdate(data: { userId: number; username: string; mode: string | null; action: string }) {
 			if (data.action === 'joined') {
-				onlineFriends = onlineFriends.map(f =>
-					f.id === data.userId ? { ...f, inQueue: true } : f
-				);
+				const newMap = new Map(friendQueueMap);
+				newMap.set(data.userId, undefined);
+				friendQueueMap = newMap;
 			} else if (data.action === 'left' || data.action === 'matched') {
-				onlineFriends = onlineFriends.map(f =>
-					f.id === data.userId ? { ...f, inQueue: false, queueSettings: undefined } : f
-				);
+				const newMap = new Map(friendQueueMap);
+				newMap.delete(data.userId);
+				friendQueueMap = newMap;
 			}
-			// Refresh queue size
 			fetchQueueStatus();
 		}
 
@@ -278,7 +254,7 @@
 		socket?.emit('game:leave');
 		matchFound = false;
 		matchData = null;
-		if (pongGame) pongGame.resume();
+		if (pongGame) resumeGame(pongGame.getGameState());
 	}
 
 	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }) {
@@ -298,8 +274,8 @@
 			},
 			opponent: {
 				username: friend.username,
-				avatarUrl: friend.avatarUrl,
-				displayName: null,
+				avatarUrl: friend.avatarUrl ?? null,
+				displayName: friend.displayName ?? friend.username,
 			},
 			settings: {
 				speedPreset: challengeSettings.speedPreset,
@@ -346,7 +322,7 @@
 	});
 
 	// Update URL when game mode changes via UI (without adding history entries)
-	let lastSyncedMode = gameMode;
+	let lastSyncedMode = getModeFromUrl();
 	$effect(() => {
 		if (gameMode === lastSyncedMode) return;
 		lastSyncedMode = gameMode;
@@ -361,8 +337,9 @@
 
 	// ── Navigation guard: warn before leaving while in queue ──
 	beforeNavigate(({ cancel, to }) => {
-		// Allow navigation within the play page (e.g. online game room)
-		if (to?.url.pathname.startsWith('/play')) return;
+		// Allow: no destination (refresh), same page, or within /play routes
+		if (!to) return;
+		if (to.url.pathname.startsWith('/play')) return;
 		if (isSearching) {
 			const leave = confirm('You are searching for a match. Leave the queue?');
 			if (leave) {

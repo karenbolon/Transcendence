@@ -34,6 +34,7 @@ export async function getFriendProfiles(userId: number) {
 		.select({
 			id: users.id,
 			username: users.username,
+			name: users.name,
 			avatar_url: users.avatar_url,
 			is_online: users.is_online,
 		})

@@ -5,6 +5,7 @@
 	type FriendInfo = {
 		id: number;
 		username: string;
+		displayName: string | null;
 		avatarUrl: string | null;
 		isOnline: boolean;
 		inQueue: boolean;
@@ -60,7 +61,7 @@
 						status="online"
 					/>
 					<div class="player-info">
-						<span class="player-name">{friend.username}</span>
+						<span class="player-name">{friend.displayName ?? friend.username}</span>
 						<span class="player-detail">
 							{#if friend.queueSettings}
 								{speedEmoji(friend.queueSettings.speedPreset)} {capitalize(friend.queueSettings.speedPreset)} · First to {friend.queueSettings.winScore}
@@ -82,7 +83,7 @@
 						status="online"
 					/>
 					<div class="player-info">
-						<span class="player-name">{friend.username}</span>
+						<span class="player-name">{friend.displayName ?? friend.username}</span>
 						<span class="player-detail">Online</span>
 					</div>
 					<button class="btn-challenge" disabled={searching} onclick={() => onChallenge(friend, getActiveSettings())}>

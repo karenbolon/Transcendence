@@ -3,6 +3,29 @@ import type { DebugMetrics } from '$lib/types/game';
 const JITTER_SAMPLE_SIZE = 60; // ~1 second of samples at 60fps
 const PING_INTERVAL = 2000;    // Send ping every 2 seconds
 
+export interface MetricsReport {
+    avgRtt: number;
+    p95Rtt: number;
+    avgJitter: number;
+    p95Jitter: number;
+    avgFps: number;
+    minFps: number;
+    browser: string;
+    viewportWidth: number;
+    viewportHeight: number;
+}
+
+function avg(arr: number[]): number {
+    if (arr.length === 0) return 0;
+    return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+}
+
+function percentile(sorted: number[], p: number): number {
+    if (sorted.length === 0) return 0;
+    const idx = Math.ceil((p / 100) * sorted.length) - 1;
+    return Math.round(sorted[Math.max(0, idx)] * 10) / 10;
+}
+
 export class MetricsCollector {
     // FPS tracking
     private frameCount = 0;
@@ -21,6 +44,10 @@ export class MetricsCollector {
     // State age
     private lastStateAge = 0;
 
+    // Summary sample arrays
+    private rttSamples: number[] = [];
+    private fpsSamples: number[] = [];
+
     // Frame-by-frame recording for export
     private recordings: string[] = [];
 
@@ -29,6 +56,7 @@ export class MetricsCollector {
         this.frameCount++;
         if (now - this.lastFpsUpdate >= 1000) {
             this.currentFps = this.frameCount;
+            if (this.currentFps > 0) this.fpsSamples.push(this.currentFps);
             this.frameCount = 0;
             this.lastFpsUpdate = now;
         }
@@ -69,6 +97,7 @@ export class MetricsCollector {
     /** Call this when game:pong arrives */
     recordPong(clientTimestamp: number): void {
         this.currentRtt = Date.now() - clientTimestamp;
+        this.rttSamples.push(this.currentRtt);
     }
 
     /** Get current metrics snapshot for HUD rendering */
@@ -87,6 +116,25 @@ export class MetricsCollector {
         const mean = this.snapshotDeltas.reduce((a, b) => a + b, 0) / this.snapshotDeltas.length;
         const variance = this.snapshotDeltas.reduce((sum, d) => sum + (d - mean) ** 2, 0) / this.snapshotDeltas.length;
         return Math.sqrt(variance);
+    }
+
+    /** Get a summary report of all collected metrics */
+    getSummary(): MetricsReport {
+        const sortedRtt = [...this.rttSamples].sort((a, b) => a - b);
+        const sortedJitter = [...this.snapshotDeltas].sort((a, b) => a - b);
+        const sortedFps = [...this.fpsSamples].sort((a, b) => a - b);
+
+        return {
+            avgRtt: avg(sortedRtt),
+            p95Rtt: percentile(sortedRtt, 95),
+            avgJitter: avg(sortedJitter),
+            p95Jitter: percentile(sortedJitter, 95),
+            avgFps: avg(sortedFps),
+            minFps: sortedFps[0] ?? 0,
+            browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+            viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 0,
+            viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
+        };
     }
 
     /** Download all recorded frames as a JSONL file */
@@ -112,6 +160,8 @@ export class MetricsCollector {
         this.currentRtt = 0;
         this.lastPingSent = 0;
         this.lastStateAge = 0;
+        this.rttSamples = [];
+        this.fpsSamples = [];
         this.recordings = [];
     }
 }

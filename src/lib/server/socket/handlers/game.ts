@@ -8,6 +8,9 @@ import {
 	isPlayerInGame,
 } from '../game/RoomManager';
 import type { GameStateSnapshot } from '$lib/types/game';
+import { db } from '$lib/server/db';
+import { game_metrics } from '$lib/server/db/schema';
+import { socketLogger } from '$lib/server/logger';
 
 // Track active game invites: inviteId → invite data
 const activeInvites = new Map<string, {
@@ -211,6 +214,11 @@ export function registerGameHandlers(socket: Socket) {
 		room.handleInput(userId, data.direction);
 	});
 
+	// Echo ping for client RTT measurement
+	socket.on('game:ping', (data: { timestamp: number }) => {
+		socket.emit('game:pong', { clientTimestamp: data.timestamp });
+	});
+
 	// Decline an invite
 	socket.on('game:invite-decline', (data: { inviteId: string }) => {
 		const invite = activeInvites.get(data.inviteId);
@@ -254,6 +262,38 @@ export function registerGameHandlers(socket: Socket) {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
 		room.forfeitByPlayer(userId);
+	});
+
+	// Save client-reported game metrics after a match ends
+	socket.on('game:metrics-report', async (data: {
+		roomId: string;
+		avgRtt: number;
+		p95Rtt: number;
+		avgJitter: number;
+		p95Jitter: number;
+		avgFps: number;
+		minFps: number;
+		browser: string;
+		viewportWidth: number;
+		viewportHeight: number;
+	}) => {
+		try {
+			await db.insert(game_metrics).values({
+				user_id: userId,
+				avg_rtt: data.avgRtt,
+				p95_rtt: data.p95Rtt,
+				avg_jitter: data.avgJitter,
+				p95_jitter: data.p95Jitter,
+				avg_fps: data.avgFps,
+				min_fps: data.minFps,
+				browser: data.browser.slice(0, 200),
+				viewport_width: data.viewportWidth,
+				viewport_height: data.viewportHeight,
+			});
+			socketLogger.debug({ userId }, 'Saved game metrics');
+		} catch (err) {
+			socketLogger.error({ err }, 'Failed to save game metrics');
+		}
 	});
 
 	// Clean up on disconnect

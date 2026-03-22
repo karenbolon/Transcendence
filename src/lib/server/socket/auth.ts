@@ -1,6 +1,7 @@
 import { lucia } from '$lib/server/auth/lucia';
 import type { Socket } from 'socket.io';
 import { userSockets } from './index';
+import { getInstruments } from '$lib/server/telemetry/instruments';
 
 /**
  * Parse a cookie string into key-value pairs.
@@ -59,12 +60,14 @@ export function registerPresence(socket: Socket) {
 		userSockets.set(userId, new Set());
 	}
 	userSockets.get(userId)!.add(socket.id);
+	getInstruments().socketConnections.add(1);
 
 	// On disconnect, remove from map
 	socket.on('disconnect', () => {
 		const sockets = userSockets.get(userId);
 		if (sockets) {
 			sockets.delete(socket.id);
+			getInstruments().socketConnections.add(-1);
 			if (sockets.size === 0) {
 				userSockets.delete(userId);
 			}

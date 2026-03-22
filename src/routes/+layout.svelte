@@ -72,10 +72,10 @@
 
 				socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
 					pendingInvite = null;
-					// If on the waiting page, let that page handle the navigation
-					if (!$page.url.pathname.includes('/play/online/waiting')) {
-						goto(`/play/online/${evtData.roomId}`);
-					}
+					// Let the play page and waiting page handle their own game:start
+					const path = $page.url.pathname;
+					if (path.startsWith('/play')) return;
+					goto(`/play/online/${evtData.roomId}`);
 				});
 
 			}

@@ -7,8 +7,8 @@
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
-	import Starfield from '$lib/component/Starfield.svelte';
-	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
+	import Starfield from '$lib/component/effect/Starfield.svelte';
+	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 
 	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
 
@@ -235,7 +235,7 @@
 		<div class="tab-content">
 			<div class="content-header">
 				{#if activeTab === 'find'}
-					<h2 class="content-title">Find Friends</h2>
+					<h2 class="content-title">Add Friends</h2>
 				{:else if activeTab === 'friends'}
 					<h2 class="content-title">All Friends</h2>
 					<span class="content-count">{onlineFriends.length + offlineFriends.length}</span>
@@ -293,7 +293,7 @@
 												onclick={() => friendAction('request', user.id, 'Friend request sent')}
 											>Add Friend</button>
 										{/if}
-										<button class="btn btn-challenge" onclick={() => openChallenge(user.id, user.username, user.name, user.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
+										<!-- <button class="btn btn-challenge" onclick={() => openChallenge(user.id, user.username, user.name, user.avatar_url)}><span class="btn-icon">👾</span> Challenge</button> -->
 									</div>
 								</div>
 							{/each}

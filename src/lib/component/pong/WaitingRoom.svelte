@@ -4,7 +4,7 @@
 	import UserAvatar from '../UserAvatar.svelte';
 
 	type LobbyState = 'waiting' | 'connecting' | 'declined' | 'expired';
-	type SpeedOption = 'chill' | 'normal' | 'fast';
+	type SpeedOption = 'chill' | 'normal' | 'fast' | 'random';
 
 	type Props = {
 		lobbyState: LobbyState;
@@ -18,10 +18,17 @@
 
 	let { lobbyState, you, opponent, settings, timeLeft, totalTime, onCancel }: Props = $props();
 
-	let progress = $derived((timeLeft / totalTime) * 100);
-	let isUrgent = $derived(timeLeft <= 10);
+	let isQueueMode = $derived(totalTime < 0);
+	let progress = $derived(isQueueMode ? 100 : (timeLeft / totalTime) * 100);
+	let isUrgent = $derived(!isQueueMode && timeLeft <= 10);
 
 	function timerDisplay() {
+		if (isQueueMode) {
+			// Count up: show minutes:seconds
+			const mins = Math.floor(timeLeft / 60);
+			const secs = timeLeft % 60;
+			return `${mins}:${String(secs).padStart(2, '0')}`;
+		}
 		return `0:${String(timeLeft).padStart(2, '0')}`;
 	}
 
@@ -113,41 +120,50 @@
 
 	<!-- Match settings -->
 	<div class="settings-row">
-		<div class="setting">
-			<span class="setting-value">{speedEmoji(settings.speedPreset)} {capitalize(settings.speedPreset)}</span>
-			<span class="setting-label">Speed</span>
-		</div>
-		<div class="setting">
-			<span class="setting-value">{scoreLabels[settings.winScore] ?? settings.winScore}</span>
-			<span class="setting-label">First to</span>
-		</div>
-		<div class="setting">
-			<span class="setting-value">{modeLabels[settings.mode] ?? settings.mode}</span>
-			<span class="setting-label">Mode</span>
-		</div>
+		{#if settings.mode === 'wild'}
+			<div class="setting">
+				<span class="setting-value">🎲 Random</span>
+				<span class="setting-label">Settings chosen at match time</span>
+			</div>
+		{:else}
+			<div class="setting">
+				<span class="setting-value">{speedEmoji(settings.speedPreset)} {capitalize(settings.speedPreset)}</span>
+				<span class="setting-label">Speed</span>
+			</div>
+			<div class="setting">
+				<span class="setting-value">{scoreLabels[settings.winScore] ?? settings.winScore}</span>
+				<span class="setting-label">First to</span>
+			</div>
+			<div class="setting">
+				<span class="setting-value">{modeLabels[settings.mode] ?? settings.mode}</span>
+				<span class="setting-label">Mode</span>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Timer (only during waiting) -->
 	{#if lobbyState === 'waiting'}
 		<div class="timer-area">
-			<span class="timer-hint">Challenge expires in</span>
-			<span class="timer-display" class:urgent={isUrgent}>{timerDisplay()}</span>
-			<div class="timer-track">
-				<div
-					class="timer-bar"
-					class:urgent={isUrgent}
-					style="width: {progress}%"
-				></div>
-			</div>
+			{#if isQueueMode}
+				<span class="timer-hint">Searching for</span>
+				<span class="timer-display">{timerDisplay()}</span>
+				<!-- No progress bar for queue — duration unknown -->
+			{:else}
+				<span class="timer-hint">Challenge expires in</span>
+				<span class="timer-display" class:urgent={isUrgent}>{timerDisplay()}</span>
+				<div class="timer-track">
+					<div class="timer-bar" class:urgent={isUrgent} style="width: {progress}%"></div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
 	<!-- Actions -->
 	<div class="actions">
 		{#if lobbyState === 'waiting'}
-			<button class="btn btn-cancel" onclick={onCancel}>Cancel challenge</button>
+			<button class="btn btn-cancel" onclick={onCancel}>{isQueueMode ? 'Leave Queue' : 'Cancel challenge'}</button>
 		{:else if lobbyState === 'declined' || lobbyState === 'expired'}
-			<button class="btn btn-back" onclick={onCancel}>← Back</button>
+			<button class="btn btn-back" onclick={onCancel}>Go back</button>
 		{/if}
 	</div>
 </div>
@@ -514,6 +530,7 @@
 	.btn-back:hover {
 		background: rgba(255, 107, 157, 0.12);
 	}
+
 
 	/* ═════════════════════════════════════════════════
 	   ANIMATIONS

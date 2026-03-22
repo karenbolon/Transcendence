@@ -277,6 +277,31 @@ export class GameRoom {
 		this.stop();
 
 		const loser = winner === this.player1 ? this.player2 : this.player1;
+		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
+		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+
+		// Fair forfeit rules:
+		// - Game hasn't started yet → no winner, just cancel
+		// - Score is 0-0 → no winner (could be connection issue)
+		// - Score is 1+ → remaining player wins
+		if (gameNotStarted || bothZero) {
+			const reason = gameNotStarted
+				? 'Player left before game started'
+				: 'Player disconnected at 0-0';
+			this.broadcastEvent(this.roomId, 'game:cancelled', {
+				roomId: this.roomId,
+				reason,
+				leftUserId: loser.userId,
+				stayedUserId: winner.userId,
+				stayedUsername: winner.username,
+				settings: this.rawSettings,
+			});
+			// No onGameEnd → no stats saved, no wins/losses recorded
+			// RoomManager will clean up via destroyRoom in the disconnect handler
+			return;
+		}
+
+		// Score is 1+ — the remaining player wins by forfeit
 		endGame(this.state, winner.username);
 
 		const result: GameResult = {
@@ -326,6 +351,14 @@ export class GameRoom {
 
 	hasPlayer(userId: number): boolean {
 		return userId === this.player1.userId || userId === this.player2.userId;
+	}
+
+	get matchSettings(): { speedPreset: string; winScore: number } {
+		return this.rawSettings;
+	}
+
+	getState(): GameStateSnapshot {
+		return this.getSnapshot();
 	}
 
 	private getPlayer(userId: number): RoomPlayer | null {

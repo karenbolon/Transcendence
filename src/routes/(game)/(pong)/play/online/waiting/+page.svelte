@@ -4,8 +4,8 @@
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { getWaiting, clearWaiting } from '$lib/stores/matchmaking.svelte';
 	import WaitingRoom from '$lib/component/pong/WaitingRoom.svelte';
-	import AmbientBackground from '$lib/component/AmbientBackground.svelte';
-	import Aurora from '$lib/component/Aurora.svelte';
+	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
+	import Aurora from '$lib/component/effect/Aurora.svelte';
 
 	const data = getWaiting();
 
@@ -63,11 +63,25 @@
 		};
 	});
 
+	let isQueueMode = data?.settings.mode !== 'invite';
+
 	function handleCancel() {
 		const socket = getSocket();
-		socket?.emit('game:invite-cancel');
+		if (lobbyState === 'waiting') {
+			// Active cancel — leave queue or cancel invite
+			if (isQueueMode) {
+				socket?.emit('game:queue-leave');
+			} else {
+				socket?.emit('game:invite-cancel');
+			}
+		}
 		clearWaiting();
-		goto('/friends');
+		// Go back to wherever the user came from
+		if (history.length > 1) {
+			history.back();
+		} else {
+			goto('/play');
+		}
 	}
 </script>
 <AmbientBackground bgColor="#0a0a1e" maxDelay={1} />

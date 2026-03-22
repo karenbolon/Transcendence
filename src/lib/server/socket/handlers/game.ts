@@ -5,9 +5,24 @@ import {
 	createRoom,
 	getRoom,
 	getRoomByPlayer,
+	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
 import type { GameStateSnapshot } from '$lib/types/game';
+import {
+	addToQueue,
+	removeFromQueue,
+	isInQueue,
+	getQueueSize,
+	getQueueEntries,
+	getQueuePosition,
+	getFriendsInQueue,
+	scanForMatches,
+	removeExpired,
+	type QueueMode,
+	type MatchResult,
+} from '../game/MatchmakingQueue';
+
 
 // Track active game invites: inviteId → invite data
 const activeInvites = new Map<string, {
@@ -253,11 +268,60 @@ export function registerGameHandlers(socket: Socket) {
 	socket.on('game:leave', () => {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
+		const roomId = room.roomId;
+
+		// Grab opponent info BEFORE forfeit destroys the room state
+		const opponentUserId = userId === room.player1.userId
+			? room.player2.userId : room.player1.userId;
+		const opponentUsername = userId === room.player1.userId
+			? room.player2.username : room.player1.username;
+		const settings = room.matchSettings;
+		const snapshot = room.getState();
+		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
+		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
+
 		room.forfeitByPlayer(userId);
+
+		// If the game was cancelled (0-0 or not started), onGameEnd wasn't called
+		// so destroyRoom wasn't triggered — clean up here
+		if (getRoom(roomId)) {
+			destroyRoom(roomId);
+		}
+
+		// Re-queue the remaining player so they don't lose their spot
+		if (isCancellable && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+			const opponentSockets = userSockets.get(opponentUserId);
+			if (opponentSockets && opponentSockets.size > 0) {
+				const firstSocketId = opponentSockets.values().next().value;
+				const opponentSocket = userSockets.get(opponentUserId);
+				const match = addToQueue(
+					opponentUserId,
+					opponentUsername,
+					null, null,
+					firstSocketId!,
+					'custom',
+					settings as any,
+				);
+				if (match) {
+					startGameFromMatch(match);
+				} else {
+					// Notify the opponent they're back in queue
+					const io = getIO();
+					for (const sid of opponentSockets) {
+						io.to(sid).emit('game:queue-joined', { queueSize: getQueueSize(), position: getQueuePosition(opponentUserId) });
+					}
+				}
+			}
+		}
 	});
 
 	// Clean up on disconnect
 	socket.on('disconnect', () => {
+		// ── Queue cleanup ──
+		if (isInQueue(userId)) {
+			removeFromQueue(userId);
+			notifyFriendsOfQueueChange(userId, username, null, 'left');
+		}
 		// Cancel any pending invites from this user
 		for (const [inviteId, invite] of activeInvites) {
 			if (invite.fromUserId === userId || invite.toUserId === userId) {
@@ -271,4 +335,157 @@ export function registerGameHandlers(socket: Socket) {
 			room.removeSocket(userId, socket.id);
 		}
 	});
+	// ══════════════════════════════════════════════════════════
+	// PUBLIC QUEUE
+	// ══════════════════════════════════════════════════════════
+
+	// Join the queue
+	socket.on('game:queue-join', async (data: {
+		mode: QueueMode;
+		settings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number };
+	}) => {
+		// Validate: not already in a game
+		if (isPlayerInGame(userId)) {
+			socket.emit('game:error', { message: 'You are already in a game' });
+			return;
+		}
+		// Validate: not already in queue
+		if (isInQueue(userId)) {
+			socket.emit('game:error', { message: 'You are already in the queue' });
+			return;
+		}
+
+		// Try to add and find an instant match
+		const match = addToQueue(
+			userId,
+			username,
+			socket.data.avatarUrl ?? null,
+			socket.data.displayName ?? null,
+			socket.id,
+			data.mode,
+			data.settings,
+		);
+
+		if (match) {
+			// Instant match found! Create the game room.
+			startGameFromMatch(match);
+			// Notify both players' friends
+			notifyFriendsOfQueueChange(match.player1.userId, match.player1.username, match.player1.mode, 'matched');
+			notifyFriendsOfQueueChange(match.player2.userId, match.player2.username, match.player2.mode, 'matched');
+		} else {
+			// No match yet — tell the client they're in queue
+			socket.emit('game:queue-joined', { queueSize: getQueueSize(), position: getQueuePosition(userId) });
+			// Tell friends this user is searching
+			notifyFriendsOfQueueChange(userId, username, data.mode, 'joined');
+		}
+	});
+
+	// Leave the queue
+	socket.on('game:queue-leave', () => {
+		const wasInQueue = removeFromQueue(userId);
+		if (wasInQueue) {
+			socket.emit('game:queue-left');
+			notifyFriendsOfQueueChange(userId, username, null, 'left');
+		}
+	});
+
+	// Get current queue status (called when play page loads)
+	socket.on('game:queue-status', async (callback?: (data: any) => void) => {
+		const friendIds = await getFriendIds(userId);
+		const friendsInQueue = getFriendsInQueue(friendIds);
+		const queueEntries = getQueueEntries(userId);
+
+		const response = {
+			queueSize: getQueueSize(),
+			myPosition: getQueuePosition(userId),
+			friendsInQueue: friendsInQueue.map(f => ({
+				userId: f.userId,
+				username: f.username,
+				mode: f.mode,
+				settings: f.settings,
+			})),
+			queuePlayers: queueEntries
+				.filter(e => !friendIds.includes(e.userId))
+				.map(e => ({
+					id: e.userId,
+					username: e.username,
+					avatarUrl: e.avatarUrl,
+					wins: 0,
+					queueSettings: e.settings,
+				})),
+		};
+
+		// Support both callback and emit patterns
+		if (typeof callback === 'function') {
+			callback(response);
+		} else {
+			socket.emit('game:queue-status', response);
+		}
+	});
+}
+
+export function startGameFromMatch(match: MatchResult): void {
+	const io = getIO();
+	const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+	createRoom(
+		roomId,
+		{ userId: match.player1.userId, username: match.player1.username },
+		{ userId: match.player2.userId, username: match.player2.username },
+		match.settings,
+		broadcastState,
+		broadcastEvent,
+	);
+
+	const gameData = {
+		roomId,
+		player1: {
+			userId: match.player1.userId,
+			username: match.player1.username,
+			avatarUrl: match.player1.avatarUrl,
+			displayName: match.player1.displayName,
+		},
+		player2: {
+			userId: match.player2.userId,
+			username: match.player2.username,
+			avatarUrl: match.player2.avatarUrl,
+			displayName: match.player2.displayName,
+		},
+		settings: match.settings,
+	};
+
+	// Send game:start to ALL sockets of both players (they might have multiple tabs)
+	for (const uid of [match.player1.userId, match.player2.userId]) {
+		const sockets = userSockets.get(uid);
+		if (sockets) {
+			for (const sid of sockets) {
+				io.to(sid).emit('game:start', gameData);
+			}
+		}
+	}
+}
+
+// ── Helper: notify a user's friends that their queue status changed ──
+export async function notifyFriendsOfQueueChange(
+	userId: number,
+	username: string,
+	mode: QueueMode | null,
+	action: 'joined' | 'left' | 'matched'
+): Promise<void> {
+	const io = getIO();
+	const friendIds = await getFriendIds(userId);
+
+	for (const fid of friendIds) {
+		const sockets = userSockets.get(fid);
+		if (sockets) {
+			for (const sid of sockets) {
+				io.to(sid).emit('game:queue-friend-update', {
+					userId,
+					username,
+					mode,
+					action,
+				});
+			}
+		}
+	}
 }

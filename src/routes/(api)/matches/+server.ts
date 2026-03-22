@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { games, users } from '$lib/server/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and, or, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { processMatchProgression } from '$lib/server/progression';
 import { apiLogger } from '$lib/server/logger';
@@ -146,6 +146,44 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				maxDeficit: data.maxDeficit,
 				reachedDeuce: data.reachedDeuce,
 			});
+
+			// 4. Auto-detect preferences: if 4+ of last 6 games use same settings, save as default
+			const recentGames = await tx
+				.select({
+					speed_preset: games.speed_preset,
+					winner_score: games.winner_score,
+				})
+				.from(games)
+				.where(
+					and(
+						or(eq(games.player1_id, userId), eq(games.player2_id, userId)),
+						eq(games.status, 'finished')
+					)
+				)
+				.orderBy(desc(games.finished_at))
+				.limit(6);
+
+			if (recentGames.length >= 4) {
+				// Count occurrences of each speed+score combo
+				const comboCounts = new Map<string, number>();
+				for (const g of recentGames) {
+					const key = `${g.speed_preset}:${g.winner_score}`;
+					comboCounts.set(key, (comboCounts.get(key) ?? 0) + 1);
+				}
+
+				for (const [key, count] of comboCounts) {
+					if (count >= 4) {
+						const [speedPreset, winScoreStr] = key.split(':');
+						const winScore = Number(winScoreStr);
+						await tx.update(users)
+							.set({
+								game_preferences: { speedPreset, winScore },
+							})
+							.where(eq(users.id, userId));
+						break;
+					}
+				}
+			}
 
 			return { match, progression };
 		});

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Dashboard from '$lib/component/Dashboard.svelte';
-	import Aurora from '$lib/component/Aurora.svelte';
-	import Scanlines from '$lib/component/Scanlines.svelte';
+	import Aurora from '$lib/component/effect/Aurora.svelte';
+	import Scanlines from '$lib/component/effect/Scanlines.svelte';
 
 	let { data } : { data: PageData } = $props();
 </script>

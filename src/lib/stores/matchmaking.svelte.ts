@@ -4,7 +4,7 @@
 type WaitingData = {
 	you: { username: string; avatarUrl: string | null; displayName: string | null };
 	opponent: { username: string; avatarUrl: string | null; displayName: string | null };
-	settings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; mode: string };
+	settings: { speedPreset: 'chill' | 'normal' | 'fast' | 'random'; winScore: number; mode: string };
 	totalTime: number; // seconds (e.g. 30 for friend invite)
 };
 

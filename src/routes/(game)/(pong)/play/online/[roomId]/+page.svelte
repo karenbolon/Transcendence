@@ -5,11 +5,11 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
-	import AmbientBackground from '$lib/component/AmbientBackground.svelte';
-	import Starfield from '$lib/component/Starfield.svelte';
-	import Aurora from '$lib/component/Aurora.svelte';
-	import Scanlines from '$lib/component/Scanlines.svelte';
-	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
+	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
+	import Starfield from '$lib/component/effect/Starfield.svelte';
+	import Aurora from '$lib/component/effect/Aurora.svelte';
+	import Scanlines from '$lib/component/effect/Scanlines.svelte';
+	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 
 	let { data } = $props();
 
@@ -59,8 +59,19 @@
 			goto('/play');
 		}
 
+		// Game cancelled (opponent left at 0-0 or before game started)
+		function handleCancelled(cancelData: { reason: string }) {
+			toast.info(cancelData.reason);
+			if (history.length > 1) {
+				history.back();
+			} else {
+				goto('/play');
+			}
+		}
+
 		socket.on('game:joined', handleJoined);
 		socket.on('game:error', handleError);
+		socket.on('game:cancelled', handleCancelled);
 
 		// Tell the server we're here
 		socket.emit('game:join-room', { roomId });
@@ -69,6 +80,7 @@
 		return () => {
 			socket.off('game:joined', handleJoined);
 			socket.off('game:error', handleError);
+			socket.off('game:cancelled', handleCancelled);
 		};
 	});
 
@@ -79,7 +91,11 @@
 	function goBack() {
 		const socket = getSocket();
 		socket?.emit('game:leave');
-		goto('/play');
+		if (history.length > 1) {
+			history.back();
+		} else {
+			goto('/play');
+		}
 	}
 
 	// Challenge the same opponent again → send invite → waiting room
@@ -156,7 +172,7 @@
 			{gameOverData}
 			gameMode="online"
 			onRematch={challengeAgain}
-			onBackToMenu={() => goto('/friends')}
+			onBackToMenu={goBack}
 		/>
 
 	{:else}

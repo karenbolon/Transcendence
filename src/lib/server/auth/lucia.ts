@@ -25,7 +25,8 @@ export const lucia = new Lucia(adapter, {
 			avatar_url: attributes.avatar_url,
 			is_online: attributes.is_online,
 			created_at: attributes.created_at,
-			is_deleted: attributes.is_deleted
+			is_deleted: attributes.is_deleted,
+			game_preferences: attributes.game_preferences ?? { speedPreset: 'normal', winScore: 5 }
 		};
 	}
 });
@@ -46,6 +47,7 @@ interface DatabaseUser {
 	is_online: boolean | null;
 	created_at: Date;
 	is_deleted: boolean | null;
+	game_preferences: { speedPreset: string; winScore: number } | null;
 }
 
 // export type SessionValidationResult = Awaited<ReturnType<typeof lucia.validateSession>>;

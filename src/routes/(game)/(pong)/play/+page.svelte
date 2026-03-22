@@ -3,21 +3,376 @@
 	import PongGame from "$lib/component/pong/PongGame.svelte";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
-	import AmbientBackground from "$lib/component/AmbientBackground.svelte";
-	import Starfield from "$lib/component/Starfield.svelte";
-	import Aurora from "$lib/component/Aurora.svelte";
-	import Scanlines from "$lib/component/Scanlines.svelte";
-	import NoiseGrain from "$lib/component/NoiseGrain.svelte";
+	import AmbientBackground from "$lib/component/effect/AmbientBackground.svelte";
+	import Starfield from "$lib/component/effect/Starfield.svelte";
+	import Aurora from "$lib/component/effect/Aurora.svelte";
+	import Scanlines from "$lib/component/effect/Scanlines.svelte";
+	import NoiseGrain from "$lib/component/effect/NoiseGrain.svelte";
 	import {
 		SPEED_CONFIGS,
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
 	} from "$lib/component/pong/gameEngine";
+	import FindMatch from "$lib/component/pong/FindMatch.svelte";
+	import FriendsList from "$lib/component/pong/FriendsList.svelte";
+	import QueueList from "$lib/component/pong/QueueList.svelte";
+	import QueueSearchBanner from "$lib/component/pong/QueueSearchBanner.svelte";
+	import MatchFoundModal from "$lib/component/pong/MatchFoundModal.svelte";
+	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
+	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
+	import { setWaiting } from "$lib/stores/matchmaking.svelte";
+	import { onMount } from "svelte";
 
 	let layoutData = $derived($page.data);
+	let isLoggedIn = $derived(!!layoutData?.user);
 
-	let gameMode = $state<GameMode>("local");
+	let userPrefs = $derived(layoutData?.user?.game_preferences ?? { speedPreset: 'normal', winScore: 5 });
+
+	// ── Real-time friends/queue state for FindMatch ──
+	type OnlineFriend = {
+		id: number;
+		username: string;
+		avatarUrl: string | null;
+		isOnline: boolean;
+		inQueue: boolean;
+		queueSettings?: { speedPreset: string; winScore: number };
+	};
+	type QueuePlayer = {
+		id: number;
+		username: string;
+		avatarUrl: string | null;
+		wins: number;
+		queueSettings: { speedPreset: string; winScore: number };
+	};
+	let onlineFriends = $state<OnlineFriend[]>([]);
+	let queuePlayers = $state<QueuePlayer[]>([]);
+	let queueSize = $state(0);
+
+	// ── Queue searching state (stay on play page) ──
+	let isSearching = $state(false);
+	let searchTime = $state(0);
+	let queuePosition = $state(0);
+	let searchInterval: ReturnType<typeof setInterval> | null = null;
+
+	// Match found state (shown as modal during local/computer game)
+	let matchFound = $state(false);
+	let matchData = $state<{ roomId: string; player1: any; player2: any; settings: any } | null>(null);
+
+	// Initialize friends from layout data
+	function initFriendsFromLayout() {
+		onlineFriends = (layoutData?.friends ?? []).map((f: any) => ({
+			id: f.id,
+			username: f.username,
+			avatarUrl: f.avatar_url,
+			isOnline: f.is_online ?? false,
+			inQueue: false,
+		}));
+	}
+
+	// Refresh friends when switching to online tab
+	$effect(() => {
+		if (gameMode === 'online' && isLoggedIn) {
+			// Re-fetch layout data to get fresh friend online status from DB
+			invalidateAll().then(() => {
+				initFriendsFromLayout();
+				fetchQueueStatus();
+			});
+		}
+	});
+
+	function fetchQueueStatus() {
+		const socket = getSocket();
+		if (!socket?.connected) return;
+
+		socket.emit('game:queue-status', (data: any) => {
+			queueSize = data.queueSize ?? 0;
+			queuePlayers = data.queuePlayers ?? [];
+			if (isSearching) queuePosition = data.myPosition ?? 0;
+			// Update friends' queue status
+			const friendsInQueueIds = new Set(
+				(data.friendsInQueue ?? []).map((f: any) => f.userId)
+			);
+			const friendsQueueMap = new Map<number, { speedPreset: string; winScore: number }>(
+				(data.friendsInQueue ?? []).map((f: any) => [f.userId, f.settings])
+			);
+			onlineFriends = onlineFriends.map(f => ({
+				...f,
+				inQueue: friendsInQueueIds.has(f.id),
+				queueSettings: friendsQueueMap.get(f.id) ?? undefined,
+			}));
+		});
+	}
+
+	// ── Socket setup for online matchmaking ──
+	onMount(() => {
+		if (!isLoggedIn) return;
+		connectSocket();
+		initFriendsFromLayout();
+
+		const socket = getSocket();
+		if (!socket) return;
+
+		// Fetch initial queue status — also restore searching state if we're in the queue
+		socket.emit('game:queue-status', (data: any) => {
+			queueSize = data.queueSize ?? 0;
+			queuePlayers = data.queuePlayers ?? [];
+			const myPos = data.myPosition ?? 0;
+			if (myPos > 0 && !isSearching) {
+				// We're in the queue (e.g. re-queued after cancelled game) — restore searching state
+				isSearching = true;
+				queuePosition = myPos;
+				searchTime = 0;
+				if (searchInterval) clearInterval(searchInterval);
+				searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+				if (gameMode !== 'online') gameMode = 'online';
+			} else if (isSearching) {
+				queuePosition = myPos;
+			}
+			const friendsInQueueIds = new Set(
+				(data.friendsInQueue ?? []).map((f: any) => f.userId)
+			);
+			const friendsQueueMap = new Map<number, { speedPreset: string; winScore: number }>(
+				(data.friendsInQueue ?? []).map((f: any) => [f.userId, f.settings])
+			);
+			onlineFriends = onlineFriends.map(f => ({
+				...f,
+				inQueue: friendsInQueueIds.has(f.id),
+				queueSettings: friendsQueueMap.get(f.id) ?? undefined,
+			}));
+		});
+
+		function handleGameStart(data: { roomId: string; player1: any; player2: any; settings: any }) {
+			// Stop the search timer
+			if (searchInterval) { clearInterval(searchInterval); searchInterval = null; }
+			isSearching = false;
+
+			if (gameMode === 'online' || gamePhase === 'menu') {
+				// On online tab or at menu — go directly to game
+				goto(`/play/online/${data.roomId}`);
+			} else {
+				// Playing local/computer — pause game and show match found modal
+				matchFound = true;
+				matchData = data;
+				if (pongGame) pongGame.pause();
+			}
+		}
+
+		function handleFriendOnline(data: { userId: number }) {
+			onlineFriends = onlineFriends.map(f =>
+				f.id === data.userId ? { ...f, isOnline: true } : f
+			);
+		}
+
+		function handleFriendOffline(data: { userId: number }) {
+			onlineFriends = onlineFriends.map(f =>
+				f.id === data.userId ? { ...f, isOnline: false, inQueue: false } : f
+			);
+		}
+
+		function handleQueueFriendUpdate(data: { userId: number; username: string; mode: string | null; action: string }) {
+			if (data.action === 'joined') {
+				onlineFriends = onlineFriends.map(f =>
+					f.id === data.userId ? { ...f, inQueue: true } : f
+				);
+			} else if (data.action === 'left' || data.action === 'matched') {
+				onlineFriends = onlineFriends.map(f =>
+					f.id === data.userId ? { ...f, inQueue: false, queueSettings: undefined } : f
+				);
+			}
+			// Refresh queue size
+			fetchQueueStatus();
+		}
+
+		// Server re-queued us (e.g. opponent cancelled before game started)
+		function handleQueueJoined(data: { queueSize: number; position: number }) {
+			if (!isSearching) {
+				isSearching = true;
+				searchTime = 0;
+				if (searchInterval) clearInterval(searchInterval);
+				searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+			}
+			queuePosition = data.position ?? 0;
+			queueSize = data.queueSize ?? 0;
+			// Switch to online tab so user sees the searching state
+			if (gameMode !== 'online') {
+				gameMode = 'online';
+			}
+		}
+
+		// Poll queue status every 5s to pick up strangers joining/leaving
+		const pollInterval = setInterval(fetchQueueStatus, 5000);
+
+		socket.on('game:start', handleGameStart);
+		socket.on('game:queue-joined', handleQueueJoined);
+		socket.on('friend:online', handleFriendOnline);
+		socket.on('friend:offline', handleFriendOffline);
+		socket.on('game:queue-friend-update', handleQueueFriendUpdate);
+
+		return () => {
+			clearInterval(pollInterval);
+			if (searchInterval) clearInterval(searchInterval);
+			socket.off('game:start', handleGameStart);
+			socket.off('game:queue-joined', handleQueueJoined);
+			socket.off('friend:online', handleFriendOnline);
+			socket.off('friend:offline', handleFriendOffline);
+			socket.off('game:queue-friend-update', handleQueueFriendUpdate);
+		};
+	});
+
+	// Map FindMatch modes to server queue modes
+	// Both 'prefs' and 'custom' send actual settings → use 'custom' server mode
+	// 'quick' on the server always forces normal/5, so we only use it implicitly
+	function findMatchModeToQueueMode(mode: 'random' | 'prefs' | 'custom'): 'quick' | 'wild' | 'custom' {
+		switch (mode) {
+			case 'random': return 'wild';
+			case 'prefs': return 'custom';
+			case 'custom': return 'custom';
+		}
+	}
+
+	function handleFindMatch(matchSettings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number }) {
+		const socket = getSocket();
+		if (!socket?.connected) {
+			console.warn('Socket not connected');
+			return;
+		}
+
+		const queueMode = findMatchModeToQueueMode(matchSettings.mode);
+
+		socket.emit('game:queue-join', {
+			mode: queueMode,
+			settings: queueMode === 'wild' ? undefined : {
+				speedPreset: matchSettings.speedPreset,
+				winScore: matchSettings.winScore,
+			},
+		});
+
+		// Start searching — stay on play page
+		isSearching = true;
+		searchTime = 0;
+		matchFound = false;
+		matchData = null;
+		searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+	}
+
+	function cancelSearch() {
+		const socket = getSocket();
+		if (socket?.connected) socket.emit('game:queue-leave');
+		isSearching = false;
+		if (searchInterval) { clearInterval(searchInterval); searchInterval = null; }
+		searchTime = 0;
+		queuePosition = 0;
+	}
+
+	function acceptMatch() {
+		if (matchData) {
+			matchFound = false;
+			goto(`/play/online/${matchData.roomId}`);
+			matchData = null;
+		}
+	}
+
+	function declineMatch() {
+		const socket = getSocket();
+		socket?.emit('game:leave');
+		matchFound = false;
+		matchData = null;
+		if (pongGame) pongGame.resume();
+	}
+
+	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }) {
+		const socket = getSocket();
+		if (!socket?.connected) return;
+
+		socket.emit('game:invite', {
+			friendId: friend.id,
+			settings: challengeSettings,
+		});
+
+		setWaiting({
+			you: {
+				username: layoutData?.user?.username ?? 'You',
+				avatarUrl: layoutData?.user?.avatar_url ?? null,
+				displayName: layoutData?.user?.name ?? null,
+			},
+			opponent: {
+				username: friend.username,
+				avatarUrl: friend.avatarUrl,
+				displayName: null,
+			},
+			settings: {
+				speedPreset: challengeSettings.speedPreset,
+				winScore: challengeSettings.winScore,
+				mode: 'invite',
+			},
+			totalTime: 30,
+		});
+		goto('/play/online/waiting');
+	}
+
+	async function handleSavePrefs(prefs: { speedPreset: string; winScore: number }) {
+		// Optimistically update local state so UI reflects immediately
+		userPrefs = { ...prefs };
+		try {
+			const res = await fetch('/api/settings/game-preferences', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(prefs),
+			});
+			if (!res.ok) {
+				console.warn('Could not save preferences');
+			}
+		} catch (err) {
+			console.warn('Could not save preferences:', err);
+		}
+	}
+
+	// Initialize game mode from URL query param (so "go back" restores the tab)
+	const validModes: GameMode[] = ['local', 'computer', 'online'];
+	function getModeFromUrl(): GameMode {
+		const m = new URLSearchParams(window.location.search).get('mode');
+		return validModes.includes(m as GameMode) ? (m as GameMode) : 'local';
+	}
+	let gameMode = $state<GameMode>(getModeFromUrl());
+
+	// Sync from URL on popstate (browser back/forward)
+	onMount(() => {
+		function onPopState() {
+			gameMode = getModeFromUrl();
+		}
+		window.addEventListener('popstate', onPopState);
+		return () => window.removeEventListener('popstate', onPopState);
+	});
+
+	// Update URL when game mode changes via UI (without adding history entries)
+	let lastSyncedMode = gameMode;
+	$effect(() => {
+		if (gameMode === lastSyncedMode) return;
+		lastSyncedMode = gameMode;
+		const url = new URL(window.location.href);
+		if (gameMode === 'local') {
+			url.searchParams.delete('mode');
+		} else {
+			url.searchParams.set('mode', gameMode);
+		}
+		replaceState(url, {});
+	});
+
+	// ── Navigation guard: warn before leaving while in queue ──
+	beforeNavigate(({ cancel, to }) => {
+		// Allow navigation within the play page (e.g. online game room)
+		if (to?.url.pathname.startsWith('/play')) return;
+		if (isSearching) {
+			const leave = confirm('You are searching for a match. Leave the queue?');
+			if (leave) {
+				cancelSearch();
+			} else {
+				cancel();
+			}
+		}
+	});
+
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
@@ -55,6 +410,9 @@
 		winner: "player1" | "player2";
 		durationSeconds: number;
 	}) {
+		// Don't save matches for guests
+		if (!isLoggedIn) return;
+
 		saveStatus = "saving";
 
 		// Determine Player 2's display name
@@ -121,6 +479,33 @@
 <!-- <NoiseGrain opacity={0.03} /> -->
 
 <div class="game-container">
+	<!-- Queue search banner (shown when searching + on local/computer tab) -->
+	{#if isSearching && gameMode !== 'online'}
+		<QueueSearchBanner
+			{searchTime}
+			{queuePosition}
+			playersOnline={queueSize}
+			onCancel={cancelSearch}
+		/>
+	{/if}
+
+	<!-- Match found modal (shown when match found during local/computer game) -->
+	{#if matchFound && matchData}
+		<MatchFoundModal
+			opponent={{
+				username: matchData.player1.username === layoutData?.user?.username
+					? matchData.player2.username
+					: matchData.player1.username,
+				avatarUrl: matchData.player1.username === layoutData?.user?.username
+					? matchData.player2.avatarUrl ?? null
+					: matchData.player1.avatarUrl ?? null,
+			}}
+			settings={matchData.settings}
+			onAccept={acceptMatch}
+			onDecline={declineMatch}
+		/>
+	{/if}
+
 	<!-- Settings — only visible during menu -->
 	{#if gamePhase === "menu"}
 		<div class="game-header">
@@ -129,21 +514,100 @@
 		</div>
 
 		<!-- ═══ MENU PHASE ═══ -->
-		<div class="menu-layout">
-			<!-- Left: Settings -->
-			<div class="menu-left">
+		<!-- Row 1: Game Mode + Quick Play side by side -->
+		<div class="menu-row-top">
+			<div class="menu-top-left">
 				<PongSettings
 					{gameMode}
 					{winScore}
 					{speedPreset}
 					{player2Name}
+					{isLoggedIn}
 					onGameModeChange={(v) => (gameMode = v)}
 					onWinScoreChange={(v) => (winScore = v)}
 					onSpeedChange={(v) => (speedPreset = v)}
 					onPlayer2NameChange={(v) => (player2Name = v)}
 				/>
 			</div>
+			{#if gameMode === 'online'}
+				<div class="menu-top-right">
+					<FindMatch
+						friends={onlineFriends}
+						{queuePlayers}
+						playersOnline={queueSize}
+						userPrefs={userPrefs}
+						searching={isSearching}
+						{queuePosition}
+						{searchTime}
+						onCancelSearch={cancelSearch}
+						onFindMatch={handleFindMatch}
+						onAcceptMatch={(playerId) => {
+							const socket = getSocket();
+							if (!socket?.connected) return;
+							const friend = onlineFriends.find(f => f.id === playerId);
+							const stranger = queuePlayers.find(p => p.id === playerId);
+							const targetSettings = friend?.queueSettings ?? stranger?.queueSettings;
+							socket.emit('game:queue-join', {
+								mode: 'custom',
+								settings: targetSettings ?? { speedPreset: 'normal', winScore: 5 },
+							});
+							isSearching = true;
+							searchTime = 0;
+							searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+						}}
+						onChallenge={handleChallenge}
+						onSavePrefs={handleSavePrefs}
+					/>
+				</div>
+			{/if}
 		</div>
+
+		<!-- Row 2: Friends + Open Queue (only when online) -->
+		{#if gameMode === 'online'}
+			<div class="menu-row-bottom">
+				<div class="list-half">
+					<FriendsList
+						friends={onlineFriends}
+						searching={isSearching}
+						onAcceptMatch={(playerId) => {
+							const socket = getSocket();
+							if (!socket?.connected) return;
+							const friend = onlineFriends.find(f => f.id === playerId);
+							const targetSettings = friend?.queueSettings;
+							socket.emit('game:queue-join', {
+								mode: 'custom',
+								settings: targetSettings ?? { speedPreset: 'normal', winScore: 5 },
+							});
+							isSearching = true;
+							searchTime = 0;
+							searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+						}}
+						onChallenge={handleChallenge}
+						getActiveSettings={() => ({ speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore })}
+					/>
+				</div>
+				<div class="list-divider"></div>
+				<div class="list-half">
+					<QueueList
+						{queuePlayers}
+						searching={isSearching}
+						onAcceptMatch={(playerId) => {
+							const socket = getSocket();
+							if (!socket?.connected) return;
+							const stranger = queuePlayers.find(p => p.id === playerId);
+							const targetSettings = stranger?.queueSettings;
+							socket.emit('game:queue-join', {
+								mode: 'custom',
+								settings: targetSettings ?? { speedPreset: 'normal', winScore: 5 },
+							});
+							isSearching = true;
+							searchTime = 0;
+							searchInterval = setInterval(() => { searchTime += 1; }, 1000);
+						}}
+					/>
+				</div>
+			</div>
+		{/if}
 	{/if}
 
 	{#if gamePhase !== "menu"}
@@ -181,6 +645,8 @@
 			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
+		{:else if gamePhase === "paused"}
+			<span class="status-text">Game paused — press ESC to resume</span>
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
 				<span class="status-text">Press SPACE to play again</span>
@@ -251,20 +717,46 @@
 		opacity: 0.7;
 	}
 
-	/* ===== Menu phase: two-column layout ===== */
-	.menu-layout {
+	/* ===== Menu phase layout ===== */
+	.menu-row-top {
 		display: flex;
-		gap: 1.5rem;
+		gap: 1rem;
 		width: 100%;
 		max-width: 950px;
-		align-items: flex-start;
-	}
-
-	.menu-left {
-		flex: 1;
-		display: flex;
+		align-items: center;
 		justify-content: center;
 	}
+
+	.menu-top-left {
+		flex: 0 0 auto;
+	}
+
+	.menu-top-right {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.menu-row-bottom {
+		display: flex;
+		width: 100%;
+		max-width: 950px;
+		border-radius: 0.75rem;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		overflow: hidden;
+	}
+
+	.list-half {
+		flex: 1;
+		min-width: 0;
+		padding: 0.75rem;
+	}
+
+	.list-divider {
+		width: 1px;
+		background: rgba(255, 255, 255, 0.05);
+	}
+
 	/* ===== Player bar (above canvas) ===== */
 	.player-bar {
 		display: flex;
@@ -447,9 +939,17 @@
 
 	/* ===== Responsive ===== */
 	@media (max-width: 640px) {
-		.menu-layout {
+		.menu-row-top {
 			flex-direction: column;
-			align-items: center;
+		}
+
+		.menu-row-bottom {
+			flex-direction: column;
+		}
+
+		.list-divider {
+			width: 100%;
+			height: 1px;
 		}
 
 		.pong-title {

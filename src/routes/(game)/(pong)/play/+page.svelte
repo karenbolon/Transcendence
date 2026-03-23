@@ -25,6 +25,7 @@
 	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
 	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
 	import { setWaiting, setGameStart, setQueuedSettings } from "$lib/stores/matchmaking.svelte";
+	import { toast } from "$lib/stores/toast.svelte";
 	import { onMount } from "svelte";
 
 	let layoutData = $derived($page.data);
@@ -60,6 +61,14 @@
 	let queuePosition = $state(0);
 	let searchInterval: ReturnType<typeof setInterval> | null = null;
 	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number } | null>(null);
+
+	// Client-side safety: auto-cancel at 5 minutes if server event is delayed
+	$effect(() => {
+		if (isSearching && searchTime >= 300) {
+			cancelSearch();
+			toast.info('Queue expired', 'No match found after 5 minutes. Try again!');
+		}
+	});
 
 	// Match found state (shown as modal during local/computer game)
 	let matchFound = $state(false);
@@ -182,11 +191,21 @@
 			}
 		}
 
+		function handleQueueExpired() {
+			isSearching = false;
+			if (searchInterval) { clearInterval(searchInterval); searchInterval = null; }
+			searchTime = 0;
+			queuePosition = 0;
+			searchSettings = null;
+			toast.info('Queue expired', 'No match found after 5 minutes. Try again!');
+		}
+
 		// Poll queue status every 5s to pick up strangers joining/leaving
 		const pollInterval = setInterval(fetchQueueStatus, 5000);
 
 		socket.on('game:start', handleGameStart);
 		socket.on('game:queue-joined', handleQueueJoined);
+		socket.on('game:queue-expired', handleQueueExpired);
 		socket.on('friend:online', handleFriendOnline);
 		socket.on('friend:offline', handleFriendOffline);
 		socket.on('game:queue-friend-update', handleQueueFriendUpdate);
@@ -196,6 +215,7 @@
 			if (searchInterval) clearInterval(searchInterval);
 			socket.off('game:start', handleGameStart);
 			socket.off('game:queue-joined', handleQueueJoined);
+			socket.off('game:queue-expired', handleQueueExpired);
 			socket.off('friend:online', handleFriendOnline);
 			socket.off('friend:offline', handleFriendOffline);
 			socket.off('game:queue-friend-update', handleQueueFriendUpdate);

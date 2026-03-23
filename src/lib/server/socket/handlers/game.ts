@@ -466,6 +466,19 @@ export function startGameFromMatch(match: MatchResult): void {
 	}
 }
 
+// ── Helper: notify expired queue players ──
+export function notifyExpiredPlayers(expiredUserIds: number[]): void {
+	const io = getIO();
+	for (const uid of expiredUserIds) {
+		const sockets = userSockets.get(uid);
+		if (sockets) {
+			for (const sid of sockets) {
+				io.to(sid).emit('game:queue-expired');
+			}
+		}
+	}
+}
+
 // ── Helper: notify a user's friends that their queue status changed ──
 export async function notifyFriendsOfQueueChange(
 	userId: number,

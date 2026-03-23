@@ -67,9 +67,10 @@
 							aria-expanded={dropdownOpen}
 							aria-haspopup="true"
 						>
-							<span class="avatar-name">{user.username}</span>
+							<span class="avatar-name">{user.name || user.username}</span>
 							<UserAvatar
-								username={user.name || user.username}
+								username={user.username}
+								displayName={user.name}
 								avatarUrl={user.avatar_url}
 								size="lg"
 								status={isConnected() ? 'online' : 'offline'}

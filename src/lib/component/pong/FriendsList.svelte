@@ -56,6 +56,7 @@
 				<div class="player-row">
 					<UserAvatar
 						username={friend.username}
+						displayName={friend.displayName}
 						avatarUrl={friend.avatarUrl}
 						size="xs"
 						status="online"
@@ -78,6 +79,7 @@
 				<div class="player-row dimmed">
 					<UserAvatar
 						username={friend.username}
+						displayName={friend.displayName}
 						avatarUrl={friend.avatarUrl}
 						size="xs"
 						status="online"
@@ -87,7 +89,7 @@
 						<span class="player-detail">Online</span>
 					</div>
 					<button class="btn-challenge" disabled={searching} onclick={() => onChallenge(friend, getActiveSettings())}>
-						Challenge
+						⚔️ Challenge
 					</button>
 				</div>
 			{/each}
@@ -208,8 +210,8 @@
 	.btn-challenge {
 		padding: 0.25rem 0.6rem;
 		border-radius: 0.35rem;
-		background: rgba(255, 255, 255, 0.03);
-		color: #9ca3af;
+		background: #ff6b9d;;
+		color: #ffffff;
 		border: 1px solid rgba(255, 255, 255, 0.06);
 		font-size: 0.7rem;
 		font-weight: 500;
@@ -221,7 +223,7 @@
 	}
 
 	.btn-challenge:hover {
-		border-color: rgba(255, 107, 157, 0.3);
-		color: #ff6b9d;
+		background: #ff85b1;
+		transform: scale(1.01);
 	}
 </style>

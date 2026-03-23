@@ -75,13 +75,13 @@
 							<span class="medal">{RANK_MEDALS[pos]}</span>
 							<UserAvatar
 								username={player.username}
+								displayName={player.name}
 								avatarUrl={player.avatarUrl}
 								size="md"
 							/>
 							<span class="podium-name">
-								<!-- <span class="podium-name-text">{player.name || player.username}</span> -->
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
+																{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
 							</span>
 							<span class="podium-wins">{player.wins} wins</span>
 							<div class="podium-stats">
@@ -115,12 +115,13 @@
 
 							<UserAvatar
 								username={player.username}
+								displayName={player.name}
 								avatarUrl={player.avatarUrl}
 								size="xs"
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
+																{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>
@@ -136,12 +137,13 @@
 						<span class="col-player">
 							<UserAvatar
 								username={player.username}
+								displayName={player.name}
 								avatarUrl={player.avatarUrl}
 								size="sm"
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
+																{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>
@@ -350,6 +352,20 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
+	}
+
+	.podium-username {
+		display: block;
+		font-size: 0.65rem;
+		color: #6b7280;
+		font-weight: 400;
+	}
+
+	.player-username {
+		display: block;
+		font-size: 0.6rem;
+		color: #6b7280;
+		font-weight: 400;
 	}
 
 	.podium-wins {

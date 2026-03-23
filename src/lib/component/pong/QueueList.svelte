@@ -4,6 +4,7 @@
 	type QueuePlayer = {
 		id: number;
 		username: string;
+		displayName: string | null;
 		avatarUrl: string | null;
 		wins: number;
 		queueSettings: { speedPreset: string; winScore: number };
@@ -46,6 +47,7 @@
 				<div class="player-row">
 					<UserAvatar
 						username={player.username}
+						displayName={player.displayName}
 						avatarUrl={player.avatarUrl}
 						size="xs"
 					/>
@@ -132,6 +134,11 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.player-username {
+		font-size: 0.6rem;
+		color: #6b7280;
 	}
 
 	.player-detail {

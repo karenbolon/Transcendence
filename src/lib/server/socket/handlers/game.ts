@@ -409,6 +409,7 @@ export function registerGameHandlers(socket: Socket) {
 				.map(e => ({
 					id: e.userId,
 					username: e.username,
+					displayName: e.displayName,
 					avatarUrl: e.avatarUrl,
 					wins: 0,
 					queueSettings: e.settings,

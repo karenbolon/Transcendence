@@ -21,3 +21,25 @@ export function getWaiting(): WaitingData | null {
 export function clearWaiting() {
 	waitingData = null;
 }
+
+// Store game:start data so the room page can access player info (avatars, names)
+type GameStartData = {
+	roomId: string;
+	player1: { userId: number; username: string; avatarUrl?: string | null; displayName?: string | null };
+	player2: { userId: number; username: string; avatarUrl?: string | null; displayName?: string | null };
+	settings: any;
+};
+
+let gameStartData = $state<GameStartData | null>(null);
+
+export function setGameStart(data: GameStartData) {
+	gameStartData = data;
+}
+
+export function getGameStart(): GameStartData | null {
+	return gameStartData;
+}
+
+export function clearGameStart() {
+	gameStartData = null;
+}

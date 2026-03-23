@@ -23,7 +23,7 @@
 	import MatchFoundModal from "$lib/component/pong/MatchFoundModal.svelte";
 	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
 	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
-	import { setWaiting } from "$lib/stores/matchmaking.svelte";
+	import { setWaiting, setGameStart } from "$lib/stores/matchmaking.svelte";
 	import { onMount } from "svelte";
 
 	let layoutData = $derived($page.data);
@@ -44,6 +44,7 @@
 	type QueuePlayer = {
 		id: number;
 		username: string;
+		displayName: string | null;
 		avatarUrl: string | null;
 		wins: number;
 		queueSettings: { speedPreset: string; winScore: number };
@@ -63,7 +64,7 @@
 	let matchData = $state<{ roomId: string; player1: any; player2: any; settings: any } | null>(null);
 
 	// Track queue status separately so it doesn't cause re-render loops
-	let friendQueueMap = new Map<number, { speedPreset: string; winScore: number } | undefined>();
+	let friendQueueMap = $state(new Map<number, { speedPreset: string; winScore: number } | undefined>());
 
 	// Keep friends in sync with layout data (auto-updates on invalidateAll)
 	let baseFriends = $derived((layoutData?.friends ?? []).map((f: any) => ({
@@ -126,18 +127,21 @@
 			);
 		});
 
-		function handleGameStart(data: { roomId: string; player1: any; player2: any; settings: any }) {
+		function handleGameStart(startData: { roomId: string; player1: any; player2: any; settings: any }) {
 			// Stop the search timer
 			if (searchInterval) { clearInterval(searchInterval); searchInterval = null; }
 			isSearching = false;
 
+			// Save game start data so room page can access player info
+			setGameStart(startData);
+
 			if (gameMode === 'online' || gamePhase === 'menu') {
 				// On online tab or at menu — go directly to game
-				goto(`/play/online/${data.roomId}`);
+				goto(`/play/online/${startData.roomId}`);
 			} else {
 				// Playing local/computer — pause game and show match found modal
 				matchFound = true;
-				matchData = data;
+				matchData = startData;
 				if (pongGame) pauseGame(pongGame.getGameState());
 			}
 		}
@@ -307,6 +311,7 @@
 	// Initialize game mode from URL query param (so "go back" restores the tab)
 	const validModes: GameMode[] = ['local', 'computer', 'online'];
 	function getModeFromUrl(): GameMode {
+		if (typeof window === 'undefined') return 'local';
 		const m = new URLSearchParams(window.location.search).get('mode');
 		return validModes.includes(m as GameMode) ? (m as GameMode) : 'local';
 	}

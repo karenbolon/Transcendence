@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import { setWaiting } from '$lib/stores/matchmaking.svelte';
+	import { setWaiting, getGameStart, clearGameStart } from '$lib/stores/matchmaking.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
@@ -16,8 +16,8 @@
 	// State: waiting for room join confirmation → playing → game over
 	let gameReady = $state(false);
 	let side = $state<'left' | 'right'>('left');
-	let player1 = $state({ userId: 0, username: '' });
-	let player2 = $state({ userId: 0, username: '' });
+	let player1 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
+	let player2 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let gameOverResult: any = $state(null);
 
 	// Reactive to data.roomId — re-runs when navigating between rooms.
@@ -48,8 +48,25 @@
 			player2: { userId: number; username: string };
 		}) {
 			side = joinData.side;
-			player1 = joinData.player1;
-			player2 = joinData.player2;
+			// Enrich player data with avatar/name from game:start store and page load
+			const gsData = getGameStart();
+			const enrichPlayer = (p: { userId: number; username: string }) => {
+				// Our own data from page load
+				if (p.userId === data.userId) {
+					return { ...p, displayName: data.displayName, avatarUrl: data.avatarUrl };
+				}
+				// Opponent data from game:start event
+				const gsPlayer = gsData?.player1.userId === p.userId ? gsData.player1
+					: gsData?.player2.userId === p.userId ? gsData.player2 : null;
+				return {
+					...p,
+					displayName: gsPlayer?.displayName ?? null,
+					avatarUrl: gsPlayer?.avatarUrl ?? null,
+				};
+			};
+			player1 = enrichPlayer(joinData.player1);
+			player2 = enrichPlayer(joinData.player2);
+			clearGameStart();
 			gameReady = true;
 		}
 
@@ -108,9 +125,11 @@
 
 		socket.emit('game:invite', { friendId: opponentId, settings: gameOverResult.settings });
 
+		const myPlayer = data.userId === player1.userId ? player1 : player2;
+		const opponentPlayer = data.userId === player1.userId ? player2 : player1;
 		setWaiting({
-			you: { username: data.username, avatarUrl: null, displayName: null },
-			opponent: { username: opponentName, avatarUrl: null, displayName: null },
+			you: { username: data.username, avatarUrl: myPlayer.avatarUrl, displayName: myPlayer.displayName },
+			opponent: { username: opponentName, avatarUrl: opponentPlayer.avatarUrl, displayName: opponentPlayer.displayName },
 			settings: { speedPreset: gameOverResult.settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: gameOverResult.settings.winScore, mode: 'online' },
 			totalTime: 30,
 		});
@@ -127,18 +146,20 @@
 		const myUsername = iAmPlayer1 ? player1.username : player2.username;
 		const theirUsername = iAmPlayer1 ? player2.username : player1.username;
 		const iWon = gameOverResult.winnerId === data.userId;
+		const myPlayer = iAmPlayer1 ? player1 : player2;
+		const theirPlayer = iAmPlayer1 ? player2 : player1;
 		return {
 		winner: (iWon ? 'player1' : 'player2') as 'player1' | 'player2',
 		player1: {
 			username: myUsername,
-			displayName: null as string | null,
-			avatarUrl: null as string | null,
+			displayName: myPlayer.displayName,
+			avatarUrl: myPlayer.avatarUrl,
 			score: me.score,
 		},
 		player2: {
 			username: theirUsername,
-			displayName: null as string | null,
-			avatarUrl: null as string | null,
+			displayName: theirPlayer.displayName,
+			avatarUrl: theirPlayer.avatarUrl,
 			score: them.score,
 		},
 		stats: {

@@ -1070,7 +1070,7 @@ io.on('connection', (socket) => {
 			queueSize: getMatchQueueSize(),
 			myPosition: getMatchQueuePosition(userId),
 			friendsInQueue: friendsInQueue.map(f => ({ userId: f.userId, username: f.username, mode: f.mode, settings: f.settings })),
-			queuePlayers: queueEntries.filter(e => !friendIds.includes(e.userId)).map(e => ({ id: e.userId, username: e.username, avatarUrl: e.avatarUrl, wins: 0, queueSettings: e.settings })),
+			queuePlayers: queueEntries.filter(e => !friendIds.includes(e.userId)).map(e => ({ id: e.userId, username: e.username, displayName: e.displayName, avatarUrl: e.avatarUrl, wins: 0, queueSettings: e.settings })),
 		};
 		if (typeof callback === 'function') callback(response);
 		else socket.emit('game:queue-status', response);

@@ -8,7 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { connectSocket, disconnectSocket, getSocket } from '$lib/stores/socket.svelte';
+	import { connectSocket, disconnectSocket, reconnectSocket, getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
@@ -98,6 +98,20 @@
 			pendingInvite = null;
 		}
 	}
+
+	// Reconnect socket when auth state changes (login/register/logout)
+	let lastUserId: number | null = null;
+	$effect(() => {
+		const currentUserId = data?.user?.id ?? null;
+		if (currentUserId !== lastUserId) {
+			lastUserId = currentUserId;
+			if (currentUserId) {
+				reconnectSocket();
+			} else {
+				disconnectSocket();
+			}
+		}
+	});
 
 	onDestroy(() => {
 		disconnectSocket();

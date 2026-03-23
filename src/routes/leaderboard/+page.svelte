@@ -81,7 +81,7 @@
 							/>
 							<span class="podium-name">
 								{player.name || player.username}
-																{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge">You</span>{/if}
 							</span>
 							<span class="podium-wins">{player.wins} wins</span>
 							<div class="podium-stats">
@@ -121,7 +121,7 @@
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-																{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>
@@ -143,7 +143,7 @@
 							/>
 							<span class="player-name-text">
 								{player.name || player.username}
-																{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
+								{#if player.id === data.myId}<span class="you-badge-sm">You</span>{/if}
 							</span>
 						</span>
 						<span class="col-games">{player.totalGames}</span>

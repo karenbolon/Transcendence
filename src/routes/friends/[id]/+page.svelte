@@ -11,8 +11,8 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
-	import Starfield from '$lib/component/Starfield.svelte';
-	import NoiseGrain from '$lib/component/NoiseGrain.svelte';
+	import Starfield from '$lib/component/effect/Starfield.svelte';
+	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);

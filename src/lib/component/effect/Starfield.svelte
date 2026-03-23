@@ -16,14 +16,14 @@
 	});
 
 	// Generate stars once
-	const stars = Array.from({ length: starCount }, () => ({
+	let stars = $derived(Array.from({ length: starCount }, () => ({
 		x: Math.random() * 100,
 		y: Math.random() * 100,
 		size: 1 + Math.random() * 2,
 		duration: 3 + Math.random() * 7,
 		delay: Math.random() * 5,
 		opacity: 0.2 + Math.random() * 0.6,
-	}));
+	})));
 </script>
 
 <div class="starfield">

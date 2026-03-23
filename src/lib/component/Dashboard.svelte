@@ -187,7 +187,7 @@
             <h2 class="quick-title">Quick Play</h2>
         </div>
         <div class="quick-grid">
-            <a href="/play?mode=remote" class="quick-card">
+            <a href="/play?mode=online" class="quick-card">
                 <span class="quick-icon">🌐</span>
                 <span class="quick-name">Find Match</span>
                 <span class="quick-desc">Queue for an online match</span>

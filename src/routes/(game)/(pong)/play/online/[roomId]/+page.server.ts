@@ -12,5 +12,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		roomId: params.roomId,
 		userId: Number(locals.user.id),
 		username: locals.user.username,
+		displayName: locals.user.name ?? null,
+		avatarUrl: locals.user.avatar_url ?? null,
 	};
 };

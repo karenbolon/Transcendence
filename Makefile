@@ -53,7 +53,7 @@ up:
 	@echo "$(ROCKET) $(LAVENDER)Starting Setup and development environment...$(NC)"
 
 
-start: up docker-up install db-push dev
+start: up docker-up install db-push db-seed-achievements dev
 
 # Complete reset
 re: fclean start

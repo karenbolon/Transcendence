@@ -9,6 +9,8 @@
 		startCountdown,
 		startPlaying,
 		returnToMenu,
+		pauseGame,
+		resumeGame,
 		computeComputerInput,
 		CANVAS_WIDTH,
 		CANVAS_HEIGHT,
@@ -34,6 +36,25 @@
 	// Expose game state for the parent to read (phase, scores, etc.)
 	export function getGameState(): GameState {
 		return game;
+	}
+
+	// Track what phase we paused from and whether ESC triggered it
+	let pausedFrom = $state<'playing' | 'countdown'>('playing');
+	let escPaused = $state(false);
+
+	export function pause() {
+		if (game.phase === 'playing' || game.phase === 'countdown') {
+			pausedFrom = game.phase as 'playing' | 'countdown';
+			escPaused = false;
+			pauseGame(game);
+		}
+	}
+
+	export function resume() {
+		if (game.phase === 'paused') {
+			game.phase = pausedFrom;
+			escPaused = false;
+		}
 	}
 
 	let canvas: HTMLCanvasElement;
@@ -67,18 +88,37 @@
 			e.preventDefault();
 		}
 
-		// ESC → Quit to menu from any active state
+		// ESC behavior:
+		// During playing/countdown → pause (with ESC flag for double-tap quit)
+		// During paused → quit to menu (second ESC confirms quit)
 		if (key === 'escape') {
 			if (game.phase === 'playing' || game.phase === 'countdown') {
+				pausedFrom = game.phase as 'playing' | 'countdown';
+				escPaused = true;
+				pauseGame(game);
+			} else if (game.phase === 'paused') {
+				// Second ESC → quit
+				escPaused = false;
 				returnToMenu(game);
 			}
 		}
 
-		// SPACE → State transitions
+		// SPACE behavior:
+		// During menu → start game
+		// During playing/countdown → pause
+		// During paused → resume
+		// During gameover → back to menu
 		if (key === ' ' || key === 'space') {
 			e.preventDefault();
 			if (game.phase === 'menu') {
 				startCountdown(game, settings);
+			} else if (game.phase === 'playing' || game.phase === 'countdown') {
+				pausedFrom = game.phase as 'playing' | 'countdown';
+				escPaused = false;
+				pauseGame(game);
+			} else if (game.phase === 'paused') {
+				game.phase = pausedFrom;
+				escPaused = false;
 			} else if (game.phase === 'gameover') {
 				returnToMenu(game);
 			}
@@ -135,6 +175,7 @@
 		requestAnimationFrame((t) => gameLoop(ctx, t));
 	}
 	function draw(ctx: CanvasRenderingContext2D) {
+		const fontSize = 24;
 
 		// Background
 		ctx.fillStyle = '#0a0a1a';
@@ -229,19 +270,38 @@
 		ctx.fillText(String(game.score2), (CANVAS_WIDTH / 4) * 3, 50);
 		ctx.shadowBlur = 0;
 
-		// ESC hint (during active gameplay)
+		// Pause/quit hint (during active gameplay)
 		if (game.phase === 'playing' || game.phase === 'countdown') {
 			ctx.fillStyle = 'rgba(107, 114, 128, 0.4)';
 			ctx.font = "10px 'Inter', sans-serif";
 			ctx.textAlign = 'right';
-			ctx.fillText('ESC to quit', CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
-			ctx.textAlign = 'center';  // Reset
+			ctx.fillText('SPACE pause · ESC quit', CANVAS_WIDTH - 15, CANVAS_HEIGHT - 12);
+			ctx.textAlign = 'center';
 		}
 
 		// Phase overlays
 		if (game.phase === 'menu') drawMenuOverlay(ctx);
 		else if (game.phase === 'countdown') drawCountdownOverlay(ctx);
 		else if (game.phase === 'gameover') drawGameOverOverlay(ctx);
+
+		// Draw pause overlay
+		if (game.phase === 'paused') {
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+			ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+			ctx.fillStyle = '#ff6b9d';
+			ctx.font = `bold ${fontSize * 1.5}px 'Press Start 2P', monospace`;
+			ctx.textAlign = 'center';
+			ctx.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+			ctx.font = `${fontSize * 0.7}px 'Press Start 2P', monospace`;
+			ctx.fillStyle = '#9ca3af';
+			if (escPaused) {
+				ctx.fillText('ESC again to quit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 25);
+				ctx.fillText('SPACE to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+			} else {
+				ctx.fillText('SPACE to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 25);
+				ctx.fillText('ESC to quit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+			}
+		}
 	}
 
 	function drawMenuOverlay(ctx: CanvasRenderingContext2D) {

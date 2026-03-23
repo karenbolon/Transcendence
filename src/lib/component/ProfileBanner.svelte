@@ -86,11 +86,11 @@
 					⚙️ Settings
 				</a>
 			{:else}
-				<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 Challenge</button>
 				{#if isFriend}
 					{#if onmessage}
 						<button class="banner-btn banner-btn--primary" onclick={onmessage}>💬 Message</button>
 					{/if}
+					<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 Challenge</button>
 					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>Unfriend</button>
 				{:else if friendshipStatus === 'pending'}
 					<button class="banner-btn banner-btn--pending" disabled>⏳ Request Sent</button>

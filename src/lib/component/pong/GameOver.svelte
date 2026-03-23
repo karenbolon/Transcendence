@@ -126,10 +126,10 @@
 	<!-- Actions -->
 	<div class="actions">
 		<button class="btn btn-rematch" onclick={handleRematch}>
-			🔄 Revage
+			🔄 Rematch
 		</button>
 		<button class="btn btn-menu" onclick={handleBackToMenu}>
-			← Menu
+			← Go back
 		</button>
 	</div>
 </div>

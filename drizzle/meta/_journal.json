@@ -36,6 +36,20 @@
       "when": 1773249828253,
       "tag": "0004_long_roughhouse",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773350000000,
+      "tag": "0005_remove_user_language",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774934400000,
+      "tag": "0006_add_game_preferences",
+      "breakpoints": true
     }
   ]
 }

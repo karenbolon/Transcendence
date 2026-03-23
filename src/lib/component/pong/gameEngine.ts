@@ -1,4 +1,4 @@
-export type GamePhase = 'menu' | 'countdown' | 'playing' | 'gameover';
+export type GamePhase = 'menu' | 'countdown' | 'playing' | 'paused' | 'gameover';
 
 export interface GameState {
 	// Current phase
@@ -148,6 +148,20 @@ export function returnToMenu(state: GameState): void {
 	resetPositions(state);
 }
 
+/** PLAYING/COUNTDOWN → PAUSED */
+export function pauseGame(state: GameState): void {
+	if (state.phase === 'playing' || state.phase === 'countdown') {
+		state.phase = 'paused';
+	}
+}
+
+/** PAUSED → PLAYING */
+export function resumeGame(state: GameState): void {
+	if (state.phase === 'paused') {
+		state.phase = 'playing';
+	}
+}
+
 /** Helper: Reset positions to center */
 function resetPositions(state: GameState): void {
 	state.paddle1Y = CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2;
@@ -180,6 +194,9 @@ export function update(
 	settings: GameSettings,
 	goLabel: string = 'GO!'
 ): void {
+	// Don't update anything while paused
+	if (state.phase === 'paused') return;
+
 	// Score flash fades regardless of phase
 	if (state.scoreFlashTimer > 0) {
 		state.scoreFlashTimer -= dt;

@@ -24,6 +24,10 @@ export const users = pgTable('users', {
 		friendRequests: true,
 		gameInvites: true,
 		matchResults: true,
+	}),
+	game_preferences: jsonb('game_preferences').$type<{ speedPreset: string; winScore: number }>().default({
+		speedPreset: 'normal',
+		winScore: 5,
 	})
 }, (t) => ({
 	checkWins: check('positive_wins', sql`${t.wins} >= 0`),

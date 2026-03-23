@@ -41,6 +41,12 @@ export function disconnectSocket() {
 	}
 }
 
+/** Force a fresh socket connection (e.g. after login/register when auth state changed) */
+export function reconnectSocket() {
+	disconnectSocket();
+	connectSocket();
+}
+
 export function getSocket(): Socket | null {
 	return socket;
 }

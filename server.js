@@ -701,43 +701,57 @@ function randomWildSettings() {
 	};
 }
 
-function isQueueCompatible(a, b) {
-	const now = Date.now();
-	const aFlexible = now >= a.flexibleAt;
-	const bFlexible = now >= b.flexibleAt;
-	const aDesperate = now >= a.joinedAt + 60000;
-	const bDesperate = now >= b.joinedAt + 60000;
+// Score-based matchmaking: lower score = better compatibility
+const SPEED_ORDER = { chill: 0, normal: 1, fast: 2 };
 
+function queueCompatibilityScore(a, b) {
+	const speedA = SPEED_ORDER[a.settings.speedPreset] ?? 1;
+	const speedB = SPEED_ORDER[b.settings.speedPreset] ?? 1;
+	const speedDiff = Math.abs(speedA - speedB);
+	const scoreDiff = Math.abs(a.settings.winScore - b.settings.winScore);
+	return speedDiff * 2 + scoreDiff;
+}
+
+function maxScoreForEntry(entry, now) {
+	if (now >= entry.joinedAt + 90000) return Infinity; // wide
+	if (now >= entry.flexibleAt) return 4;               // flexible
+	return 0;                                             // exact
+}
+
+function tryQueueMatch(a, b) {
+	const now = Date.now();
 	if (a.mode === 'wild' && b.mode === 'wild') return { player1: a, player2: b, settings: randomWildSettings() };
 	if (a.mode === 'wild') return { player1: a, player2: b, settings: b.settings };
 	if (b.mode === 'wild') return { player1: a, player2: b, settings: a.settings };
-	if (a.mode === 'quick' && b.mode === 'quick') return { player1: a, player2: b, settings: { speedPreset: 'normal', winScore: 5 } };
-	if (a.mode === 'quick' && b.mode === 'custom' && b.settings.speedPreset === 'normal' && b.settings.winScore === 5) return { player1: a, player2: b, settings: a.settings };
-	if (b.mode === 'quick' && a.mode === 'custom' && a.settings.speedPreset === 'normal' && a.settings.winScore === 5) return { player1: a, player2: b, settings: b.settings };
-	if (a.mode === 'custom' && b.mode === 'custom' && a.settings.speedPreset === b.settings.speedPreset && a.settings.winScore === b.settings.winScore) return { player1: a, player2: b, settings: a.settings };
-	if (aFlexible || bFlexible) {
-		if (a.mode === 'custom' && b.mode === 'custom' && a.settings.speedPreset === b.settings.speedPreset) {
-			return { player1: a, player2: b, settings: a.joinedAt <= b.joinedAt ? a.settings : b.settings };
-		}
-		if ((a.mode === 'quick' && b.mode === 'custom') || (a.mode === 'custom' && b.mode === 'quick')) {
-			const customPlayer = a.mode === 'custom' ? a : b;
-			return { player1: a, player2: b, settings: customPlayer.settings };
-		}
-	}
-	if (aDesperate || bDesperate) return { player1: a, player2: b, settings: a.joinedAt <= b.joinedAt ? a.settings : b.settings };
-	return null;
+
+	const score = queueCompatibilityScore(a, b);
+	const maxA = maxScoreForEntry(a, now);
+	const maxB = maxScoreForEntry(b, now);
+	const allowed = Math.max(maxA, maxB);
+	if (score > allowed) return null;
+
+	const settings = a.joinedAt <= b.joinedAt ? { ...a.settings } : { ...b.settings };
+	return { player1: a, player2: b, settings };
 }
 
 function addToMatchQueue(userId, username, avatarUrl, displayName, socketId, mode, customSettings) {
 	if (matchQueue.has(userId)) return null;
 	const now = Date.now();
-	const entry = { userId, username, avatarUrl, displayName, socketId, mode, settings: resolveQueueSettings(mode, customSettings), joinedAt: now, flexibleAt: now + 30000 };
+	const entry = { userId, username, avatarUrl, displayName, socketId, mode, settings: resolveQueueSettings(mode, customSettings), joinedAt: now, flexibleAt: now + 45000 };
 	matchQueue.set(userId, entry);
+
+	// Find BEST match (lowest score), not just first
+	let bestResult = null;
+	let bestScore = Infinity;
 	for (const [otherId, other] of matchQueue) {
 		if (otherId === userId) continue;
-		const result = isQueueCompatible(entry, other);
-		if (result) { matchQueue.delete(result.player1.userId); matchQueue.delete(result.player2.userId); return result; }
+		const result = tryQueueMatch(entry, other);
+		if (result) {
+			const s = (entry.mode === 'wild' || other.mode === 'wild') ? -1 : queueCompatibilityScore(entry, other);
+			if (s < bestScore) { bestScore = s; bestResult = result; }
+		}
 	}
+	if (bestResult) { matchQueue.delete(bestResult.player1.userId); matchQueue.delete(bestResult.player2.userId); return bestResult; }
 	return null;
 }
 
@@ -765,17 +779,22 @@ function scanMatchQueue() {
 	const entries = Array.from(matchQueue.values());
 	for (let i = 0; i < entries.length; i++) {
 		if (matched.has(entries[i].userId)) continue;
+		let bestResult = null;
+		let bestScore = Infinity;
 		for (let j = i + 1; j < entries.length; j++) {
 			if (matched.has(entries[j].userId)) continue;
-			const result = isQueueCompatible(entries[i], entries[j]);
+			const result = tryQueueMatch(entries[i], entries[j]);
 			if (result) {
-				matches.push(result);
-				matched.add(entries[i].userId);
-				matched.add(entries[j].userId);
-				matchQueue.delete(entries[i].userId);
-				matchQueue.delete(entries[j].userId);
-				break;
+				const s = (entries[i].mode === 'wild' || entries[j].mode === 'wild') ? -1 : queueCompatibilityScore(entries[i], entries[j]);
+				if (s < bestScore) { bestScore = s; bestResult = result; }
 			}
+		}
+		if (bestResult) {
+			matches.push(bestResult);
+			matched.add(bestResult.player1.userId);
+			matched.add(bestResult.player2.userId);
+			matchQueue.delete(bestResult.player1.userId);
+			matchQueue.delete(bestResult.player2.userId);
 		}
 	}
 	return matches;

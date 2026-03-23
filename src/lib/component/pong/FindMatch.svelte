@@ -18,6 +18,9 @@
 ═══════════════════════════════════════════════════════════════════════════ -->
 <script lang="ts">
 	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
+	import MatchmakingInfo from '$lib/component/pong/MatchmakingInfo.svelte';
+
+	let showInfo = $state(false);
 
 	type Props = {
 		friends?: any[];
@@ -106,15 +109,22 @@
 	═══════════════════════════════════════════════ -->
 	<section class="section">
 		<div class="section-header">
-			<div>
-				<h2 class="section-title">Quick play</h2>
-				<p class="section-sub">Jump into a game instantly</p>
+			<div class="section-title-row">
+				<div>
+					<h2 class="section-title">Quick play</h2>
+					<p class="section-sub">Jump into a game instantly</p>
+				</div>
+				<button class="info-btn" onclick={() => showInfo = true} aria-label="How matchmaking works">?</button>
 			</div>
 			<div class="online-indicator">
 				<span class="online-dot-pulse"></span>
 				<span class="online-count">{playersOnline} players online</span>
 			</div>
 		</div>
+
+		{#if showInfo}
+			<MatchmakingInfo onClose={() => showInfo = false} />
+		{/if}
 
 		{#if searching}
 			<div class="searching-state">
@@ -304,6 +314,12 @@
 		justify-content: space-between;
 	}
 
+	.section-title-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+	}
+
 	.section-title {
 		font-size: 1rem;
 		font-weight: 700;
@@ -315,6 +331,32 @@
 		font-size: 0.75rem;
 		color: #6b7280;
 		margin: 0.1rem 0 0;
+	}
+
+	.info-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.03);
+		color: #6b7280;
+		font-size: 0.7rem;
+		font-weight: 700;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s;
+		padding: 0;
+		margin-top: 0.1rem;
+		flex-shrink: 0;
+	}
+
+	.info-btn:hover {
+		border-color: rgba(255, 107, 157, 0.3);
+		color: #ff6b9d;
+		background: rgba(255, 107, 157, 0.05);
 	}
 
 	/* .section-count {

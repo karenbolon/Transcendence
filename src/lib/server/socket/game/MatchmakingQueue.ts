@@ -55,30 +55,51 @@ function randomWildSettings(): { speedPreset: 'chill' | 'normal' | 'fast'; winSc
 }
 
 // ── Matching Logic ───────────────────────────────────────────
-// This is the heart of it. Given a new entry, can we find someone compatible?
+// Score-based matchmaking: lower score = better compatibility.
+// Each pair gets a compatibility score; the queue picks the BEST match,
+// not just the first one. Tier thresholds limit the max allowed score.
 //
-// Matching tiers (tried in order):
-// 1. Exact: same mode + same settings
-// 2. Cross-compatible: quick(normal/5) matches custom(normal/5)
-// 3. Flexible (after 30s): same speed any score, or quick matches any custom
-// 4. Desperate (after 60s): anyone matches anyone
+// Tiers (based on the longer-waiting player):
+//   0–45s  (exact):    score must be 0 (identical settings)
+//   45–90s (flexible): score ≤ 4 (same speed, close score)
+//   90s+   (wide):     any score (matches anyone)
 //
-// Wild is special: two wild players always match each other, and they get
-// random settings generated at match time.
+// Wild is special: instant match with anyone.
 
-function isCompatible(a: QueueEntry, b: QueueEntry): MatchResult | null {
+const SPEED_ORDER: Record<string, number> = { chill: 0, normal: 1, fast: 2 };
+
+/** How "far apart" are two entries' settings? Lower = closer. */
+function compatibilityScore(a: QueueEntry, b: QueueEntry): number {
+	const speedA = SPEED_ORDER[a.settings.speedPreset] ?? 1;
+	const speedB = SPEED_ORDER[b.settings.speedPreset] ?? 1;
+	const speedDiff = Math.abs(speedA - speedB); // 0, 1, or 2
+	const scoreDiff = Math.abs(a.settings.winScore - b.settings.winScore); // 0–8
+	// Speed matters more: adjacent speed = 2, opposite speed = 4
+	return speedDiff * 2 + scoreDiff;
+}
+
+/** Max allowed score for this entry based on how long they've waited. */
+function maxScoreForEntry(entry: QueueEntry, now: number): number {
+	if (now >= entry.joinedAt + 90000) return Infinity; // wide: match anyone
+	if (now >= entry.flexibleAt) return 4;              // flexible: close settings
+	return 0;                                            // exact: identical only
+}
+
+/** Resolve which settings a matched pair plays with — closer to the longer-waiting player. */
+function resolveMatchSettings(
+	a: QueueEntry, b: QueueEntry
+): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number } {
+	// Longer-waiting player's settings win
+	return a.joinedAt <= b.joinedAt ? { ...a.settings } : { ...b.settings };
+}
+
+function tryMatch(a: QueueEntry, b: QueueEntry): MatchResult | null {
 	const now = Date.now();
-	const aFlexible = now >= a.flexibleAt;
-	const bFlexible = now >= b.flexibleAt;
-	const aDesperate = now >= a.joinedAt + 60000;
-	const bDesperate = now >= b.joinedAt + 60000;
 
-	// ── Wild/Random: "I'll play anyone" — instant match ─────
-	// Wild + Wild → random settings
+	// ── Wild/Random: instant match with anyone ──────────────
 	if (a.mode === 'wild' && b.mode === 'wild') {
 		return { player1: a, player2: b, settings: randomWildSettings() };
 	}
-	// Wild + anything → use the other player's settings
 	if (a.mode === 'wild') {
 		return { player1: a, player2: b, settings: b.settings };
 	}
@@ -86,65 +107,40 @@ function isCompatible(a: QueueEntry, b: QueueEntry): MatchResult | null {
 		return { player1: a, player2: b, settings: a.settings };
 	}
 
-	// ── Exact match: same settings ──────────────────────────
-	// Quick + Quick → always match (both are normal/5)
-	if (a.mode === 'quick' && b.mode === 'quick') {
-		return { player1: a, player2: b, settings: { speedPreset: 'normal', winScore: 5 } };
-	}
+	// ── Score-based matching ────────────────────────────────
+	const score = compatibilityScore(a, b);
+	// Both players must allow this score based on their wait time
+	const maxA = maxScoreForEntry(a, now);
+	const maxB = maxScoreForEntry(b, now);
+	const allowed = Math.max(maxA, maxB); // if either is flexible enough, allow it
 
-	// Quick + Custom(normal, 5) → match (same effective settings)
-	if (a.mode === 'quick' && b.mode === 'custom' &&
-		b.settings.speedPreset === 'normal' && b.settings.winScore === 5) {
-		return { player1: a, player2: b, settings: a.settings };
-	}
-	if (b.mode === 'quick' && a.mode === 'custom' &&
-		a.settings.speedPreset === 'normal' && a.settings.winScore === 5) {
-		return { player1: a, player2: b, settings: b.settings };
-	}
+	if (score > allowed) return null;
 
-	// Custom + Custom → exact same settings
-	if (a.mode === 'custom' && b.mode === 'custom' &&
-		a.settings.speedPreset === b.settings.speedPreset &&
-		a.settings.winScore === b.settings.winScore) {
-		return { player1: a, player2: b, settings: a.settings };
-	}
-
-	// ── Flexible matching (after 30s) ────────────────────────
-	if (aFlexible || bFlexible) {
-		// Custom + Custom with same speed, different score
-		if (a.mode === 'custom' && b.mode === 'custom' &&
-			a.settings.speedPreset === b.settings.speedPreset) {
-			// Use the longer-waiting player's settings
-			const settings = a.joinedAt <= b.joinedAt ? a.settings : b.settings;
-			return { player1: a, player2: b, settings };
-		}
-
-		// Quick matches any Custom player
-		if ((a.mode === 'quick' && b.mode === 'custom') ||
-			(a.mode === 'custom' && b.mode === 'quick')) {
-			const customPlayer = a.mode === 'custom' ? a : b;
-			return { player1: a, player2: b, settings: customPlayer.settings };
-		}
-	}
-
-	// ── Desperate matching (after 60s) ───────────────────────
-	if (aDesperate || bDesperate) {
-		// Anyone matches anyone. Use longer-waiting player's settings.
-		const settings = a.joinedAt <= b.joinedAt ? a.settings : b.settings;
-		return { player1: a, player2: b, settings };
-	}
-
-	return null; // No match possible right now
+	return { player1: a, player2: b, settings: resolveMatchSettings(a, b) };
 }
 
-// Scan the entire queue trying to find a match for the given entry
+/**
+ * Find the BEST match for an entry — lowest compatibility score.
+ * Returns the closest match, not just the first compatible one.
+ */
 function findMatch(entry: QueueEntry): MatchResult | null {
+	let bestResult: MatchResult | null = null;
+	let bestScore = Infinity;
+
 	for (const [otherId, other] of queue) {
-		if (otherId === entry.userId) continue; // Don't match with yourself
-		const result = isCompatible(entry, other);
-		if (result) return result;
+		if (otherId === entry.userId) continue;
+		const result = tryMatch(entry, other);
+		if (result) {
+			const score = (entry.mode === 'wild' || other.mode === 'wild')
+				? -1 // wild always wins as best match
+				: compatibilityScore(entry, other);
+			if (score < bestScore) {
+				bestScore = score;
+				bestResult = result;
+			}
+		}
 	}
-	return null;
+	return bestResult;
 }
 
 // ── Public API ───────────────────────────────────────────────
@@ -175,7 +171,7 @@ export function addToQueue(
 		mode,
 		settings: resolveSettings(mode, customSettings),
 		joinedAt: now,
-		flexibleAt: now + 30000, // becomes flexible after 30s
+		flexibleAt: now + 45000, // becomes flexible after 45s
 	};
 
 	// Try to find a match BEFORE adding to queue
@@ -254,25 +250,38 @@ export function getQueuePosition(userId: number): number {
  */
 export function scanForMatches(): MatchResult[] {
 	const matches: MatchResult[] = [];
-	const matched = new Set<number>(); // track who we already matched this scan
+	const matched = new Set<number>();
 
 	const entries = Array.from(queue.values());
 
+	// For each unmatched entry, find their BEST available partner
 	for (let i = 0; i < entries.length; i++) {
 		if (matched.has(entries[i].userId)) continue;
+
+		let bestResult: MatchResult | null = null;
+		let bestScore = Infinity;
 
 		for (let j = i + 1; j < entries.length; j++) {
 			if (matched.has(entries[j].userId)) continue;
 
-			const result = isCompatible(entries[i], entries[j]);
+			const result = tryMatch(entries[i], entries[j]);
 			if (result) {
-				matches.push(result);
-				matched.add(entries[i].userId);
-				matched.add(entries[j].userId);
-				queue.delete(entries[i].userId);
-				queue.delete(entries[j].userId);
-				break; // entry[i] is matched, move to next
+				const score = (entries[i].mode === 'wild' || entries[j].mode === 'wild')
+					? -1
+					: compatibilityScore(entries[i], entries[j]);
+				if (score < bestScore) {
+					bestScore = score;
+					bestResult = result;
+				}
 			}
+		}
+
+		if (bestResult) {
+			matches.push(bestResult);
+			matched.add(bestResult.player1.userId);
+			matched.add(bestResult.player2.userId);
+			queue.delete(bestResult.player1.userId);
+			queue.delete(bestResult.player2.userId);
 		}
 	}
 

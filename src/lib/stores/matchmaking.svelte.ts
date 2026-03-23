@@ -43,3 +43,21 @@ export function getGameStart(): GameStartData | null {
 export function clearGameStart() {
 	gameStartData = null;
 }
+
+// Store what settings the user originally queued with — so the room page
+// can show a banner if match settings differ from what was expected.
+type QueuedSettings = { mode: string; speedPreset: string; winScore: number } | null;
+
+let queuedSettings = $state<QueuedSettings>(null);
+
+export function setQueuedSettings(data: QueuedSettings) {
+	queuedSettings = data;
+}
+
+export function getQueuedSettings(): QueuedSettings {
+	return queuedSettings;
+}
+
+export function clearQueuedSettings() {
+	queuedSettings = null;
+}

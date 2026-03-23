@@ -21,9 +21,10 @@
 	import QueueList from "$lib/component/pong/QueueList.svelte";
 	import QueueSearchBanner from "$lib/component/pong/QueueSearchBanner.svelte";
 	import MatchFoundModal from "$lib/component/pong/MatchFoundModal.svelte";
+	import LeaveQueueModal from "$lib/component/pong/LeaveQueueModal.svelte";
 	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
 	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
-	import { setWaiting, setGameStart } from "$lib/stores/matchmaking.svelte";
+	import { setWaiting, setGameStart, setQueuedSettings } from "$lib/stores/matchmaking.svelte";
 	import { onMount } from "svelte";
 
 	let layoutData = $derived($page.data);
@@ -58,6 +59,7 @@
 	let searchTime = $state(0);
 	let queuePosition = $state(0);
 	let searchInterval: ReturnType<typeof setInterval> | null = null;
+	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number } | null>(null);
 
 	// Match found state (shown as modal during local/computer game)
 	let matchFound = $state(false);
@@ -233,6 +235,8 @@
 		searchTime = 0;
 		matchFound = false;
 		matchData = null;
+		searchSettings = matchSettings;
+		setQueuedSettings(matchSettings);
 		searchInterval = setInterval(() => { searchTime += 1; }, 1000);
 	}
 
@@ -341,18 +345,45 @@
 	});
 
 	// ── Navigation guard: warn before leaving while in queue ──
+	let showLeaveQueueModal = $state(false);
+	let pendingNavCancel: (() => void) | null = $state(null);
+	let pendingNavUrl: string | null = $state(null);
+
 	beforeNavigate(({ cancel, to }) => {
-		// Allow: no destination (refresh), same page, or within /play routes
 		if (!to) return;
 		if (to.url.pathname.startsWith('/play')) return;
 		if (isSearching) {
-			const leave = confirm('You are searching for a match. Leave the queue?');
-			if (leave) {
-				cancelSearch();
-			} else {
-				cancel();
-			}
+			cancel();
+			pendingNavUrl = to.url.pathname;
+			pendingNavCancel = cancel;
+			showLeaveQueueModal = true;
 		}
+	});
+
+	function handleLeaveQueue() {
+		showLeaveQueueModal = false;
+		cancelSearch();
+		if (pendingNavUrl) {
+			goto(pendingNavUrl);
+		}
+		pendingNavCancel = null;
+		pendingNavUrl = null;
+	}
+
+	function handleStayInQueue() {
+		showLeaveQueueModal = false;
+		pendingNavCancel = null;
+		pendingNavUrl = null;
+	}
+
+	// Warn on refresh / tab close while in queue (native dialog — browsers don't allow custom UI here)
+	$effect(() => {
+		if (!isSearching) return;
+		function onBeforeUnload(e: BeforeUnloadEvent) {
+			e.preventDefault();
+		}
+		window.addEventListener('beforeunload', onBeforeUnload);
+		return () => window.removeEventListener('beforeunload', onBeforeUnload);
 	});
 
 	let winScore = $state(5);
@@ -467,11 +498,16 @@
 			{searchTime}
 			{queuePosition}
 			playersOnline={queueSize}
+			settings={searchSettings}
 			onCancel={cancelSearch}
 		/>
 	{/if}
 
 	<!-- Match found modal (shown when match found during local/computer game) -->
+	{#if showLeaveQueueModal}
+		<LeaveQueueModal onLeave={handleLeaveQueue} onStay={handleStayInQueue} />
+	{/if}
+
 	{#if matchFound && matchData}
 		<MatchFoundModal
 			opponent={{

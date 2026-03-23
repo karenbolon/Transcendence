@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import { setWaiting, getGameStart, clearGameStart } from '$lib/stores/matchmaking.svelte';
+	import { setWaiting, getGameStart, clearGameStart, clearQueuedSettings } from '$lib/stores/matchmaking.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
@@ -66,8 +66,16 @@
 			};
 			player1 = enrichPlayer(joinData.player1);
 			player2 = enrichPlayer(joinData.player2);
+			clearQueuedSettings();
 			clearGameStart();
 			gameReady = true;
+
+			// Show match settings as a toast so both players know what they're playing
+			const s = gsData?.settings;
+			if (s) {
+				const speed = s.speedPreset.charAt(0).toUpperCase() + s.speedPreset.slice(1);
+				toast.game('Game Settings', `${speed} · First to ${s.winScore}`);
+			}
 		}
 
 		// If room doesn't exist or we're not in it

@@ -136,10 +136,10 @@
 		white-space: nowrap;
 	}
 
-	.player-username {
+	/* .player-username {
 		font-size: 0.6rem;
 		color: #6b7280;
-	}
+	} */
 
 	.player-detail {
 		font-size: 0.65rem;

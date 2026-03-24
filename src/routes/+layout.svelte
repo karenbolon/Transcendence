@@ -26,61 +26,72 @@
 		}
 	}>();
 
+	/** Register all global socket listeners (notifications, invites, game start). */
+	function registerSocketListeners() {
+		const socket = getSocket();
+		if (!socket) return;
+
+		// Remove any previous listeners to avoid duplicates after reconnect
+		socket.off('friend:request');
+		socket.off('friend:accepted');
+		socket.off('friend:removed');
+		socket.off('friend:online');
+		socket.off('friend:offline');
+		socket.off('game:invite');
+		socket.off('game:invite-expired');
+		socket.off('game:invite-cancelled');
+		socket.off('game:invite-declined');
+		socket.off('game:start');
+
+		socket.on('friend:request', (evtData: { fromUsername: string }) => {
+			toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
+			invalidateAll();
+		});
+		socket.on('friend:accepted', (evtData: { fromUsername: string }) => {
+			toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
+			invalidateAll();
+		});
+		socket.on('friend:removed', () => { invalidateAll(); });
+		socket.on('friend:online', () => { invalidateAll(); });
+		socket.on('friend:offline', () => { invalidateAll(); });
+
+		socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number }
+		}) => {
+			pendingInvite = {
+				inviteId: evtData.inviteId,
+				challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
+				settings: evtData.settings ?? { speedPreset: 'normal', winScore: 5 },
+			};
+		});
+
+		socket.on('game:invite-expired', () => {
+			pendingInvite = null;
+			toast.warning('Game invite expired');
+		});
+
+		socket.on('game:invite-cancelled', () => {
+			pendingInvite = null;
+		});
+
+		socket.on('game:invite-declined', () => {
+			if ($page.url.pathname.includes('/play/online/waiting')) return;
+			toast.game('Challenge Declined');
+		});
+
+		socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
+			pendingInvite = null;
+			// Let the play page and waiting page handle their own game:start
+			const path = $page.url.pathname;
+			if (path.startsWith('/play')) return;
+			goto(`/play/online/${evtData.roomId}`);
+		});
+	}
+
 	onMount(async () => {
-		// Connect socket if user is logged in
 		if (data?.user) {
 			connectSocket();
-
-			// Global friend notification toasts + data refresh (work on any page)
-			const socket = getSocket();
-			if (socket) {
-				socket.on('friend:request', (evtData: { fromUsername: string }) => {
-					toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
-					invalidateAll();
-				});
-				socket.on('friend:accepted', (evtData: { fromUsername: string }) => {
-					toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
-					invalidateAll();
-				});
-				socket.on('friend:removed', () => { invalidateAll(); });
-				socket.on('friend:online', () => { invalidateAll(); });
-				socket.on('friend:offline', () => { invalidateAll(); });
-
-				socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number }
-				}) => {
-					pendingInvite = {
-						inviteId: evtData.inviteId,
-						challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
-						settings: evtData.settings ?? { speedPreset: 'normal', winScore: 5 },
-					};
-				});
-
-
-				socket.on('game:invite-expired', () => {
-					pendingInvite = null;
-					toast.warning('Game invite expired');
-				});
-
-				socket.on('game:invite-cancelled', () => {
-					pendingInvite = null;
-				});
-
-				socket.on('game:invite-declined', () => {
-					if ($page.url.pathname.includes('/play/online/waiting')) return;
-					toast.game('Challenge Declined');
-				});
-
-				socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
-					pendingInvite = null;
-					// Let the play page and waiting page handle their own game:start
-					const path = $page.url.pathname;
-					if (path.startsWith('/play')) return;
-					goto(`/play/online/${evtData.roomId}`);
-				});
-
-			}
+			registerSocketListeners();
 		}
-
 	});
 
 	function acceptInvite() {
@@ -100,13 +111,14 @@
 	}
 
 	// Reconnect socket when auth state changes (login/register/logout)
-	let lastUserId: number | null = null;
+	let lastUserId: number | null = data?.user?.id ?? null;
 	$effect(() => {
 		const currentUserId = data?.user?.id ?? null;
 		if (currentUserId !== lastUserId) {
 			lastUserId = currentUserId;
 			if (currentUserId) {
 				reconnectSocket();
+				registerSocketListeners();
 			} else {
 				disconnectSocket();
 			}

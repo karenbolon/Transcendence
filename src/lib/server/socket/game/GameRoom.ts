@@ -263,6 +263,9 @@ export class GameRoom {
 			loserUsername: loser.username,
 			durationSeconds: Math.round(this.state.playTime),
 			settings: this.rawSettings,
+			ballReturns: this.state.ballReturns,
+			maxDeficit: this.state.maxDeficit,
+			reachedDeuce: this.state.reachedDeuce,
 		};
 
 		// Send final state + game over event
@@ -315,6 +318,9 @@ export class GameRoom {
 			loserUsername: loser.username,
 			durationSeconds: Math.round(this.state.playTime),
 			settings: this.rawSettings,
+			ballReturns: this.state.ballReturns,
+			maxDeficit: this.state.maxDeficit,
+			reachedDeuce: this.state.reachedDeuce,
 		};
 
 		this.broadcastEvent(this.roomId, 'game:forfeit', result);

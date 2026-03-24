@@ -40,9 +40,12 @@ describe('Token Encryption Module', () => {
 	});
 
 	describe('Configuration Validation', () => {
-		it('should throw error when OAUTH_ENCRYPTION_KEY is not set', () => {
+		it('should warn and not throw when OAUTH_ENCRYPTION_KEY is not set', () => {
 			delete process.env.OAUTH_ENCRYPTION_KEY;
-			expect(() => initializeEncryptionKey()).toThrow('OAUTH_ENCRYPTION_KEY environment variable is not set');
+			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			expect(() => initializeEncryptionKey()).not.toThrow();
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('OAUTH_ENCRYPTION_KEY is not set'));
+			warnSpy.mockRestore();
 		});
 
 		it('should throw error when OAUTH_ENCRYPTION_KEY has incorrect length', () => {

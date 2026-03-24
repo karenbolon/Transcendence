@@ -23,20 +23,24 @@ let encryptionKey: Buffer | null = null;
  * Initialize the encryption key.
  * Must be called before any encrypt/decrypt operations.
  *
+ * If no key is provided/found, logs a warning and OAuth token encryption
+ * will be unavailable (encrypt/decrypt calls will throw at runtime).
+ *
  * @param key - The 64-char hex key. If omitted, falls back to process.env.OAUTH_ENCRYPTION_KEY.
- * @throws {Error} if no key is provided/found, or if it has an invalid format
+ * @throws {Error} if the key is provided but has an invalid format
  */
 export function initializeEncryptionKey(key?: string): void {
 	const keyEnv = key ?? process.env.OAUTH_ENCRYPTION_KEY;
 
 	if (!keyEnv) {
-		throw new Error('OAUTH_ENCRYPTION_KEY environment variable is not set');
+		console.warn('OAUTH_ENCRYPTION_KEY is not set — OAuth token encryption is disabled. Set this variable to enable third-party OAuth.');
+		return;
 	}
-	
+
 	if (keyEnv.length !== KEY_LENGTH * 2) {
 		throw new Error(`OAUTH_ENCRYPTION_KEY must be ${KEY_LENGTH * 2} hex characters (${KEY_LENGTH} bytes)`);
 	}
-	
+
 	try {
 		encryptionKey = Buffer.from(keyEnv, ENCODING);
 		if (encryptionKey.length !== KEY_LENGTH) {

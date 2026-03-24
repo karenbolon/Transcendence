@@ -10,6 +10,13 @@
 	BALL_RADIUS,
 	} from './gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
+	import { getTheme } from './themes';
+	import { getBallSkin } from './ballSkins';
+	import { drawThemeBackground, drawCourtLine, drawPaddles } from './themeRenderer';
+	import { drawBall, drawBallTrail } from './ballSkinRenderer';
+	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from './effectsEngine';
+	import { getSoundEngine } from './soundEngine';
+	import MuteButton from './MuteButton.svelte';
 
 	type Props = {
 		roomId: string;
@@ -17,9 +24,25 @@
 		player1: { userId: number; username: string };
 		player2: { userId: number; username: string };
 		onGameOver?: (result: any) => void;
+		themeId?: string;
+		ballSkinId?: string;
+		effectsConfig?: EffectsConfig;
 	};
 
-	let { roomId, side, player1, player2, onGameOver }: Props = $props();
+	let { roomId, side, player1, player2, onGameOver, themeId, ballSkinId, effectsConfig }: Props = $props();
+
+	const theme = $derived(getTheme(themeId ?? 'classic'));
+	const ballSkin = $derived(getBallSkin(ballSkinId ?? 'default'));
+	const effects = new EffectsEngine();
+	let gameTime = 0;
+	let prevScore1 = 0;
+	let prevScore2 = 0;
+	let prevBallVX = 0;
+	let lastRenderTime = 0;
+
+	$effect(() => {
+		effects.setConfig(effectsConfig ?? { preset: 'arcade', custom: DEFAULT_EFFECTS_CUSTOM });
+	});
 
 	let canvas: HTMLCanvasElement;
 	let latestState: GameStateSnapshot | null = $state(null);
@@ -82,10 +105,14 @@
 		});
 
 		socket.on('game:over', (result: any) => {
+			const won = result.winnerId === (side === 'left' ? player1.userId : player2.userId);
+			getSoundEngine().gameOver(won);
 			onGameOver?.(result);
 		});
 
 		socket.on('game:forfeit', (result: any) => {
+			const won = result.winnerId === (side === 'left' ? player1.userId : player2.userId);
+			getSoundEngine().gameOver(won);
 			onGameOver?.(result);
 		});
 
@@ -100,7 +127,38 @@
 		// Render loop — just draws the latest state, NO physics
 		let animFrame: number;
 		function renderLoop() {
+			const now = performance.now();
+			const dt = lastRenderTime ? Math.min((now - lastRenderTime) / 1000, 0.05) : 0;
+			lastRenderTime = now;
+			gameTime += dt;
+
 			if (latestState) {
+				// Effects updates
+				effects.update(dt);
+				if (latestState.phase === 'playing' || latestState.phase === 'countdown') {
+					effects.addTrailPoint(latestState.ballX, latestState.ballY);
+					effects.maybeSpawnSpeedLine(latestState.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
+				}
+
+				// Detect paddle hit
+				if (latestState.phase === 'playing' && Math.sign(latestState.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
+					const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
+					const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+					effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
+					getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
+				}
+
+				// Detect score change
+				if (latestState.score1 !== prevScore1 || latestState.score2 !== prevScore2) {
+					const scoredLeft = latestState.score1 !== prevScore1;
+					const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
+					effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
+					getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
+					prevScore1 = latestState.score1;
+					prevScore2 = latestState.score2;
+				}
+
+				prevBallVX = latestState.ballVX;
 				draw(ctx!, latestState);
 			}
 			animFrame = requestAnimationFrame(renderLoop);
@@ -119,122 +177,105 @@
 	});
 
 	// ── Drawing ─────────────────────────────────────────────────
-	// Reuses the same visual style as PongGame.svelte
 
 	function draw(ctx: CanvasRenderingContext2D, state: GameStateSnapshot) {
-	// Background
-	ctx.fillStyle = '#0a0a1a';
-	ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-	// Score flash effect
-	if (state.scoreFlash) {
-		const flashOpacity = Math.max(0, state.scoreFlashTimer / 0.5 * 0.15);
-		ctx.fillStyle = `rgba(255, 107, 157, ${flashOpacity})`;
-		if (state.scoreFlash === 'left') {
-		ctx.fillRect(0, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
-		} else {
-		ctx.fillRect(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
-		}
-	}
-
-	// Center dashed line
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-	ctx.lineWidth = 2;
-	ctx.setLineDash([15, 10]);
-	ctx.beginPath();
-	ctx.moveTo(CANVAS_WIDTH / 2, 0);
-	ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT);
-	ctx.stroke();
-	ctx.setLineDash([]);
-
-	// Paddles
-	ctx.fillStyle = '#ffffff';
-	ctx.fillRect(PADDLE_OFFSET, state.paddle1Y, PADDLE_WIDTH, PADDLE_HEIGHT);
-	ctx.fillRect(
-		CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH,
-		state.paddle2Y,
-		PADDLE_WIDTH,
-		PADDLE_HEIGHT,
-	);
-
-	// Ball (hidden during menu phase)
-	if (state.phase !== 'menu') {
 		ctx.save();
-		ctx.translate(state.ballX, state.ballY);
-		ctx.rotate(state.ballRotation);
-		ctx.fillStyle = '#ff6b9d';
-		ctx.shadowColor = '#ff6b9d';
-		ctx.shadowBlur = 15;
-		ctx.beginPath();
-		ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
-		ctx.fill();
+		ctx.translate(effects.shakeX, effects.shakeY);
+
+		// Themed background
+		drawThemeBackground(ctx, theme, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+		// Score flash
+		if (state.scoreFlash) {
+			const flashOpacity = Math.max(0, state.scoreFlashTimer / 0.5 * 0.15);
+			ctx.fillStyle = `rgba(255, 107, 157, ${flashOpacity})`;
+			if (state.scoreFlash === 'left') {
+				ctx.fillRect(0, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+			} else {
+				ctx.fillRect(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+			}
+		}
+
+		// Court line
+		drawCourtLine(ctx, theme, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+		// Speed lines
+		effects.drawSpeedLines(ctx, Math.sign(state.ballVX));
+
+		// Ball trail
+		if (state.phase !== 'menu') {
+			drawBallTrail(ctx, ballSkin, theme, effects.trail, gameTime);
+		}
+
+		// Particles
+		effects.drawParticles(ctx);
+
+		// Chromatic aberration
+		if (state.phase !== 'menu') {
+			effects.drawAberration(ctx, state.ballX, state.ballY, BALL_RADIUS);
+		}
+
+		// Paddles (themed, no glow intensity from server — use 0.5 default)
+		drawPaddles(ctx, theme, state.paddle1Y, state.paddle2Y, 0.5, effects.paddleFlashLeft, effects.paddleFlashRight);
+
+		// Ball (skinned)
+		if (state.phase !== 'menu') {
+			drawBall(ctx, ballSkin, theme, state.ballX, state.ballY, gameTime, state.ballSpin, state.ballRotation);
+		}
+
+		// Scores
+		ctx.font = "32px 'Press Start 2P', monospace";
+		ctx.textAlign = 'center';
+
+		if (state.scoreFlash === 'left' && state.scoreFlashTimer > 0) {
+			ctx.fillStyle = theme.colors.ball;
+			ctx.shadowColor = theme.colors.ball;
+			ctx.shadowBlur = 20;
+		} else {
+			ctx.fillStyle = '#ffffff';
+		}
+		ctx.fillText(String(state.score1), CANVAS_WIDTH / 4, 50);
 		ctx.shadowBlur = 0;
 
-		// Spin indicator line
-		if (Math.abs(state.ballSpin) > 0.01) {
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.moveTo(-BALL_RADIUS * 0.6, 0);
-		ctx.lineTo(BALL_RADIUS * 0.6, 0);
-		ctx.stroke();
+		if (state.scoreFlash === 'right' && state.scoreFlashTimer > 0) {
+			ctx.fillStyle = theme.colors.ball;
+			ctx.shadowColor = theme.colors.ball;
+			ctx.shadowBlur = 20;
+		} else {
+			ctx.fillStyle = '#ffffff';
 		}
+		ctx.fillText(String(state.score2), (CANVAS_WIDTH / 4) * 3, 50);
+		ctx.shadowBlur = 0;
+
+		// Player names
+		ctx.fillStyle = '#6b7280';
+		ctx.font = "12px 'Inter', sans-serif";
+		ctx.textAlign = 'left';
+		ctx.fillText(player1.username, PADDLE_OFFSET, CANVAS_HEIGHT - 12);
+		ctx.textAlign = 'right';
+		ctx.fillText(player2.username, CANVAS_WIDTH - PADDLE_OFFSET, CANVAS_HEIGHT - 12);
+		ctx.textAlign = 'center';
+
 		ctx.restore();
-	}
 
-	// Scores
-	ctx.font = "32px 'Press Start 2P', monospace";
-	ctx.textAlign = 'center';
+		// Phase overlays (outside shake)
+		if (state.phase === 'countdown') {
+			drawCountdown(ctx, state);
+		} else if (state.phase === 'gameover') {
+			drawGameOver(ctx, state);
+		}
 
-	// Left score (with flash effect)
-	if (state.scoreFlash === 'left' && state.scoreFlashTimer > 0) {
-		ctx.fillStyle = '#ff6b9d';
-		ctx.shadowColor = '#ff6b9d';
-		ctx.shadowBlur = 20;
-	} else {
-		ctx.fillStyle = '#ffffff';
-	}
-	ctx.fillText(String(state.score1), CANVAS_WIDTH / 4, 50);
-	ctx.shadowBlur = 0;
-
-	// Right score (with flash effect)
-	if (state.scoreFlash === 'right' && state.scoreFlashTimer > 0) {
-		ctx.fillStyle = '#ff6b9d';
-		ctx.shadowColor = '#ff6b9d';
-		ctx.shadowBlur = 20;
-	} else {
-		ctx.fillStyle = '#ffffff';
-	}
-	ctx.fillText(String(state.score2), (CANVAS_WIDTH / 4) * 3, 50);
-	ctx.shadowBlur = 0;
-
-	// Player names at bottom
-	ctx.fillStyle = '#6b7280';
-	ctx.font = "12px 'Inter', sans-serif";
-	ctx.textAlign = 'left';
-	ctx.fillText(player1.username, PADDLE_OFFSET, CANVAS_HEIGHT - 12);
-	ctx.textAlign = 'right';
-	ctx.fillText(player2.username, CANVAS_WIDTH - PADDLE_OFFSET, CANVAS_HEIGHT - 12);
-	ctx.textAlign = 'center';
-
-	// Phase overlays
-	if (state.phase === 'countdown') {
-		drawCountdown(ctx, state);
-	} else if (state.phase === 'gameover') {
-		drawGameOver(ctx, state);
-	}
-
-	// Disconnection overlay
-	if (disconnectedPlayer !== null) {
-		ctx.fillStyle = 'rgba(10, 10, 26, 0.7)';
-		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-		ctx.fillStyle = '#ff6b9d';
-		ctx.font = "18px 'Press Start 2P', monospace";
-		ctx.fillText('Player disconnected', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
-		ctx.fillStyle = '#9ca3af';
-		ctx.font = "14px 'Inter', sans-serif";
-		ctx.fillText('Waiting for reconnection...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-	}
+		// Disconnection overlay
+		if (disconnectedPlayer !== null) {
+			ctx.fillStyle = 'rgba(10, 10, 26, 0.7)';
+			ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+			ctx.fillStyle = '#ff6b9d';
+			ctx.font = "18px 'Press Start 2P', monospace";
+			ctx.fillText('Player disconnected', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+			ctx.fillStyle = '#9ca3af';
+			ctx.font = "14px 'Inter', sans-serif";
+			ctx.fillText('Waiting for reconnection...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+		}
 	}
 
 	function drawCountdown(ctx: CanvasRenderingContext2D, state: GameStateSnapshot) {
@@ -276,12 +317,9 @@
 
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
-<div class="canvas-wrapper">
-	<canvas
-	bind:this={canvas}
-	width={CANVAS_WIDTH}
-	height={CANVAS_HEIGHT}
-	></canvas>
+<div class="canvas-wrapper" style="position:relative;">
+	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
+	<MuteButton />
 </div>
 
 <style>

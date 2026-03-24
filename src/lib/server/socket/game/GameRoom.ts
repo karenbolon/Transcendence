@@ -75,6 +75,7 @@ export class GameRoom {
 			// just moves both paddles based on input — exactly what we want.
 			// The server controls both paddles via socket input.
 			gameMode: 'local',
+			difficulty: 'medium',
 		};
 
 		// Initialize both players with empty input

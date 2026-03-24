@@ -10,8 +10,20 @@
 	import Aurora from '$lib/component/effect/Aurora.svelte';
 	import Scanlines from '$lib/component/effect/Scanlines.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
+	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
+	import { getTheme } from '$lib/component/pong/themes';
+	import { getSoundEngine } from '$lib/component/pong/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
 
 	let { data } = $props();
+
+	let prefs = $state(mergePreferences(data?.user?.game_preferences as any));
+
+	$effect(() => {
+		const se = getSoundEngine();
+		se.setVolume(prefs.soundVolume / 100);
+		se.setMuted(prefs.soundMuted);
+	});
 
 	// State: waiting for room join confirmation → playing → game over
 	let gameReady = $state(false);
@@ -227,6 +239,9 @@
 			{player1}
 			{player2}
 			onGameOver={handleGameOver}
+			themeId={prefs.theme}
+			ballSkinId={prefs.ballSkin}
+			effectsConfig={{ preset: prefs.effectsPreset, custom: prefs.effectsCustom }}
 		/>
 		<div class="status-bar">
 			<span class="vs-label">{player1.username} vs {player2.username}</span>

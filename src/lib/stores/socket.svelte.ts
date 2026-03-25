@@ -30,7 +30,6 @@ export function connectSocket() {
 	socket.on('reconnect', (attempt: number) => {
 		console.log(`[Socket] Reconnected after ${attempt} attempt(s)`);
 	});
-
 }
 
 export function disconnectSocket() {
@@ -54,8 +53,3 @@ export function getSocket(): Socket | null {
 export function isConnected(): boolean {
 	return connected;
 }
-
-/** Reactive object — use `socketState.connected` in templates for reliable reactivity */
-// export const socketState = {
-// 	get connected() { return connected; }
-// };

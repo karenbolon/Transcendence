@@ -416,6 +416,7 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
+		min-height: 0;
 	}
 
 	.thread-header {
@@ -454,6 +455,7 @@
 
 	.messages-scroll {
 		flex: 1;
+		min-height: 0;
 		overflow-y: auto;
 		padding: 0.75rem 1rem;
 		display: flex;

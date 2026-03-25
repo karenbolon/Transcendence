@@ -40,6 +40,7 @@
 	let gameMessages = $state<Array<{ id?: number; senderId: number; senderUsername: string; content: string }>>([]);
 	let gameMessageInput = $state('');
 	let gameMessagesEl: HTMLDivElement | undefined = $state();
+	let isFriendMatch = $state(false);
 
 	// Progression state for level-up modal
 	let showLevelUpModal = $state(false);
@@ -102,6 +103,12 @@
 			clearQueuedSettings();
 			clearGameStart();
 			gameReady = true;
+
+			// Check if opponent is a friend (for in-game chat)
+			const opponentId = data.userId === joinData.player1.userId ? joinData.player2.userId : joinData.player1.userId;
+			fetch('/api/chat/friends').then(r => r.json()).then(d => {
+				isFriendMatch = d.friends?.some((f: { id: number }) => f.id === opponentId) ?? false;
+			}).catch(() => {});
 
 			// Show match settings as a toast so both players know what they're playing
 			const s = gsData?.settings;
@@ -313,36 +320,38 @@
 			<button class="forfeit-btn" onclick={goBack}>Forfeit</button>
 		</div>
 
-		<!-- In-game chat (always visible, collapses when no messages) -->
-		<div class="ingame-chat">
-			{#if gameMessages.length > 0}
-				<div class="ingame-messages" bind:this={gameMessagesEl}>
-					{#each gameMessages as msg}
-						<p class="ingame-msg" class:mine={msg.senderId === data.userId}>
-							<strong>{msg.senderUsername}:</strong> {msg.content}
-						</p>
-					{/each}
-				</div>
-			{/if}
-			<div class="ingame-bottom">
-				<div class="ingame-quick">
-					{#each ['GG!', 'Nice!', 'Rematch?', '😄'] as preset}
-						<button class="quick-btn" onclick={() => sendGameMessage(preset)}>{preset}</button>
-					{/each}
-				</div>
-				<div class="ingame-input-row">
-					<input
-						type="text"
-						class="ingame-input"
-						bind:value={gameMessageInput}
-						onkeydown={(e) => { if (e.key === 'Enter') sendGameMessage(); }}
-						placeholder="Chat..."
-						maxlength="200"
-					/>
-					<button class="ingame-send" onclick={() => sendGameMessage()} disabled={!gameMessageInput.trim()}>Send</button>
+		<!-- In-game chat (only between friends) -->
+		{#if isFriendMatch}
+			<div class="ingame-chat">
+				{#if gameMessages.length > 0}
+					<div class="ingame-messages" bind:this={gameMessagesEl}>
+						{#each gameMessages as msg}
+							<p class="ingame-msg" class:mine={msg.senderId === data.userId}>
+								<strong>{msg.senderUsername}:</strong> {msg.content}
+							</p>
+						{/each}
+					</div>
+				{/if}
+				<div class="ingame-bottom">
+					<div class="ingame-quick">
+						{#each ['GG!', 'Nice!', 'Rematch?', '😄'] as preset}
+							<button class="quick-btn" onclick={() => sendGameMessage(preset)}>{preset}</button>
+						{/each}
+					</div>
+					<div class="ingame-input-row">
+						<input
+							type="text"
+							class="ingame-input"
+							bind:value={gameMessageInput}
+							onkeydown={(e) => { if (e.key === 'Enter') sendGameMessage(); }}
+							placeholder="Chat..."
+							maxlength="200"
+						/>
+						<button class="ingame-send" onclick={() => sendGameMessage()} disabled={!gameMessageInput.trim()}>Send</button>
+					</div>
 				</div>
 			</div>
-		</div>
+		{/if}
 	{/if}
 </div>
 

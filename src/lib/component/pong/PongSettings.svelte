@@ -153,17 +153,17 @@
 				</div>
 			</div>
 
-			<div class="setting-row">
-				<span class="setting-label">Power-Ups</span>
-				<button
-					class="toggle-btn"
-					class:active={powerUps}
-					onclick={() => onPowerUpsChange?.(!powerUps)}
-				>
-					{powerUps ? 'ON' : 'OFF'}
-				</button>
-			</div>
 		{/if}
+		<div class="setting-row">
+			<span class="setting-label">Power-Ups</span>
+			<button
+				class="toggle-btn"
+				class:active={powerUps}
+				onclick={() => onPowerUpsChange?.(!powerUps)}
+			>
+				{powerUps ? 'ON' : 'OFF'}
+			</button>
+		</div>
 	{:else}
 		{#if isLoggedIn}
 			<!-- Sub-tabs for Customize -->

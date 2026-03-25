@@ -13,8 +13,11 @@ Before starting, make sure:
 - Power-ups toggle exists in game settings
 - Power-up items spawn on the court (pulsing circles)
 - Ball collides with power-ups (they disappear)
-- HUD shows at the top (empty until you implement effects)
+- HUD shows under each player's score (bars appear when effects are active)
 - The stub functions exist and are called (just do nothing yet)
+- Only `bigPaddle` and `smallPaddle` are enabled in `POWERUP_CONFIG` — the rest are commented out. Uncomment each type in `src/lib/game/powerups/types.ts` as you implement its behavior.
+
+**NOTE:** Power-ups currently only work in local/computer games. Online games need a separate fix — see `guide-powerups-online.md`.
 
 ---
 
@@ -368,7 +371,7 @@ If playtesting reveals issues:
 
 | Problem | Fix |
 |---------|-----|
-| Freeze too long | Reduce duration from 2 to 1.5s |
+| Freeze too long | Reduce duration from 3 to 2s |
 | Magnet too strong | Lower `attraction` from 200 to 120 |
 | Speed ball too chaotic | Reduce multiplier from 1.5 to 1.3 |
 | Wall too powerful | Reduce wallHeight from 100 to 70 |

@@ -2,7 +2,10 @@
 
 This is a standalone guide for adding the Multi-Ball power-up. It requires refactoring the game engine to support multiple balls, which is why it's separate from the other power-ups.
 
-**Prerequisite:** All other power-ups should be working first. This guide assumes the power-up system (types, config, engine, renderer) is already in place.
+**Prerequisites:**
+- All other power-ups should be working first (all stubs filled in, all types uncommented)
+- Online power-ups fix applied (see `guide-powerups-online.md`)
+- This guide assumes the power-up system (types, config, engine, renderer) is already in place
 
 ---
 
@@ -72,11 +75,13 @@ export type PowerUpType =
   | 'multiBall';
 ```
 
-Add to `POWERUP_CONFIG`:
+Add to `POWERUP_CONFIG` in `src/lib/game/powerups/types.ts` (note: the config uses `Partial<Record>` so you just add the line):
 
 ```typescript
   multiBall: { duration: 8, positive: true, spawnWeight: 1 },
 ```
+
+**Important:** Make sure all other power-up types are also uncommented before adding Multi-Ball — it should be the last power-up implemented.
 
 ---
 

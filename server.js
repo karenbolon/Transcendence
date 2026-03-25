@@ -413,6 +413,7 @@ class ServerGameRoom {
 			ballSpeed: speedConfig.ballSpeed,
 			maxBallSpeed: speedConfig.maxBallSpeed,
 			gameMode: 'local',
+			powerUps: settings.powerUps ?? false,
 		};
 
 		const emptyInput = { paddle1Up: false, paddle1Down: false, paddle2Up: false, paddle2Down: false };

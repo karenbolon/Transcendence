@@ -1080,7 +1080,7 @@
 		color: #9ca3af;
 		font-style: italic;
 	}
-	
+
 	.xp-indicator {
 		color: #ff6b9d;
 		font-size: 0.85rem;

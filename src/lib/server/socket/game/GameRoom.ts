@@ -46,7 +46,7 @@ export class GameRoom {
 
 	private state: GameState;
 	private settings: GameSettings;
-	private rawSettings: { speedPreset: string; winScore: number };
+	private rawSettings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	private interval: ReturnType<typeof setInterval> | null = null;
 	private lastTick: number = 0;
 	private onGameEnd: GameRoomOptions['onGameEnd'];

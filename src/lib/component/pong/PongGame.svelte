@@ -117,6 +117,9 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		const key = e.key.toLowerCase();
 		keysDown.add(key);
 
@@ -165,6 +168,9 @@
 	}
 
 	function handleKeyUp(e: KeyboardEvent) {
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		keysDown.delete(e.key.toLowerCase());
 	}
 

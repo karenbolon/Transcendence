@@ -3,19 +3,13 @@
 	import PongGame from "$lib/component/pong/PongGame.svelte";
 	import PongSettings from "$lib/component/pong/PongSettings.svelte";
 	import PongControls from "$lib/component/pong/PongControls.svelte";
+	import LevelUpModal from "$lib/component/progression/LevelUpModal.svelte";
+	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import AmbientBackground from "$lib/component/effect/AmbientBackground.svelte";
 	import Starfield from "$lib/component/effect/Starfield.svelte";
 	import Aurora from "$lib/component/effect/Aurora.svelte";
 	import Scanlines from "$lib/component/effect/Scanlines.svelte";
 	import NoiseGrain from "$lib/component/effect/NoiseGrain.svelte";
-	import {
-		SPEED_CONFIGS,
-		pauseGame,
-		resumeGame,
-		type SpeedPreset,
-		type GameMode,
-		type GameSettings,
-	} from "$lib/component/pong/gameEngine";
 	import FindMatch from "$lib/component/pong/FindMatch.svelte";
 	import FriendsList from "$lib/component/pong/FriendsList.svelte";
 	import QueueList from "$lib/component/pong/QueueList.svelte";
@@ -27,11 +21,48 @@
 	import { setWaiting, setGameStart, setQueuedSettings } from "$lib/stores/matchmaking.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 	import { onMount } from "svelte";
+	import {
+		SPEED_CONFIGS,
+		pauseGame,
+		resumeGame,
+		type SpeedPreset,
+		type GameMode,
+		type GameSettings,
+	} from "$lib/component/pong/gameEngine";
+	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
+	import { getTheme } from '$lib/component/pong/themes';
+	import { getSoundEngine } from '$lib/component/pong/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
 
 	let layoutData = $derived($page.data);
 	let isLoggedIn = $derived(!!layoutData?.user);
 
 	let userPrefs = $derived(layoutData?.user?.game_preferences ?? { speedPreset: 'normal', winScore: 5 });
+
+	let prefs = $state(mergePreferences($page.data?.user?.game_preferences as any));
+
+	$effect(() => {
+		const se = getSoundEngine();
+		se.setVolume(prefs.soundVolume / 100);
+		se.setMuted(prefs.soundMuted);
+	});
+
+	let prefsSaveStatus = $state<'idle' | 'saving' | 'saved'>('idle');
+
+	async function savePreferences() {
+		prefsSaveStatus = 'saving';
+		try {
+			await fetch('/api/settings/game-preferences', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(prefs),
+			});
+			prefsSaveStatus = 'saved';
+			setTimeout(() => { prefsSaveStatus = 'idle'; }, 2000);
+		} catch {
+			prefsSaveStatus = 'idle';
+		}
+	}
 
 	// ── Real-time friends/queue state for FindMatch ──
 	type OnlineFriend = {
@@ -416,12 +447,14 @@
 		ballSpeed: SPEED_CONFIGS[speedPreset].ballSpeed,
 		maxBallSpeed: SPEED_CONFIGS[speedPreset].maxBallSpeed,
 		gameMode,
+		difficulty: 'medium',
 	});
 
 	let pongGame: PongGame;
 
 	// Track game phase for showing/hiding UI elements
 	let gamePhase = $state("menu");
+	let settingsTab = $state<'game' | 'customize'>('game');
 
 	// Update phase by polling (simple approach)
 	$effect(() => {
@@ -437,11 +470,26 @@
 
 	let saveStatus = $state<"idle" | "saving" | "saved" | "error">("idle");
 
+	// Progression state for level-up modal
+	let showLevelUpModal = $state(false);
+	let progressionResult = $state<{
+		xpEarned: number;
+		bonuses: { name: string; amount: number }[];
+		oldLevel: number;
+		newLevel: number;
+		currentXp: number;
+		xpForNextLevel: number;
+		newAchievements: NewAchievement[];
+	} | null>(null);
+
 	async function handleGameOver(result: {
 		score1: number;
 		score2: number;
 		winner: "player1" | "player2";
 		durationSeconds: number;
+		ballReturns: number;
+		maxDeficit: number;
+		reachedDeuce: boolean;
 	}) {
 		// Don't save matches for guests
 		if (!isLoggedIn) return;
@@ -467,11 +515,21 @@
 					winScore,
 					speedPreset,
 					durationSeconds: result.durationSeconds,
+					ballReturns: result.ballReturns,
+					maxDeficit: result.maxDeficit,
+					reachedDeuce: result.reachedDeuce,
 				}),
 			});
 
 			if (response.ok) {
 				saveStatus = "saved";
+				const data = await response.json();
+
+				// Show progression modal after every match
+				if (data.progression) {
+					progressionResult = data.progression;
+					showLevelUpModal = true;
+				}
 			} else {
 				// Not logged in or validation error — still fine, game works
 				const data = await response.json();
@@ -565,9 +623,31 @@
 					onWinScoreChange={(v) => (winScore = v)}
 					onSpeedChange={(v) => (speedPreset = v)}
 					onPlayer2NameChange={(v) => (player2Name = v)}
+					theme={prefs.theme}
+					ballSkin={prefs.ballSkin}
+					effectsPreset={prefs.effectsPreset}
+					soundVolume={prefs.soundVolume}
+					soundMuted={prefs.soundMuted}
+					onThemeChange={(id) => {
+						prefs.theme = id;
+						const newTheme = getTheme(id);
+						if (!newTheme.compatibleBallSkins.includes(prefs.ballSkin)) {
+							prefs.ballSkin = 'default';
+						}
+						debouncedSavePreferences(prefs);
+					}}
+					onBallSkinChange={(id) => { prefs.ballSkin = id; debouncedSavePreferences(prefs); }}
+					onEffectsChange={(p) => { prefs.effectsPreset = p as any; debouncedSavePreferences(prefs); }}
+					onSoundVolumeChange={(v) => { prefs.soundVolume = v; debouncedSavePreferences(prefs); }}
+					onSoundMuteChange={(m) => { prefs.soundMuted = m; debouncedSavePreferences(prefs); }}
+					effectsCustom={prefs.effectsCustom}
+					onEffectsCustomChange={(c) => { prefs.effectsCustom = c; debouncedSavePreferences(prefs); }}
+					onSavePreferences={savePreferences}
+					saveStatus={prefsSaveStatus}
+					onTabChange={(tab) => settingsTab = tab}
 				/>
 			</div>
-			{#if gameMode === 'online'}
+			{#if gameMode === 'online' && settingsTab === 'game'}
 				<div class="menu-top-right">
 					<FindMatch
 						friends={onlineFriends}
@@ -600,8 +680,8 @@
 			{/if}
 		</div>
 
-		<!-- Row 2: Friends + Open Queue (only when online) -->
-		{#if gameMode === 'online'}
+		<!-- Row 2: Friends + Open Queue (only when online + game tab) -->
+		{#if gameMode === 'online' && settingsTab === 'game'}
 			<div class="menu-row-bottom">
 				<div class="list-half">
 					<FriendsList
@@ -672,19 +752,19 @@
 
 	<!-- The game canvas -->
 	<div class="canvas-wrapper" class:hidden={gamePhase === "menu"}>
-		<PongGame bind:this={pongGame} {settings} onGameOver={handleGameOver} />
+		<PongGame bind:this={pongGame} {settings} onGameOver={handleGameOver} themeId={prefs.theme} ballSkinId={prefs.ballSkin} effectsConfig={{ preset: prefs.effectsPreset, custom: prefs.effectsCustom }} soundMuted={prefs.soundMuted} onMuteChange={(m) => { prefs.soundMuted = m; debouncedSavePreferences(prefs); }} canStart={settingsTab === 'game' && gameMode !== 'online'} />
 	</div>
 
 	<!-- Status bar — changes based on game phase -->
 	<div class="status-bar">
-		{#if gamePhase === "menu"}
-			<span class="status-text">Press SPACE to play</span>
+		{#if gamePhase === "menu" && settingsTab === 'game' && gameMode !== 'online'}
+			<span class="status-text">Press SPACE to start</span>
 		{:else if gamePhase === "countdown"}
 			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
 			<PongControls {gameMode} />
 		{:else if gamePhase === "paused"}
-			<span class="status-text">Game paused — press ESC to resume</span>
+			<span class="status-text">Game paused — press SPACE to resume or ESC to quit</span>
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
 				<span class="status-text">Press SPACE to play again</span>
@@ -692,6 +772,11 @@
 					<span class="save-indicator saving">Saving match...</span>
 				{:else if saveStatus === "saved"}
 					<span class="save-indicator saved">✓ Match saved</span>
+					{#if progressionResult}
+						<span class="xp-indicator"
+							>+{progressionResult.xpEarned} XP</span
+						>
+					{/if}
 				{:else if saveStatus === "error"}
 					<span class="save-indicator error"
 						>Match not saved (not logged in?)</span
@@ -701,6 +786,23 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Level-Up / Achievement Modal -->
+{#if showLevelUpModal && progressionResult}
+	<LevelUpModal
+		xpEarned={progressionResult.xpEarned}
+		bonuses={progressionResult.bonuses}
+		oldLevel={progressionResult.oldLevel}
+		newLevel={progressionResult.newLevel}
+		currentXp={progressionResult.currentXp}
+		xpForNextLevel={progressionResult.xpForNextLevel}
+		newAchievements={progressionResult.newAchievements}
+		onClose={() => {
+			showLevelUpModal = false;
+			progressionResult = null;
+		}}
+	/>
+{/if}
 
 <style>
 	.game-container {
@@ -973,6 +1075,24 @@
 	.save-indicator.error {
 		color: #9ca3af;
 		font-style: italic;
+	}
+	
+	.xp-indicator {
+		color: #ff6b9d;
+		font-size: 0.85rem;
+		font-weight: 600;
+		animation: xpPop 0.3s ease-out;
+	}
+
+	@keyframes xpPop {
+		from {
+			transform: scale(0.5);
+			opacity: 0;
+		}
+		to {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 
 	/* ===== Responsive ===== */

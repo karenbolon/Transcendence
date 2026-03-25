@@ -33,4 +33,8 @@ export interface GameResult {
 	loserUsername: string;
 	durationSeconds: number;
 	settings: { speedPreset: string; winScore: number };
+	// Progression stats (tracked by game engine during play)
+	ballReturns: number;
+	maxDeficit: number;
+	reachedDeuce: boolean;
 }

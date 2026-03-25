@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import {
 		type GameState,
 		type GameSettings,
@@ -19,6 +19,13 @@
 		PADDLE_OFFSET,
 		BALL_RADIUS,
 	} from './gameEngine';
+	import { getTheme } from './themes';
+	import { getBallSkin } from './ballSkins';
+	import { drawThemeBackground, drawCourtLine, drawPaddles } from './themeRenderer';
+	import { drawBall, drawBallTrail } from './ballSkinRenderer';
+	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from './effectsEngine';
+	import { getSoundEngine } from './soundEngine';
+	import MuteButton from './MuteButton.svelte';
 
 	type Props = {
 		settings: GameSettings;
@@ -27,11 +34,40 @@
 			score2: number;
 			winner: 'player1' | 'player2';
 			durationSeconds: number;
+			ballReturns: number;
+			maxDeficit: number;
+			reachedDeuce: boolean;
 		}) => void;
+		themeId?: string;
+		ballSkinId?: string;
+		effectsConfig?: EffectsConfig;
+		soundMuted?: boolean;
+		onMuteChange?: (muted: boolean) => void;
+		canStart?: boolean;
 	};
 
-	let { settings, onGameOver }: Props = $props();
+	let { settings, onGameOver, themeId, ballSkinId, effectsConfig, soundMuted = false, onMuteChange, canStart = true }: Props = $props();
+	let localMuted = $state(false);
+
+	// Sync from parent
+	$effect(() => { localMuted = soundMuted ?? false; });
 	let game = $state<GameState>(createGameState());
+
+	const theme = $derived(getTheme(themeId ?? 'classic'));
+	const ballSkin = $derived(getBallSkin(ballSkinId ?? 'default'));
+	const effects = new EffectsEngine();
+	let gameTime = 0;
+
+	// Track previous state for detecting events
+	let prevBallVX = 0;
+	let prevScore1 = 0;
+	let prevScore2 = 0;
+
+	$effect(() => {
+		effects.setConfig(effectsConfig ?? { preset: 'arcade', custom: DEFAULT_EFFECTS_CUSTOM });
+	});
+
+	onDestroy(() => getSoundEngine().destroy());
 
 	// Expose game state for the parent to read (phase, scores, etc.)
 	export function getGameState(): GameState {
@@ -100,6 +136,7 @@
 				// Second ESC → quit
 				escPaused = false;
 				returnToMenu(game);
+				effects.reset();
 			}
 		}
 
@@ -110,7 +147,8 @@
 		// During gameover → back to menu
 		if (key === ' ' || key === 'space') {
 			e.preventDefault();
-			if (game.phase === 'menu') {
+			getSoundEngine().init();
+			if (game.phase === 'menu' && canStart) {
 				startCountdown(game, settings);
 			} else if (game.phase === 'playing' || game.phase === 'countdown') {
 				pausedFrom = game.phase as 'playing' | 'countdown';
@@ -121,6 +159,7 @@
 				escPaused = false;
 			} else if (game.phase === 'gameover') {
 				returnToMenu(game);
+				effects.reset();
 			}
 		}
 	}
@@ -153,19 +192,53 @@
 		// Update game state via engine
 		update(game, safeDt, input, settings);
 
+		gameTime += safeDt;
+
+		// Effects engine update
+		effects.update(safeDt);
+		if (game.phase === 'playing' || game.phase === 'countdown') {
+			effects.addTrailPoint(game.ballX, game.ballY);
+			effects.maybeSpawnSpeedLine(game.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
+		}
+
+		// Detect paddle hit (ball direction changed)
+		if (game.phase === 'playing' && Math.sign(game.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
+			const hitSide: 'left' | 'right' = game.ballVX > 0 ? 'left' : 'right';
+			const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+			effects.onPaddleHit(hitX, game.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
+			getSoundEngine().paddleHit(Math.abs(game.ballVX));
+		}
+
+		// Detect score
+		if (game.score1 !== prevScore1 || game.score2 !== prevScore2) {
+			const scoredLeft = game.score1 !== prevScore1;
+			const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
+			effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
+			getSoundEngine().score(scoredLeft);
+			prevScore1 = game.score1;
+			prevScore2 = game.score2;
+		}
+
+		prevBallVX = game.ballVX;
+
 		// Check if countdown just finished
 		if (game.phase === 'countdown' && game.countdownTimer <= 0) {
 			startPlaying(game, settings);
+			getSoundEngine().countdown(0);
 		}
 
 		// Detect game-over transition → fire callback to save match
 		// We check prevPhase to ensure this fires ONCE (not every frame)
 		if (game.phase === 'gameover' && prevPhase === 'playing') {
+			getSoundEngine().gameOver(game.score1 > game.score2);
 			onGameOver?.({
 				score1: game.score1,
 				score2: game.score2,
 				winner: game.score1 > game.score2 ? 'player1' : 'player2',
 				durationSeconds: Math.round(game.playTime),
+				ballReturns: game.ballReturns,
+				maxDeficit: game.maxDeficit,
+				reachedDeuce: game.reachedDeuce,
 			});
 		}
 
@@ -177,11 +250,13 @@
 	function draw(ctx: CanvasRenderingContext2D) {
 		const fontSize = 24;
 
-		// Background
-		ctx.fillStyle = '#0a0a1a';
-		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+		ctx.save();
+		ctx.translate(effects.shakeX, effects.shakeY);
 
-		// Score flash
+		// Background (themed)
+		drawThemeBackground(ctx, theme, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+		// Score flash (use theme ball color)
 		if (game.scoreFlash) {
 			const flashOpacity = Math.max(0, game.scoreFlashTimer / 0.5 * 0.15);
 			ctx.fillStyle = `rgba(255, 107, 157, ${flashOpacity})`;
@@ -192,67 +267,43 @@
 			}
 		}
 
-		// Center line
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-		ctx.lineWidth = 2;
-		ctx.setLineDash([15, 10]);
-		ctx.beginPath();
-		ctx.moveTo(CANVAS_WIDTH / 2, 0);
-		ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT);
-		ctx.stroke();
-		ctx.setLineDash([]);
+		// Court line (themed)
+		drawCourtLine(ctx, theme, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-		// Paddles with intensity glow
+		// Speed lines
+		effects.drawSpeedLines(ctx, Math.sign(game.ballVX));
+
+		// Ball trail
+		if (game.phase !== 'menu') {
+			drawBallTrail(ctx, ballSkin, theme, effects.trail, gameTime);
+		}
+
+		// Particles
+		effects.drawParticles(ctx);
+
+		// Chromatic aberration
+		if (game.phase !== 'menu') {
+			effects.drawAberration(ctx, game.ballX, game.ballY, BALL_RADIUS);
+		}
+
+		// Paddles (themed)
 		const glowIntensity = settings.maxBallSpeed > settings.ballSpeed
 			? (game.currentBallSpeed - settings.ballSpeed) / (settings.maxBallSpeed - settings.ballSpeed)
 			: 0;
-		ctx.shadowColor = '#ffffff';
-		ctx.shadowBlur = glowIntensity * 10;
-		ctx.fillStyle = '#ffffff';
-		ctx.fillRect(PADDLE_OFFSET, game.paddle1Y, PADDLE_WIDTH, PADDLE_HEIGHT);
-		ctx.fillRect(
-			CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH,
-			game.paddle2Y,
-			PADDLE_WIDTH,
-			PADDLE_HEIGHT
-		);
-		ctx.shadowBlur = 0;
+		drawPaddles(ctx, theme, game.paddle1Y, game.paddle2Y, glowIntensity, effects.paddleFlashLeft, effects.paddleFlashRight);
 
-		// Ball (hidden during menu)
+		// Ball (skinned)
 		if (game.phase !== 'menu') {
-			ctx.save();
-			ctx.translate(game.ballX, game.ballY);
-			ctx.rotate(game.ballRotation);
-
-			// Ball glow & fill
-			ctx.fillStyle = '#ff6b9d';
-			ctx.shadowColor = '#ff6b9d';
-			ctx.shadowBlur = 15;
-			ctx.beginPath();
-			ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.shadowBlur = 0;
-
-			// Spin indicator line — shows rotation visually
-			if (Math.abs(game.ballSpin) > 0.01) {
-				ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-				ctx.lineWidth = 1.5;
-				ctx.beginPath();
-				ctx.moveTo(-BALL_RADIUS * 0.6, 0);
-				ctx.lineTo(BALL_RADIUS * 0.6, 0);
-				ctx.stroke();
-			}
-
-			ctx.restore();
+			drawBall(ctx, ballSkin, theme, game.ballX, game.ballY, gameTime, game.ballSpin, game.ballRotation);
 		}
 
-		// Score
+		// Score text
 		ctx.font = "32px 'Press Start 2P', monospace";
 		ctx.textAlign = 'center';
 
 		if (game.scoreFlash === 'left' && game.scoreFlashTimer > 0) {
-			ctx.fillStyle = '#ff6b9d';
-			ctx.shadowColor = '#ff6b9d';
+			ctx.fillStyle = theme.colors.ball;
+			ctx.shadowColor = theme.colors.ball;
 			ctx.shadowBlur = 20;
 		} else {
 			ctx.fillStyle = '#ffffff';
@@ -261,8 +312,8 @@
 		ctx.shadowBlur = 0;
 
 		if (game.scoreFlash === 'right' && game.scoreFlashTimer > 0) {
-			ctx.fillStyle = '#ff6b9d';
-			ctx.shadowColor = '#ff6b9d';
+			ctx.fillStyle = theme.colors.ball;
+			ctx.shadowColor = theme.colors.ball;
 			ctx.shadowBlur = 20;
 		} else {
 			ctx.fillStyle = '#ffffff';
@@ -270,7 +321,7 @@
 		ctx.fillText(String(game.score2), (CANVAS_WIDTH / 4) * 3, 50);
 		ctx.shadowBlur = 0;
 
-		// Pause/quit hint (during active gameplay)
+		// Pause/quit hint
 		if (game.phase === 'playing' || game.phase === 'countdown') {
 			ctx.fillStyle = 'rgba(107, 114, 128, 0.4)';
 			ctx.font = "10px 'Inter', sans-serif";
@@ -279,12 +330,13 @@
 			ctx.textAlign = 'center';
 		}
 
-		// Phase overlays
+		ctx.restore();
+
+		// Phase overlays (drawn OUTSIDE shake transform)
 		if (game.phase === 'menu') drawMenuOverlay(ctx);
 		else if (game.phase === 'countdown') drawCountdownOverlay(ctx);
 		else if (game.phase === 'gameover') drawGameOverOverlay(ctx);
 
-		// Draw pause overlay
 		if (game.phase === 'paused') {
 			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 			ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -317,13 +369,15 @@
 		ctx.fillText('PONG', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 40);
 		ctx.shadowBlur = 0;
 
-		// Pulsing "PRESS SPACE"
-		const pulse = 0.4 + Math.abs(Math.sin(Date.now() / 500)) * 0.6;
-		ctx.globalAlpha = pulse;
-		ctx.fillStyle = '#ffffff';
-		ctx.font = "16px 'Press Start 2P', monospace";
-		ctx.fillText('PRESS SPACE', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-		ctx.globalAlpha = 1.0;
+		// Pulsing "PRESS SPACE" (only when game can start)
+		if (canStart) {
+			const pulse = 0.4 + Math.abs(Math.sin(Date.now() / 500)) * 0.6;
+			ctx.globalAlpha = pulse;
+			ctx.fillStyle = '#ffffff';
+			ctx.font = "16px 'Press Start 2P', monospace";
+			ctx.fillText('PRESS SPACE', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+			ctx.globalAlpha = 1.0;
+		}
 
 		// Controls reminder
 		ctx.fillStyle = '#6b7280';
@@ -383,12 +437,9 @@
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
 <!-- Canvas -->
-<div class="canvas-wrapper">
-	<canvas
-		bind:this={canvas}
-		width={CANVAS_WIDTH}
-		height={CANVAS_HEIGHT}
-	></canvas>
+<div class="canvas-wrapper" style="position:relative;">
+	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
+	<MuteButton bind:muted={localMuted} onToggle={(m) => onMuteChange?.(m)} />
 </div>
 
 <style>

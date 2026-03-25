@@ -25,7 +25,16 @@ export const users = pgTable('users', {
 		gameInvites: true,
 		matchResults: true,
 	}),
-	game_preferences: jsonb('game_preferences').$type<{ speedPreset: string; winScore: number }>().default({
+	game_preferences: jsonb('game_preferences').$type<{
+		speedPreset: string;
+		winScore: number;
+		theme?: string;
+		ballSkin?: string;
+		effectsPreset?: string;
+		effectsCustom?: Record<string, unknown>;
+		soundVolume?: number;
+		soundMuted?: boolean;
+	}>().default({
 		speedPreset: 'normal',
 		winScore: 5,
 	})

@@ -80,9 +80,11 @@
 
 		socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
 			pendingInvite = null;
-			// Let the play page and waiting page handle their own game:start
+			// Only defer to pages that have their own game:start handler:
+			// - /play (queue match-found modal)
+			// - /play/online/waiting (invite waiting room)
 			const path = $page.url.pathname;
-			if (path.startsWith('/play')) return;
+			if (path === '/play' || path.startsWith('/play/online/waiting')) return;
 			goto(`/play/online/${evtData.roomId}`);
 		});
 	}
@@ -111,7 +113,7 @@
 	}
 
 	// Reconnect socket when auth state changes (login/register/logout)
-	let lastUserId: number | null = data?.user?.id ?? null;
+	let lastUserId: number | null = $page.data?.user?.id ?? null;
 	$effect(() => {
 		const currentUserId = data?.user?.id ?? null;
 		if (currentUserId !== lastUserId) {

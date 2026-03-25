@@ -42,6 +42,11 @@ export interface GameState {
 	scorePause: number;
 	scoreFlash: 'left' | 'right' | null;
 	scoreFlashTimer: number;
+
+	// Progression tracking
+	ballReturns: number;     // total paddle hits this match
+	maxDeficit: number;      // biggest point deficit player 1 faced
+	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
 }
 
 export interface InputState {
@@ -56,21 +61,28 @@ export interface GameSettings {
 	ballSpeed: number;
 	maxBallSpeed: number;
 	gameMode: GameMode;
+	difficulty: Difficulty;
 }
 
 
 export type GameMode = 'local' | 'computer' | 'online';
-
 export type SpeedPreset = 'chill' | 'normal' | 'fast';
+export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
-	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
+	chill:  { ballSpeed: 300, maxBallSpeed: 400 },
 	normal: { ballSpeed: 500, maxBallSpeed: 600 },
 	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
-export const CANVAS_WIDTH = 800;
-export const CANVAS_HEIGHT = 500;
+export const DIFFICULTY_CONFIGS: Record<Difficulty, { speedMultiplier: number; deadZone: number }> = {
+	easy:   { speedMultiplier: 0.6, deadZone: 40 },
+	medium: { speedMultiplier: 1.0, deadZone: 20 },
+	hard:   { speedMultiplier: 1.3, deadZone: 8 },
+};
+
+export const CANVAS_WIDTH = 900;
+export const CANVAS_HEIGHT = 560;
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_OFFSET = 30;
@@ -106,6 +118,9 @@ export function createGameState(): GameState {
 		scorePause: 0,
 		scoreFlash: null,
 		scoreFlashTimer: 0,
+		ballReturns: 0,
+		maxDeficit: 0,
+		reachedDeuce: false,
 	};
 }
 
@@ -145,6 +160,9 @@ export function returnToMenu(state: GameState): void {
 	state.scoreFlash = null;
 	state.scoreFlashTimer = 0;
 	state.scorePause = 0;
+	state.ballReturns = 0;
+	state.maxDeficit = 0;
+	state.reachedDeuce = false;
 	resetPositions(state);
 }
 
@@ -314,6 +332,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
 		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
 	) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY);
 	}
 
@@ -326,6 +345,7 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
 		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
 	) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY);
 	}
 }
@@ -372,6 +392,15 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
 
+		// Track max deficit for player 1
+		const deficit = state.score2 - state.score1;
+		if (deficit > state.maxDeficit) state.maxDeficit = deficit;
+
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
+
 		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
 		if (state.score2 >= settings.winScore) {
 			endGame(state, scorer);
@@ -386,6 +415,11 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 		state.score1++;
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
+
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
 
 		if (state.score1 >= settings.winScore) {
 			endGame(state, 'Player 1');

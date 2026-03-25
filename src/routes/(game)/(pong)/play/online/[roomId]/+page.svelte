@@ -1,17 +1,33 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { setWaiting, getGameStart, clearGameStart, clearQueuedSettings } from '$lib/stores/matchmaking.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
+	import LevelUpModal from '$lib/component/progression/LevelUpModal.svelte';
+	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import Aurora from '$lib/component/effect/Aurora.svelte';
 	import Scanlines from '$lib/component/effect/Scanlines.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
+	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
+	import { getTheme } from '$lib/component/pong/themes';
+	import { getSoundEngine } from '$lib/component/pong/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
+	import { TIER_EMOJIS } from '$lib/utils/format_progression';
 
 	let { data } = $props();
+
+	let prefs = $state(mergePreferences($page.data?.user?.game_preferences as any));
+
+	$effect(() => {
+		const se = getSoundEngine();
+		se.setVolume(prefs.soundVolume / 100);
+		se.setMuted(prefs.soundMuted);
+	});
 
 	// State: waiting for room join confirmation → playing → game over
 	let gameReady = $state(false);
@@ -19,6 +35,18 @@
 	let player1 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let player2 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let gameOverResult: any = $state(null);
+
+	// Progression state for level-up modal
+	let showLevelUpModal = $state(false);
+	let progressionResult = $state<{
+		xpEarned: number;
+		bonuses: XpBonus[];
+		oldLevel: number;
+		newLevel: number;
+		currentXp: number;
+		xpForNextLevel: number;
+		newAchievements: NewAchievement[];
+	} | null>(null);
 
 	// Reactive to data.roomId — re-runs when navigating between rooms.
 	// This is the key fix: onMount only runs once, but $effect re-runs
@@ -94,9 +122,15 @@
 			}
 		}
 
+		function handleProgression(data: any) {
+			progressionResult = data;
+			showLevelUpModal = true;
+		}
+
 		socket.on('game:joined', handleJoined);
 		socket.on('game:error', handleError);
 		socket.on('game:cancelled', handleCancelled);
+		socket.on('game:progression', handleProgression);
 
 		// Tell the server we're here
 		socket.emit('game:join-room', { roomId });
@@ -106,6 +140,7 @@
 			socket.off('game:joined', handleJoined);
 			socket.off('game:error', handleError);
 			socket.off('game:cancelled', handleCancelled);
+			socket.off('game:progression', handleProgression);
 		};
 	});
 
@@ -175,7 +210,10 @@
 			speedPreset: gameOverResult.settings.speedPreset,
 			winScore: gameOverResult.settings.winScore,
 		},
-		newBadges: [] as { emoji: string; name: string }[],
+		newBadges: (progressionResult?.newAchievements ?? []).map(a => ({
+			emoji: TIER_EMOJIS[a.tier] ?? '🏅',
+			name: a.name,
+		})),
 	};
 	});
 </script>
@@ -227,6 +265,9 @@
 			{player1}
 			{player2}
 			onGameOver={handleGameOver}
+			themeId={prefs.theme}
+			ballSkinId={prefs.ballSkin}
+			effectsConfig={{ preset: prefs.effectsPreset, custom: prefs.effectsCustom }}
 		/>
 		<div class="status-bar">
 			<span class="vs-label">{player1.username} vs {player2.username}</span>
@@ -234,6 +275,22 @@
 		</div>
 	{/if}
 </div>
+
+{#if showLevelUpModal && progressionResult}
+	<LevelUpModal
+		xpEarned={progressionResult.xpEarned}
+		bonuses={progressionResult.bonuses}
+		oldLevel={progressionResult.oldLevel}
+		newLevel={progressionResult.newLevel}
+		currentXp={progressionResult.currentXp}
+		xpForNextLevel={progressionResult.xpForNextLevel}
+		newAchievements={progressionResult.newAchievements}
+		onClose={() => {
+			showLevelUpModal = false;
+			progressionResult = null;
+		}}
+	/>
+{/if}
 
 <style>
 

@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { games, users } from '$lib/server/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { processMatchProgression } from '$lib/server/progression';
+import { getIO, userSockets } from '../index';
 
 // ── Active Room Storage ───────────────────────────────────────
 // roomId → GameRoom instance
@@ -123,30 +124,44 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				.where(eq(users.id, result.player2.userId));
 
 			// 4. Process XP/levels/achievements for both players
-			// TODO: Track ballReturns, maxDeficit, reachedDeuce in GameRoom
-			// to enable online achievements. For now, hardcoded to 0/false.
-			await processMatchProgression(tx, result.player1.userId, {
+			// maxDeficit is from player 1's perspective in the engine,
+			// so for player 2 we compute it as the inverse deficit
+			const p1MaxDeficit = result.maxDeficit;
+			const p2MaxDeficit = Math.max(0, result.player1.score - result.player2.score);
+
+			const p1Progression = await processMatchProgression(tx, result.player1.userId, {
 				won: p1Won,
 				player1Score: result.player1.score,
 				player2Score: result.player2.score,
 				winScore: result.settings.winScore,
 				speedPreset: result.settings.speedPreset as 'chill' | 'normal' | 'fast',
-				ballReturns: 0,
-				maxDeficit: 0,
-				reachedDeuce: false,
+				ballReturns: result.ballReturns,
+				maxDeficit: p1MaxDeficit,
+				reachedDeuce: result.reachedDeuce,
 			});
 
 			// For player 2, their score is "player1Score" from their perspective
-			await processMatchProgression(tx, result.player2.userId, {
+			const p2Progression = await processMatchProgression(tx, result.player2.userId, {
 				won: p2Won,
 				player1Score: result.player2.score,
 				player2Score: result.player1.score,
 				winScore: result.settings.winScore,
 				speedPreset: result.settings.speedPreset as 'chill' | 'normal' | 'fast',
-				ballReturns: 0,
-				maxDeficit: 0,
-				reachedDeuce: false,
+				ballReturns: result.ballReturns,
+				maxDeficit: p2MaxDeficit,
+				reachedDeuce: result.reachedDeuce,
 			});
+
+			// Send progression results to each player via socket
+			const io = getIO();
+			for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]] as const) {
+				const sockets = userSockets.get(uid);
+				if (sockets) {
+					for (const sid of sockets) {
+						io.to(sid).emit('game:progression', progression);
+					}
+				}
+			}
 		});
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
 	} catch (err) {

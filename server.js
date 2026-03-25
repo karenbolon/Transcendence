@@ -156,8 +156,8 @@ async function notifyFriends(userId, event, data) {
 // ── Game Engine (inline copy of gameEngine.ts — plain JS) ────────
 // Must stay in sync with src/lib/component/pong/gameEngine.ts
 
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 500;
+const CANVAS_WIDTH = 900;
+const CANVAS_HEIGHT = 560;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 80;
 const PADDLE_OFFSET = 30;
@@ -171,7 +171,7 @@ const SPIN_ACCELERATION = 800;
 const SPIN_DECAY = 0.97;
 
 const SPEED_CONFIGS = {
-	chill:  { ballSpeed: 200, maxBallSpeed: 400 },
+	chill:  { ballSpeed: 300, maxBallSpeed: 400 },
 	normal: { ballSpeed: 500, maxBallSpeed: 600 },
 	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
@@ -192,6 +192,9 @@ function createGameState() {
 		playTime: 0,
 		countdownTimer: 0, countdownDisplay: '',
 		scorePause: 0, scoreFlash: null, scoreFlashTimer: 0,
+		ballReturns: 0,
+		maxDeficit: 0,
+		reachedDeuce: false,
 	};
 }
 
@@ -273,6 +276,7 @@ function checkPaddleCollision(state, settings) {
 		state.ballX + BALL_RADIUS >= PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
 		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY);
 	}
 	const p2Left = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
@@ -281,6 +285,7 @@ function checkPaddleCollision(state, settings) {
 		state.ballX - BALL_RADIUS <= CANVAS_WIDTH - PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
 		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT) {
+		state.ballReturns++;
 		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY);
 	}
 }
@@ -290,6 +295,13 @@ function checkScoring(state, settings) {
 		state.score2++;
 		state.scoreFlash = 'right';
 		state.scoreFlashTimer = 0.5;
+		// Track max deficit from player 1's perspective
+		const deficit = state.score2 - state.score1;
+		if (deficit > state.maxDeficit) state.maxDeficit = deficit;
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
 		if (state.score2 >= settings.winScore) {
 			endGameState(state, 'Player 2');
 		} else {
@@ -301,6 +313,10 @@ function checkScoring(state, settings) {
 		state.score1++;
 		state.scoreFlash = 'left';
 		state.scoreFlashTimer = 0.5;
+		// Check deuce
+		if (state.score1 >= settings.winScore - 1 && state.score2 >= settings.winScore - 1) {
+			state.reachedDeuce = true;
+		}
 		if (state.score1 >= settings.winScore) {
 			endGameState(state, 'Player 1');
 		} else {
@@ -512,6 +528,9 @@ class ServerGameRoom {
 			loserId: loser.userId, loserUsername: loser.username,
 			durationSeconds: Math.round(this.state.playTime),
 			settings: this.rawSettings,
+			ballReturns: this.state.ballReturns ?? 0,
+			maxDeficit: this.state.maxDeficit ?? 0,
+			reachedDeuce: this.state.reachedDeuce ?? false,
 		};
 		broadcastRoomState(this.roomId, this._getSnapshot());
 		broadcastRoomEvent(this.roomId, 'game:over', result);
@@ -549,6 +568,9 @@ class ServerGameRoom {
 			loserId: loser.userId, loserUsername: loser.username,
 			durationSeconds: Math.round(this.state.playTime),
 			settings: this.rawSettings,
+			ballReturns: this.state.ballReturns ?? 0,
+			maxDeficit: this.state.maxDeficit ?? 0,
+			reachedDeuce: this.state.reachedDeuce ?? false,
 		};
 		broadcastRoomEvent(this.roomId, 'game:forfeit', result);
 		playerRoomMap.delete(this.player1.userId);
@@ -602,6 +624,216 @@ function createGameRoom(roomId, p1, p2, settings) {
 	return room;
 }
 
+// ── Progression: XP Calculation (mirrors src/lib/server/progression/xp.ts) ──
+
+const XP_TABLE_SIZE = 100;
+const BASE_XP = 50;
+const GROWTH_FACTOR = 1.3;
+let _xpThresholds = null;
+
+function getXpThresholds() {
+	if (_xpThresholds) return _xpThresholds;
+	_xpThresholds = [0];
+	let cumulative = 0;
+	for (let i = 1; i <= XP_TABLE_SIZE; i++) {
+		cumulative += Math.round(BASE_XP * Math.pow(GROWTH_FACTOR, i - 1));
+		_xpThresholds.push(cumulative);
+	}
+	return _xpThresholds;
+}
+
+function calculateMatchXp(result) {
+	const bonuses = [];
+	const base = result.won ? 50 : 20;
+	if (result.won && result.player2Score === 0) {
+		bonuses.push({ name: 'levelUpModal.bonuses.shutout', amount: 15 });
+	}
+	if (result.won && result.currentWinStreak > 0) {
+		bonuses.push({ name: 'levelUpModal.bonuses.winStreak', amount: Math.min(result.currentWinStreak * 5, 25) });
+	}
+	if (result.won && result.maxDeficit >= 2) {
+		bonuses.push({ name: 'levelUpModal.bonuses.comeback', amount: 10 });
+	}
+	const speedBonusMap = { chill: 0, normal: 5, fast: 10 };
+	const speedBonus = speedBonusMap[result.speedPreset] ?? 0;
+	if (speedBonus > 0) {
+		bonuses.push({ name: 'levelUpModal.bonuses.speedBonus', amount: speedBonus });
+	}
+	const total = base + bonuses.reduce((sum, b) => sum + b.amount, 0);
+	return { base, bonuses, total };
+}
+
+function getLevelForXp(totalXp) {
+	const thresholds = getXpThresholds();
+	let level = 0;
+	for (let i = 1; i < thresholds.length; i++) {
+		if (totalXp >= thresholds[i]) level = i;
+		else break;
+	}
+	const xpAtCurrentLevel = thresholds[level] ?? 0;
+	const xpAtNextLevel = thresholds[level + 1] ?? thresholds[level] + 1000;
+	return { level, xpIntoLevel: totalXp - xpAtCurrentLevel, xpForNextLevel: xpAtNextLevel - xpAtCurrentLevel };
+}
+
+// ── Progression: Achievement Evaluation (mirrors src/lib/server/progression/achievements.ts) ──
+
+const ACHIEVEMENT_CONDITIONS = [
+	{ id: 'shutout_bronze', field: 'shutout_wins', threshold: 1 },
+	{ id: 'shutout_silver', field: 'shutout_wins', threshold: 10 },
+	{ id: 'shutout_gold', field: 'shutout_wins', threshold: 50 },
+	{ id: 'streak_bronze', field: 'best_win_streak', threshold: 3 },
+	{ id: 'streak_silver', field: 'best_win_streak', threshold: 7 },
+	{ id: 'streak_gold', field: 'best_win_streak', threshold: 15 },
+	{ id: 'matches_10', field: 'games_played', threshold: 10 },
+	{ id: 'matches_50', field: 'games_played', threshold: 50 },
+	{ id: 'matches_v_100', field: 'games_played', threshold: 100 },
+	{ id: 'matches_v_250', field: 'games_played', threshold: 250 },
+	{ id: 'matches_v_500', field: 'games_played', threshold: 500 },
+	{ id: 'points_bronze', field: 'total_points_scored', threshold: 50 },
+	{ id: 'points_silver', field: 'total_points_scored', threshold: 250 },
+	{ id: 'points_gold', field: 'total_points_scored', threshold: 1000 },
+	{ id: 'comeback_bronze', field: 'comeback_wins', threshold: 1 },
+	{ id: 'comeback_silver', field: 'comeback_wins', threshold: 5 },
+	{ id: 'comeback_gold', field: 'comeback_wins', threshold: 20 },
+	{ id: 'rally_bronze', field: 'total_ball_returns', threshold: 100 },
+	{ id: 'rally_silver', field: 'total_ball_returns', threshold: 500 },
+	{ id: 'rally_gold', field: 'total_ball_returns', threshold: 2000 },
+];
+
+function evaluateAchievements(stats, existingIds) {
+	const newlyUnlocked = [];
+	for (const cond of ACHIEVEMENT_CONDITIONS) {
+		if (existingIds.has(cond.id)) continue;
+		if (stats[cond.field] >= cond.threshold) newlyUnlocked.push(cond.id);
+	}
+	return newlyUnlocked;
+}
+
+// ── Progression: Process match progression for one player (raw SQL version) ──
+
+async function processMatchProgressionSQL(userId, input) {
+	// 1. Read or create progression row
+	const [existingRow] = await sql`
+		SELECT * FROM player_progression WHERE user_id = ${userId}
+	`;
+	const isFirstGame = !existingRow;
+	const current = existingRow ?? {
+		current_level: 0, current_xp: 0, total_game_xp: 0, total_xp: 0,
+		xp_to_next_level: 50, current_win_streak: 0, best_win_streak: 0,
+		total_points_scored: 0, total_ball_returns: 0, shutout_wins: 0,
+		comeback_wins: 0, consecutive_days_played: 0, last_played_at: null,
+	};
+
+	// 2. Update cumulative stats
+	const newWinStreak = input.won ? current.current_win_streak + 1 : 0;
+	const newBestStreak = Math.max(current.best_win_streak, newWinStreak);
+	const newTotalPoints = current.total_points_scored + input.player1Score;
+	const newBallReturns = current.total_ball_returns + input.ballReturns;
+	const isShutout = input.won && input.player2Score === 0;
+	const newShutoutWins = current.shutout_wins + (isShutout ? 1 : 0);
+	const isComeback = input.won && input.maxDeficit >= 2;
+	const newComebackWins = current.comeback_wins + (isComeback ? 1 : 0);
+
+	// 3. Calculate XP
+	const xpBreakdown = calculateMatchXp({
+		won: input.won,
+		player1Score: input.player1Score,
+		player2Score: input.player2Score,
+		winScore: input.winScore,
+		speedPreset: input.speedPreset,
+		currentWinStreak: newWinStreak,
+		ballReturns: input.ballReturns,
+		maxDeficit: input.maxDeficit,
+	});
+	const oldTotalXp = current.total_xp;
+	const newTotalXp = oldTotalXp + xpBreakdown.total;
+
+	// 4. Determine levels
+	const oldLevelInfo = getLevelForXp(oldTotalXp);
+	const newLevelInfo = getLevelForXp(newTotalXp);
+
+	// 5. Consecutive days tracking
+	const now = new Date();
+	let newConsecutiveDays = current.consecutive_days_played;
+	if (current.last_played_at) {
+		const diffHours = (now.getTime() - new Date(current.last_played_at).getTime()) / (1000 * 60 * 60);
+		if (diffHours >= 20 && diffHours <= 48) newConsecutiveDays++;
+		else if (diffHours > 48) newConsecutiveDays = 1;
+	} else {
+		newConsecutiveDays = 1;
+	}
+
+	// 6. Upsert progression row
+	if (isFirstGame) {
+		await sql`
+			INSERT INTO player_progression (user_id, current_level, current_xp, total_game_xp, total_xp,
+				xp_to_next_level, current_win_streak, best_win_streak, total_points_scored,
+				total_ball_returns, shutout_wins, comeback_wins, consecutive_days_played, last_played_at)
+			VALUES (${userId}, ${newLevelInfo.level}, ${newLevelInfo.xpIntoLevel},
+				${current.total_game_xp + xpBreakdown.total}, ${newTotalXp}, ${newLevelInfo.xpForNextLevel},
+				${newWinStreak}, ${newBestStreak}, ${newTotalPoints}, ${newBallReturns},
+				${newShutoutWins}, ${newComebackWins}, ${newConsecutiveDays}, ${now})
+		`;
+	} else {
+		await sql`
+			UPDATE player_progression SET
+				current_level = ${newLevelInfo.level}, current_xp = ${newLevelInfo.xpIntoLevel},
+				total_game_xp = total_game_xp + ${xpBreakdown.total}, total_xp = ${newTotalXp},
+				xp_to_next_level = ${newLevelInfo.xpForNextLevel},
+				current_win_streak = ${newWinStreak}, best_win_streak = ${newBestStreak},
+				total_points_scored = ${newTotalPoints}, total_ball_returns = ${newBallReturns},
+				shutout_wins = ${newShutoutWins}, comeback_wins = ${newComebackWins},
+				consecutive_days_played = ${newConsecutiveDays}, last_played_at = ${now}
+			WHERE user_id = ${userId}
+		`;
+	}
+
+	// 7. Get games_played for achievements
+	const [userRow] = await sql`SELECT games_played FROM users WHERE id = ${userId}`;
+
+	// 8. Evaluate achievements
+	const existingAchievements = await sql`
+		SELECT achievement_id FROM achievements WHERE user_id = ${userId}
+	`;
+	const existingIds = new Set(existingAchievements.map(a => a.achievement_id));
+
+	const stats = {
+		shutout_wins: newShutoutWins,
+		best_win_streak: newBestStreak,
+		total_points_scored: newTotalPoints,
+		comeback_wins: newComebackWins,
+		total_ball_returns: newBallReturns,
+		games_played: userRow?.games_played ?? 0,
+	};
+
+	const newAchievementIds = evaluateAchievements(stats, existingIds);
+
+	// 9. Insert newly unlocked achievements
+	if (newAchievementIds.length > 0) {
+		for (const achId of newAchievementIds) {
+			await sql`INSERT INTO achievements (user_id, achievement_id) VALUES (${userId}, ${achId})`;
+		}
+	}
+
+	// 10. Fetch definitions for newly unlocked
+	let newAchievementDetails = [];
+	if (newAchievementIds.length > 0) {
+		newAchievementDetails = await sql`
+			SELECT id, name, description, tier FROM achievement_definitions WHERE id = ANY(${newAchievementIds})
+		`;
+	}
+
+	return {
+		xpEarned: xpBreakdown.total,
+		bonuses: [{ name: 'Base', amount: xpBreakdown.base }, ...xpBreakdown.bonuses],
+		oldLevel: oldLevelInfo.level,
+		newLevel: newLevelInfo.level,
+		currentXp: newLevelInfo.xpIntoLevel,
+		xpForNextLevel: newLevelInfo.xpForNextLevel,
+		newAchievements: newAchievementDetails.map(d => ({ id: d.id, name: d.name, description: d.description, tier: d.tier })),
+	};
+}
+
 /** Save online match result to database */
 async function saveOnlineMatch(result) {
 	try {
@@ -610,68 +842,81 @@ async function saveOnlineMatch(result) {
 		const p1Won = result.winnerId === result.player1.userId;
 		const p2Won = result.winnerId === result.player2.userId;
 
-		await sql`
-			INSERT INTO games (type, status, game_mode, player1_id, player2_id, player2_name,
-				player1_score, player2_score, winner_id, winner_name, winner_score,
-				speed_preset, duration_seconds, started_at, finished_at)
-			VALUES ('pong', 'finished', 'online',
-				${result.player1.userId}, ${result.player2.userId}, ${result.player2.username},
-				${result.player1.score}, ${result.player2.score},
-				${result.winnerId}, ${result.winnerUsername}, ${result.settings.winScore},
-				${result.settings.speedPreset}, ${result.durationSeconds},
-				${startedAt}, ${finishedAt})
-		`;
+		// Use a transaction for atomicity
+		await sql.begin(async (tx) => {
+			// 1. Insert game record
+			await tx`
+				INSERT INTO games (type, status, game_mode, player1_id, player2_id, player2_name,
+					player1_score, player2_score, winner_id, winner_name, winner_score,
+					speed_preset, duration_seconds, started_at, finished_at)
+				VALUES ('pong', 'finished', 'online',
+					${result.player1.userId}, ${result.player2.userId}, ${result.player2.username},
+					${result.player1.score}, ${result.player2.score},
+					${result.winnerId}, ${result.winnerUsername}, ${result.settings.winScore},
+					${result.settings.speedPreset}, ${result.durationSeconds},
+					${startedAt}, ${finishedAt})
+			`;
 
-		// Update player 1 stats
-		await sql`
-			UPDATE users SET
-				games_played = games_played + 1,
-				wins = wins + ${p1Won ? 1 : 0},
-				losses = losses + ${p1Won ? 0 : 1},
-				updated_at = ${finishedAt}
-			WHERE id = ${result.player1.userId}
-		`;
+			// 2. Update player 1 stats
+			await tx`
+				UPDATE users SET
+					games_played = games_played + 1,
+					wins = wins + ${p1Won ? 1 : 0},
+					losses = losses + ${p1Won ? 0 : 1},
+					updated_at = ${finishedAt}
+				WHERE id = ${result.player1.userId}
+			`;
 
-		// Update player 2 stats
-		await sql`
-			UPDATE users SET
-				games_played = games_played + 1,
-				wins = wins + ${p2Won ? 1 : 0},
-				losses = losses + ${p2Won ? 0 : 1},
-				updated_at = ${finishedAt}
-			WHERE id = ${result.player2.userId}
-		`;
+			// 3. Update player 2 stats
+			await tx`
+				UPDATE users SET
+					games_played = games_played + 1,
+					wins = wins + ${p2Won ? 1 : 0},
+					losses = losses + ${p2Won ? 0 : 1},
+					updated_at = ${finishedAt}
+				WHERE id = ${result.player2.userId}
+			`;
+		});
 
-		// Auto-detect preferences for both players
-		for (const playerId of [result.player1.userId, result.player2.userId]) {
-			try {
-				const recentGames = await sql`
-					SELECT speed_preset, winner_score
-					FROM games
-					WHERE (player1_id = ${playerId} OR player2_id = ${playerId})
-					  AND status = 'finished'
-					ORDER BY finished_at DESC
-					LIMIT 6
-				`;
-				if (recentGames.length >= 4) {
-					const comboCounts = new Map();
-					for (const g of recentGames) {
-						const key = `${g.speed_preset}:${g.winner_score}`;
-						comboCounts.set(key, (comboCounts.get(key) ?? 0) + 1);
-					}
-					for (const [key, count] of comboCounts) {
-						if (count >= 4) {
-							const [speedPreset, winScoreStr] = key.split(':');
-							const winScore = Number(winScoreStr);
-							await sql`
-								UPDATE users SET game_preferences = ${JSON.stringify({ speedPreset, winScore })}::jsonb
-								WHERE id = ${playerId}
-							`;
-							break;
-						}
+		// 4. Process progression for both players (outside tx — uses its own queries)
+		const p1MaxDeficit = result.maxDeficit;
+		const p2MaxDeficit = Math.max(0, result.player1.score - result.player2.score);
+
+		const [p1Progression, p2Progression] = await Promise.all([
+			processMatchProgressionSQL(result.player1.userId, {
+				won: p1Won,
+				player1Score: result.player1.score,
+				player2Score: result.player2.score,
+				winScore: result.settings.winScore,
+				speedPreset: result.settings.speedPreset,
+				ballReturns: result.ballReturns,
+				maxDeficit: p1MaxDeficit,
+				reachedDeuce: result.reachedDeuce,
+			}),
+			processMatchProgressionSQL(result.player2.userId, {
+				won: p2Won,
+				player1Score: result.player2.score,
+				player2Score: result.player1.score,
+				winScore: result.settings.winScore,
+				speedPreset: result.settings.speedPreset,
+				ballReturns: result.ballReturns,
+				maxDeficit: p2MaxDeficit,
+				reachedDeuce: result.reachedDeuce,
+			}),
+		]);
+
+		// 5. Emit progression to each player via socket
+		const io = globalThis.__socketIO;
+		const sockets = globalThis.__userSockets;
+		if (io && sockets) {
+			for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]]) {
+				const playerSockets = sockets.get(uid);
+				if (playerSockets) {
+					for (const sid of playerSockets) {
+						io.to(sid).emit('game:progression', progression);
 					}
 				}
-			} catch (e) { /* silently fail — preferences are a nice-to-have */ }
+			}
 		}
 
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);

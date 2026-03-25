@@ -72,6 +72,10 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
+		// Don't capture game keys when typing in chat input
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		const key = e.key.toLowerCase();
 		if (['w', 's', 'arrowup', 'arrowdown'].includes(key)) {
 			e.preventDefault();
@@ -81,6 +85,9 @@
 	}
 
 	function handleKeyUp(e: KeyboardEvent) {
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		const key = e.key.toLowerCase();
 		if (keysDown.has(key)) {
 			keysDown.delete(key);

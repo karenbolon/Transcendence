@@ -1352,6 +1352,99 @@ io.on('connection', (socket) => {
 		}
 	});
 
+	// ═══════════════════════════════════════════════════════════════
+	// CHAT HANDLERS
+	// ═══════════════════════════════════════════════════════════════
+
+	socket.on('chat:send', async (data) => {
+		const { recipientId, content, gameId } = data;
+		if (!content?.trim() || content.length > 500) return;
+		if (recipientId === userId) return;
+
+		// Block check
+		const [blocked] = await sql`
+			SELECT id FROM friendships
+			WHERE status = 'blocked'
+			AND ((user_id = ${userId} AND friend_id = ${recipientId})
+			  OR (user_id = ${recipientId} AND friend_id = ${userId}))
+			LIMIT 1
+		`;
+		if (blocked) {
+			socket.emit('chat:error', { message: 'Cannot send message to this user' });
+			return;
+		}
+
+		// Friend check (skip for in-game chat)
+		if (!gameId) {
+			const friends = await sql`
+				SELECT id FROM friendships
+				WHERE status = 'accepted'
+				AND ((user_id = ${userId} AND friend_id = ${recipientId})
+				  OR (user_id = ${recipientId} AND friend_id = ${userId}))
+				LIMIT 1
+			`;
+			if (friends.length === 0) {
+				socket.emit('chat:error', { message: 'You can only message friends' });
+				return;
+			}
+		}
+
+		const [msg] = await sql`
+			INSERT INTO messages (sender_id, recipient_id, game_id, type, content)
+			VALUES (${userId}, ${recipientId}, ${gameId ?? null}, 'chat', ${content.trim()})
+			RETURNING *
+		`;
+
+		const payload = {
+			id: msg.id,
+			senderId: userId,
+			senderUsername: username,
+			senderAvatar: socket.data?.avatarUrl ?? null,
+			recipientId,
+			content: msg.content,
+			createdAt: msg.created_at,
+			gameId: gameId ?? null,
+		};
+
+		const recipientSockets = userSockets.get(recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) io.to(sid).emit('chat:message', payload);
+		}
+		socket.emit('chat:sent', payload);
+	});
+
+	socket.on('chat:read', async (data) => {
+		const { friendId } = data;
+		await sql`
+			UPDATE messages SET is_read = true, read_at = NOW()
+			WHERE sender_id = ${friendId} AND recipient_id = ${userId} AND is_read = false
+		`;
+		const senderSockets = userSockets.get(friendId);
+		if (senderSockets) {
+			for (const sid of senderSockets) {
+				io.to(sid).emit('chat:read-receipt', { readBy: userId, friendId });
+			}
+		}
+	});
+
+	socket.on('chat:typing', (data) => {
+		const recipientSockets = userSockets.get(data.recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) {
+				io.to(sid).emit('chat:typing', { userId, username });
+			}
+		}
+	});
+
+	socket.on('chat:stop-typing', (data) => {
+		const recipientSockets = userSockets.get(data.recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) {
+				io.to(sid).emit('chat:stop-typing', { userId });
+			}
+		}
+	});
+
 	// ── Disconnect ────────────────────────────────────────────────
 	socket.on('disconnect', () => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');

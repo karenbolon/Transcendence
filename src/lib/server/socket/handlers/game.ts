@@ -1,4 +1,6 @@
 import type { Socket } from 'socket.io';
+import { db } from '$lib/server/db';
+import { messages } from '$lib/server/db/schema';
 import { getIO, userSockets } from '../index';
 import { getFriendIds } from '$lib/server/db/helpers_queries';
 import {
@@ -138,6 +140,14 @@ export function registerGameHandlers(socket: Socket) {
 				});
 			}
 		}
+		// Save system message to chat history
+		const speed = resolvedSettings.speedPreset.charAt(0).toUpperCase() + resolvedSettings.speedPreset.slice(1);
+		await db.insert(messages).values({
+			sender_id: userId,
+			recipient_id: friendId,
+			type: 'system',
+			content: `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore})`,
+		});
 	});
 
 	// Accept an invite

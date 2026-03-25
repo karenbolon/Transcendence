@@ -36,6 +36,12 @@
 	let player2 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let gameOverResult: any = $state(null);
 
+	// In-game chat state
+	let gameMessages = $state<Array<{ id?: number; senderId: number; senderUsername: string; content: string }>>([]);
+	let gameMessageInput = $state('');
+	let gameMessagesEl: HTMLDivElement | undefined = $state();
+	let isFriendMatch = $state(false);
+
 	// Progression state for level-up modal
 	let showLevelUpModal = $state(false);
 	let progressionResult = $state<{
@@ -98,6 +104,12 @@
 			clearGameStart();
 			gameReady = true;
 
+			// Check if opponent is a friend (for in-game chat)
+			const opponentId = data.userId === joinData.player1.userId ? joinData.player2.userId : joinData.player1.userId;
+			fetch('/api/chat/friends').then(r => r.json()).then(d => {
+				isFriendMatch = d.friends?.some((f: { id: number }) => f.id === opponentId) ?? false;
+			}).catch(() => {});
+
 			// Show match settings as a toast so both players know what they're playing
 			const s = gsData?.settings;
 			if (s) {
@@ -127,10 +139,29 @@
 			showLevelUpModal = true;
 		}
 
+		// In-game chat handlers
+		function handleChatMessage(msg: any) {
+			gameMessages = [...gameMessages, msg];
+			requestAnimationFrame(() => {
+				if (gameMessagesEl) gameMessagesEl.scrollTop = gameMessagesEl.scrollHeight;
+			});
+		}
+		function handleChatSent(msg: any) {
+			// Avoid duplicates
+			if (!gameMessages.some(m => m.id === msg.id)) {
+				gameMessages = [...gameMessages, msg];
+				requestAnimationFrame(() => {
+					if (gameMessagesEl) gameMessagesEl.scrollTop = gameMessagesEl.scrollHeight;
+				});
+			}
+		}
+
 		socket.on('game:joined', handleJoined);
 		socket.on('game:error', handleError);
 		socket.on('game:cancelled', handleCancelled);
 		socket.on('game:progression', handleProgression);
+		socket.on('chat:message', handleChatMessage);
+		socket.on('chat:sent', handleChatSent);
 
 		// Tell the server we're here
 		socket.emit('game:join-room', { roomId });
@@ -141,6 +172,8 @@
 			socket.off('game:error', handleError);
 			socket.off('game:cancelled', handleCancelled);
 			socket.off('game:progression', handleProgression);
+			socket.off('chat:message', handleChatMessage);
+			socket.off('chat:sent', handleChatSent);
 		};
 	});
 
@@ -156,6 +189,19 @@
 		} else {
 			goto('/play');
 		}
+	}
+
+	function sendGameMessage(text?: string) {
+		const content = text ?? gameMessageInput;
+		if (!content.trim()) return;
+		const socket = getSocket();
+		if (!socket?.connected) return;
+		const opponentId = data.userId === player1.userId ? player2.userId : player1.userId;
+		socket.emit('chat:send', {
+			recipientId: opponentId,
+			content: content.trim(),
+		});
+		if (!text) gameMessageInput = '';
 	}
 
 	// Challenge the same opponent again → send invite → waiting room
@@ -273,6 +319,39 @@
 			<span class="vs-label">{player1.username} vs {player2.username}</span>
 			<button class="forfeit-btn" onclick={goBack}>Forfeit</button>
 		</div>
+
+		<!-- In-game chat (only between friends) -->
+		{#if isFriendMatch}
+			<div class="ingame-chat">
+				{#if gameMessages.length > 0}
+					<div class="ingame-messages" bind:this={gameMessagesEl}>
+						{#each gameMessages as msg}
+							<p class="ingame-msg" class:mine={msg.senderId === data.userId}>
+								<strong>{msg.senderUsername}:</strong> {msg.content}
+							</p>
+						{/each}
+					</div>
+				{/if}
+				<div class="ingame-bottom">
+					<div class="ingame-quick">
+						{#each ['GG!', 'Nice!', 'Rematch?', '😄'] as preset}
+							<button class="quick-btn" onclick={() => sendGameMessage(preset)}>{preset}</button>
+						{/each}
+					</div>
+					<div class="ingame-input-row">
+						<input
+							type="text"
+							class="ingame-input"
+							bind:value={gameMessageInput}
+							onkeydown={(e) => { if (e.key === 'Enter') sendGameMessage(); }}
+							placeholder="Chat..."
+							maxlength="200"
+						/>
+						<button class="ingame-send" onclick={() => sendGameMessage()} disabled={!gameMessageInput.trim()}>Send</button>
+					</div>
+				</div>
+			</div>
+		{/if}
 	{/if}
 </div>
 
@@ -449,6 +528,111 @@
 
 	.player-name.p2 {
 		color: #ff6b9d;
+	}
+
+	/* ===== In-game chat ===== */
+	.ingame-chat {
+		width: 100%;
+		max-width: 800px;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.04);
+		border-radius: 0.75rem;
+		padding: 0.5rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.ingame-messages {
+		max-height: 100px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		padding-bottom: 0.3rem;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+	}
+
+	.ingame-msg {
+		margin: 0;
+		font-size: 0.75rem;
+		color: #d1d5db;
+	}
+
+	.ingame-msg strong {
+		color: #60a5fa;
+	}
+
+	.ingame-msg.mine strong {
+		color: #ff6b9d;
+	}
+
+	.ingame-bottom {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.ingame-quick {
+		display: flex;
+		gap: 0.3rem;
+		flex-wrap: wrap;
+	}
+
+	.quick-btn {
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 0.3rem;
+		padding: 0.2rem 0.6rem;
+		font-size: 0.7rem;
+		color: #9ca3af;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.quick-btn:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: #d1d5db;
+	}
+
+	.ingame-input-row {
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	.ingame-input {
+		flex: 1;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 0.4rem;
+		padding: 0.35rem 0.6rem;
+		color: #e5e7eb;
+		font-size: 0.75rem;
+		outline: none;
+	}
+
+	.ingame-input:focus {
+		border-color: rgba(96, 165, 250, 0.3);
+	}
+
+	.ingame-send {
+		padding: 0.35rem 0.75rem;
+		background: rgba(96, 165, 250, 0.2);
+		border: 1px solid rgba(96, 165, 250, 0.3);
+		border-radius: 0.4rem;
+		color: #60a5fa;
+		font-size: 0.72rem;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.ingame-send:hover:not(:disabled) {
+		background: rgba(96, 165, 250, 0.3);
+	}
+
+	.ingame-send:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.vs-badge {

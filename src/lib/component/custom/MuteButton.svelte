@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getSoundEngine } from './soundEngine';
+	import { getSoundEngine } from '$lib/game/soundEngine';
 
 	let { muted = $bindable(false), onToggle }: {
 		muted?: boolean;

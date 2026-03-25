@@ -2,7 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 	import { speedEmoji, speedLabel } from '$lib/utils/format_game';
-	import UserAvatar from './UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	// interface Props {
 	// 	inviteId: string;

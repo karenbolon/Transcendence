@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { invalidateAll, goto } from '$app/navigation';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
-	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import UserAvatar from './UserAvatar.svelte';
-	import LevelProgress from './progression/LevelProgress.svelte';
-	import XpBar from './progression/XpBar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
+	import LevelProgress from '$lib/component/progression/LevelProgress.svelte';
+	import XpBar from '$lib/component/progression/XpBar.svelte';
 	import { formatJoinDate } from '$lib/utils/format_date';
 	import type { Progression, FriendshipStatus } from '$lib/types/progression';
 	import { DEFAULT_PROGRESSION } from '$lib/utils/format_progression';

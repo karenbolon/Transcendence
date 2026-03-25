@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EffectsPreset, EffectsCustom } from './effectsEngine';
+	import type { EffectsPreset, EffectsCustom } from '$lib/game/effectsEngine';
 
 	let { preset, customConfig, onPresetChange, onCustomChange }: {
 		preset: EffectsPreset;

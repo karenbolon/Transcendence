@@ -148,6 +148,10 @@ export function drawPaddles(
 	glowIntensity: number,
 	flashLeft: number = 0,
 	flashRight: number = 0,
+	p1Height: number = PADDLE_HEIGHT,
+	p2Height: number = PADDLE_HEIGHT,
+	p1Tint: string | null = null,
+	p2Tint: string | null = null,
 ): void {
 	const blur = glowIntensity * 10;
 
@@ -155,19 +159,23 @@ export function drawPaddles(
 	const leftFlashBlur = blur + flashLeft * 20;
 	ctx.shadowColor = theme.colors.paddle1Glow;
 	ctx.shadowBlur = leftFlashBlur;
-	ctx.fillStyle = flashLeft > 0.1
-		? `rgba(255,255,255,${0.5 + flashLeft * 0.5})`
-		: theme.colors.paddle1;
-	ctx.fillRect(PADDLE_OFFSET, paddle1Y, PADDLE_WIDTH, PADDLE_HEIGHT);
+	ctx.fillStyle = p1Tint
+		? p1Tint
+		: flashLeft > 0.1
+			? `rgba(255,255,255,${0.5 + flashLeft * 0.5})`
+			: theme.colors.paddle1;
+	ctx.fillRect(PADDLE_OFFSET, paddle1Y, PADDLE_WIDTH, p1Height);
 
 	// Right paddle
 	const rightFlashBlur = blur + flashRight * 20;
 	ctx.shadowColor = theme.colors.paddle2Glow;
 	ctx.shadowBlur = rightFlashBlur;
-	ctx.fillStyle = flashRight > 0.1
-		? `rgba(255,255,255,${0.5 + flashRight * 0.5})`
-		: theme.colors.paddle2;
-	ctx.fillRect(CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH, paddle2Y, PADDLE_WIDTH, PADDLE_HEIGHT);
+	ctx.fillStyle = p2Tint
+		? p2Tint
+		: flashRight > 0.1
+			? `rgba(255,255,255,${0.5 + flashRight * 0.5})`
+			: theme.colors.paddle2;
+	ctx.fillRect(CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH, paddle2Y, PADDLE_WIDTH, p2Height);
 
 	ctx.shadowBlur = 0;
 	ctx.shadowColor = 'transparent';

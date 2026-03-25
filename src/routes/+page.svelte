@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import Dashboard from '$lib/component/Dashboard.svelte';
+	import Dashboard from '$lib/component/common/Dashboard.svelte';
 	import Aurora from '$lib/component/effect/Aurora.svelte';
 	import Scanlines from '$lib/component/effect/Scanlines.svelte';
 

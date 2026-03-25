@@ -8,15 +8,17 @@
 	PADDLE_HEIGHT,
 	PADDLE_OFFSET,
 	BALL_RADIUS,
-	} from './gameEngine';
+	} from '$lib/game/gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
-	import { getTheme } from './themes';
-	import { getBallSkin } from './ballSkins';
-	import { drawThemeBackground, drawCourtLine, drawPaddles } from './themeRenderer';
-	import { drawBall, drawBallTrail } from './ballSkinRenderer';
-	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from './effectsEngine';
-	import { getSoundEngine } from './soundEngine';
-	import MuteButton from './MuteButton.svelte';
+	import { getTheme } from '$lib/game/themes';
+	import { getBallSkin } from '$lib/game/ballSkins';
+	import { drawThemeBackground, drawCourtLine, drawPaddles } from '$lib/game/themeRenderer';
+	import { drawBall, drawBallTrail } from '$lib/game/ballSkinRenderer';
+	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from '$lib/game/effectsEngine';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import MuteButton from '$lib/component/custom/MuteButton.svelte';
+	import { drawPowerUpItem, drawEffectsHUD, drawWallBarriers, getPaddleEffectTint, getBallAlpha } from '$lib/game/powerups/renderer';
+	import { getEffectivePaddleHeight, isInvisibleBallActive } from '$lib/game/powerups/engine';
 
 	type Props = {
 		roomId: string;
@@ -216,11 +218,26 @@
 		}
 
 		// Paddles (themed, no glow intensity from server — use 0.5 default)
-		drawPaddles(ctx, theme, state.paddle1Y, state.paddle2Y, 0.5, effects.paddleFlashLeft, effects.paddleFlashRight);
+		const p1Height = getEffectivePaddleHeight(state as any, 'player1');
+		const p2Height = getEffectivePaddleHeight(state as any, 'player2');
+		const p1Tint = getPaddleEffectTint(state.activeEffects ?? [], 'player1');
+		const p2Tint = getPaddleEffectTint(state.activeEffects ?? [], 'player2');
+		drawPaddles(ctx, theme, state.paddle1Y, state.paddle2Y, 0.5, effects.paddleFlashLeft, effects.paddleFlashRight, p1Height, p2Height, p1Tint, p2Tint);
 
-		// Ball (skinned)
+		if (state.activeEffects) {
+			drawWallBarriers(ctx, state.activeEffects, gameTime);
+		}
+
+		// Ball (skinned, with invisible ball check)
 		if (state.phase !== 'menu') {
+			const ballAlpha = getBallAlpha(state.ballX, isInvisibleBallActive(state as any));
+			ctx.globalAlpha = ballAlpha;
 			drawBall(ctx, ballSkin, theme, state.ballX, state.ballY, gameTime, state.ballSpin, state.ballRotation);
+			ctx.globalAlpha = 1;
+		}
+
+		if (state.powerUpItem) {
+			drawPowerUpItem(ctx, state.powerUpItem, gameTime);
 		}
 
 		// Scores
@@ -275,6 +292,9 @@
 			ctx.fillStyle = '#9ca3af';
 			ctx.font = "14px 'Inter', sans-serif";
 			ctx.fillText('Waiting for reconnection...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+		}
+		if (state.activeEffects) {
+			drawEffectsHUD(ctx, state.activeEffects);
 		}
 	}
 

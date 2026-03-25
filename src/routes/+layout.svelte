@@ -1,10 +1,10 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.ico';
-	import Header from '$lib/component/Header.svelte';
-	import Footer from '$lib/component/Footer.svelte';
-	import InviteModal from '$lib/component/InviteModal.svelte';
-	import Toast from '$lib/component/Toast.svelte';
+	import Header from '$lib/component/common/Header.svelte';
+	import Footer from '$lib/component/common/Footer.svelte';
+	import InviteModal from '$lib/component/common/InviteModal.svelte';
+	import Toast from '$lib/component/common/Toast.svelte';
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';

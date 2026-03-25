@@ -1,16 +1,16 @@
 <script lang="ts">
-	import ProfileBanner from '$lib/component/ProfileBanner.svelte';
-	import BadgeDisplay from '$lib/component/BadgeDisplay.svelte';
+	import ProfileBanner from '$lib/component/common/ProfileBanner.svelte';
+	import BadgeDisplay from '$lib/component/common/BadgeDisplay.svelte';
 	import { formatDate, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji, formatMode } from '$lib/utils/format_game';
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
-	import HeadtoHead from '$lib/component/HeadtoHead.svelte';
+	import HeadtoHead from '$lib/component/common/HeadtoHead.svelte';
 	import { goto } from '$app/navigation';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
-	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 

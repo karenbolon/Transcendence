@@ -9,7 +9,7 @@ import {
 	endGame,
 	SPEED_CONFIGS,
 	type SpeedPreset,
-} from '$lib/component/pong/gameEngine';
+} from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
 
 export type { GameResult, GameStateSnapshot };
@@ -76,6 +76,7 @@ export class GameRoom {
 			// The server controls both paddles via socket input.
 			gameMode: 'local',
 			difficulty: 'medium',
+			powerUps: false,
 		};
 
 		// Initialize both players with empty input
@@ -240,6 +241,19 @@ export class GameRoom {
 			scoreFlash: this.state.scoreFlash,
 			scoreFlashTimer: this.state.scoreFlashTimer,
 			timestamp: Date.now(),
+			powerUpItem: this.state.powerUpItem ? {
+				type: this.state.powerUpItem.type,
+				x: this.state.powerUpItem.x,
+				y: this.state.powerUpItem.y,
+				radius: this.state.powerUpItem.radius,
+			} : null,
+			activeEffects: this.state.activeEffects.map(e => ({
+				type: e.type,
+				target: e.target,
+				remainingTime: e.remainingTime,
+				duration: e.duration,
+			})),
+			lastBallHitter: this.state.lastBallHitter,
 		};
 	}
 

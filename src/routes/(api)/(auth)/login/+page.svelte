@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { LoginFormResult } from '$lib/types/form';
 	import { validateUsername } from '$lib/validation/frontend';
-	import PasswordInput from '$lib/component/PasswordInput.svelte';	
+	import PasswordInput from '$lib/component/common/PasswordInput.svelte';	
 
 	let { form }: { form: LoginFormResult | null } = $props();
 	let loading = $state(false);

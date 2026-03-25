@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { capitalize } from '$lib/utils/format_progression';
-	import UserAvatar from '../UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type LobbyState = 'waiting' | 'connecting' | 'declined' | 'expired';
 	type SpeedOption = 'chill' | 'normal' | 'fast' | 'random';

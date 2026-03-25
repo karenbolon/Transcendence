@@ -1,11 +1,11 @@
 
 <script lang="ts">
-	import type { SpeedPreset, GameMode } from './gameEngine';
-	import ThemePicker from './ThemePicker.svelte';
-	import BallSkinPicker from './BallSkinPicker.svelte';
-	import EffectsSettings from './EffectsSettings.svelte';
-	import SoundSettings from './SoundSettings.svelte';
-	import { DEFAULT_EFFECTS_CUSTOM, type EffectsPreset, type EffectsCustom } from './effectsEngine';
+	import type { SpeedPreset, GameMode } from '$lib/game/gameEngine';
+	import ThemePicker from '$lib/component/custom/ThemePicker.svelte';
+	import BallSkinPicker from '$lib/component/custom/BallSkinPicker.svelte';
+	import EffectsSettings from '$lib/component/custom/EffectsSettings.svelte';
+	import SoundSettings from '$lib/component/custom/SoundSettings.svelte';
+	import { DEFAULT_EFFECTS_CUSTOM, type EffectsPreset, type EffectsCustom } from '$lib/game/effectsEngine';
 
 	type Props = {
 		gameMode: GameMode;
@@ -32,6 +32,8 @@
 		onSavePreferences?: () => void;
 		saveStatus?: 'idle' | 'saving' | 'saved';
 		onTabChange?: (tab: 'game' | 'customize') => void;
+		powerUps?: boolean;
+		onPowerUpsChange?: (enabled: boolean) => void;
 	};
 
 	let {
@@ -59,6 +61,8 @@
 		onSavePreferences = undefined,
 		saveStatus = 'idle',
 		onTabChange = undefined,
+		powerUps = false,
+		onPowerUpsChange = undefined,
 	}: Props = $props();
 
 	let activeTab = $state<'game' | 'customize'>('game');
@@ -147,6 +151,17 @@
 						</button>
 					{/each}
 				</div>
+			</div>
+
+			<div class="setting-row">
+				<span class="setting-label">Power-Ups</span>
+				<button
+					class="toggle-btn"
+					class:active={powerUps}
+					onclick={() => onPowerUpsChange?.(!powerUps)}
+				>
+					{powerUps ? 'ON' : 'OFF'}
+				</button>
 			</div>
 		{/if}
 	{:else}
@@ -384,5 +399,31 @@
 		background: rgba(74,222,128,0.15);
 		border-color: rgba(74,222,128,0.4);
 		color: #4ade80;
+	}
+
+	.toggle-btn {
+		padding: 0.35rem 0.9rem;
+		border-radius: 0.5rem;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.03);
+		color: #6b7280;
+		font-size: 0.8rem;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s;
+		min-width: 52px;
+	}
+
+	.toggle-btn:hover {
+		border-color: rgba(255, 107, 157, 0.3);
+		color: #d1d5db;
+	}
+
+	.toggle-btn.active {
+		background: rgba(255, 107, 157, 0.15);
+		border-color: rgba(255, 107, 157, 0.4);
+		color: #ff6b9d;
+		font-weight: 600;
 	}
 </style>

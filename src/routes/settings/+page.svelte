@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import DeleteModal from '$lib/component/DeleteModal.svelte';
-	import PasswordInput from '$lib/component/PasswordInput.svelte';
+	import DeleteModal from '$lib/component/common/DeleteModal.svelte';
+	import PasswordInput from '$lib/component/common/PasswordInput.svelte';
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
 	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
 

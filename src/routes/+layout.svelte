@@ -55,6 +55,11 @@
 		socket.off('chat:stop-typing');
 		socket.off('chat:read-receipt');
 		socket.off('chat:error');
+		//tournament
+		socket.off('tournament:match-ready');
+		socket.off('tournament:started');
+		socket.off('tournament:eliminated');
+		socket.off('tournament:finished');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
 			toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
@@ -149,6 +154,21 @@
 		// Chat: error
 		socket.on('chat:error', (data: { message: string }) => {
 			toast.error(data.message);
+		});
+
+		socket.on('tournament:match-ready', (evtData: any) => {
+			const myId = Number(data?.user?.id);
+			const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
+			toast.game('Tournament Match', `Your match is ready! vs ${opponent}`);
+			// game:start is also emitted, so player navigates automatically
+		});
+
+		socket.on('tournament:eliminated', (data: any) => {
+			toast.info('Tournament', 'You have been eliminated');
+		});
+
+		socket.on('tournament:finished', (data: any) => {
+			toast.game('Tournament Over', `${data.winnerUsername} is the champion!`);
 		});
 	}
 

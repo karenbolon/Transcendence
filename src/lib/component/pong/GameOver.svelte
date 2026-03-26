@@ -49,15 +49,19 @@
 	<!-- Result header -->
 	<div
 		class="result-label"
-		class:win={gameOverData.winner === 'player1' || gameMode === 'local'}
-		class:loss={gameOverData.winner !== 'player1' && gameMode !== 'local'}
+		class:win={gameOverData.winner === 'player1' || gameMode === 'local' || gameMode === 'tournament'}
+		class:loss={gameOverData.winner !== 'player1' && gameMode !== 'local' && gameMode !== 'tournament'}
 	>
-		{gameMode === 'local' ? 'GAME OVER' : gameOverData.winner === 'player1' ? 'VICTORY' : 'DEFEAT'}
+		{gameMode === 'local' ? 'GAME OVER' : gameMode === 'tournament' ? 'TOURNAMENT MATCH' : gameOverData.winner === 'player1' ? 'VICTORY' : 'DEFEAT'}
 	</div>
 	<h1 class="result-text">
-		{gameMode === 'local'
-			? `${gameOverData.winner === 'player1' ? (gameOverData.player1.displayName ?? gameOverData.player1.username) : (gameOverData.player2.displayName ?? gameOverData.player2.username)} Wins!`
-			: gameOverData.winner === 'player1' ? 'You Won!' : 'Better luck next time!'}
+		{#if gameMode === 'local'}
+			{gameOverData.winner === 'player1' ? (gameOverData.player1.displayName ?? gameOverData.player1.username) : (gameOverData.player2.displayName ?? gameOverData.player2.username)} Wins!
+		{:else if gameMode === 'tournament'}
+			{gameOverData.winner === 'player1' ? 'You advance!' : 'You have been eliminated'}
+		{:else}
+			{gameOverData.winner === 'player1' ? 'You Won!' : 'Better luck next time!'}
+		{/if}
 	</h1>
 
 	<!-- VS Layout -->
@@ -125,12 +129,18 @@
 
 	<!-- Actions -->
 	<div class="actions">
-		<button class="btn btn-rematch" onclick={handleRematch}>
-			🔄 Rematch
-		</button>
-		<button class="btn btn-menu" onclick={handleBackToMenu}>
-			← Go back
-		</button>
+		{#if gameMode === 'tournament'}
+			<button class="btn btn-rematch" onclick={handleRematch}>
+				🏆 Back to Tournament
+			</button>
+		{:else}
+			<button class="btn btn-rematch" onclick={handleRematch}>
+				🔄 Rematch
+			</button>
+			<button class="btn btn-menu" onclick={handleBackToMenu}>
+				← Go back
+			</button>
+		{/if}
 	</div>
 </div>
 

@@ -1,0 +1,96 @@
+import type { Socket } from 'socket.io';
+import { getIO, userSockets } from '../index';
+import {
+	createTournament,
+	joinTournament,
+	leaveTournament,
+	startTournament,
+	getActiveTournament,
+} from '../../tournament/TournamentManager';
+
+export function registerTournamentHandlers(socket: Socket) {
+	const userId: number = socket.data.userId;
+	const username: string = socket.data.username;
+
+	// Create a tournament
+	socket.on('tournament:create', async (data: {
+		name: string;
+		maxPlayers: number;  // 4, 8, or 16
+		settings?: { speedPreset: string; winScore: number };
+	}) => {
+		if (!data.name?.trim()) {
+			socket.emit('tournament:error', { message: 'Tournament name is required' });
+			return;
+		}
+		if (![4, 8, 16].includes(data.maxPlayers)) {
+			socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' });
+			return;
+		}
+
+		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+		const id = await createTournament(data.name.trim(), userId, data.maxPlayers, settings);
+
+		// Auto-join the creator
+		await joinTournament(id, userId);
+
+		socket.emit('tournament:created', { tournamentId: id });
+	});
+
+	// Join a tournament
+	socket.on('tournament:join', async (data: { tournamentId: number }) => {
+		const result = await joinTournament(data.tournamentId, userId);
+		if (!result.success) {
+			socket.emit('tournament:error', { message: result.error ?? 'Cannot join' });
+			return;
+		}
+		socket.emit('tournament:joined', { tournamentId: data.tournamentId });
+
+		// Notify all connected users viewing this tournament that someone joined
+		const io = getIO();
+		io.emit('tournament:player-joined', {
+			tournamentId: data.tournamentId,
+			userId,
+			username,
+		});
+	});
+
+	// Leave a tournament (before it starts)
+	socket.on('tournament:leave', async (data: { tournamentId: number }) => {
+		const success = await leaveTournament(data.tournamentId, userId);
+		if (!success) {
+			socket.emit('tournament:error', { message: 'Cannot leave tournament' });
+			return;
+		}
+		socket.emit('tournament:left', { tournamentId: data.tournamentId });
+
+		const io = getIO();
+		io.emit('tournament:player-left', {
+			tournamentId: data.tournamentId,
+			userId,
+			username,
+		});
+	});
+
+	// Start the tournament (creator only)
+	socket.on('tournament:start', async (data: { tournamentId: number }) => {
+		const bracket = await startTournament(data.tournamentId, userId);
+		if (!bracket) {
+			socket.emit('tournament:error', { message: 'Cannot start tournament (need at least 2 players)' });
+			return;
+		}
+		// tournament:started is emitted to all participants inside startTournament()
+	});
+
+	// Get tournament bracket state
+	socket.on('tournament:status', (data: { tournamentId: number }) => {
+		const tourney = getActiveTournament(data.tournamentId);
+		if (!tourney) {
+			socket.emit('tournament:error', { message: 'Tournament not active' });
+			return;
+		}
+		socket.emit('tournament:status', {
+			tournamentId: data.tournamentId,
+			bracket: tourney.bracket,
+		});
+	});
+}

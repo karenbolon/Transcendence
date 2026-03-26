@@ -11,6 +11,7 @@ import type { GameStateSnapshot } from '$lib/types/game';
 // tournamentId → tournament state
 const activeTournaments = new Map<number, {
 	id: number;
+	name: string;
 	bracket: BracketRound[];
 	settings: { speedPreset: string; winScore: number };
 	createdBy: number;
@@ -56,6 +57,15 @@ function emitToUser(userId: number, event: string, data: any): void {
 	if (sockets) {
 		for (const sid of sockets) io.to(sid).emit(event, data);
 	}
+}
+
+/** Convert round number to human-readable name */
+function getRoundName(round: number, totalRounds: number): string {
+	const fromFinal = totalRounds - round;
+	if (fromFinal === 0) return 'Final';
+	if (fromFinal === 1) return 'Semifinals';
+	if (fromFinal === 2) return 'Quarterfinals';
+	return `Round ${round}`;
 }
 
 // ── Public API ───────────────────────────────────────────
@@ -155,6 +165,7 @@ export async function startTournament(
 	// Save to memory
 	activeTournaments.set(tournamentId, {
 		id: tournamentId,
+		name: tournament.name,
 		bracket,
 		settings: { speedPreset: tournament.speed_preset, winScore: tournament.win_score },
 		createdBy: requestedBy,
@@ -289,13 +300,40 @@ export async function advanceWinner(
 			eq(tournamentParticipants.user_id, loserId),
 	));
 
+	// Place winner in next round
+	const nextRound = tourney.bracket.find(r => r.round === round + 1);
+
+	// Count how many matches this player won in the tournament
+	const loserWins = tourney.bracket.reduce((count, r) => {
+		return count + r.matches.filter(m => m.winnerId === loserId).length;
+	}, 0);
+
+	// Find the next match happening in the tournament (for "Tournament continues..." card)
+	let tournamentContinues: { player1Username: string; player2Username: string; roundName: string } | null = null;
+	if (nextRound) {
+		const nextMatchForViewer = nextRound.matches.find(m =>
+			m.player1Id && m.player2Id && m.status === 'pending'
+		) ?? nextRound.matches.find(m => m.player1Id || m.player2Id);
+		if (nextMatchForViewer && nextMatchForViewer.player1Username && nextMatchForViewer.player2Username) {
+			tournamentContinues = {
+				player1Username: nextMatchForViewer.player1Username,
+				player2Username: nextMatchForViewer.player2Username,
+				roundName: getRoundName(round + 1, totalRounds),
+			};
+		}
+	}
+
 	emitToUser(loserId, 'tournament:eliminated', {
 		tournamentId,
 		round,
+		placement,
+		totalRounds,
+		tournamentName: tourney.name,
+		roundName: getRoundName(round, totalRounds),
+		tournamentWins: loserWins,
+		tournamentLosses: 1,
+		tournamentContinues,
 	});
-
-	// Place winner in next round
-	const nextRound = tourney.bracket.find(r => r.round === round + 1);
 	if (nextRound) {
 		const nextMatchIndex = Math.floor(matchIndex / 2);
 		const nextMatch = nextRound.matches[nextMatchIndex];
@@ -309,10 +347,37 @@ export async function advanceWinner(
 				nextMatch.player2Username = winnerUsername;
 			}
 
+			// Look up next opponent info (if they're already set in the next match)
+			const nextOpponentId = matchIndex % 2 === 0
+				? nextMatch.player2Id
+				: nextMatch.player1Id;
+			let nextOpponentInfo: { username: string; wins: number; seed: number } | null = null;
+			if (nextOpponentId) {
+				const [opponentUser] = await db.select({ wins: users.wins })
+					.from(users).where(eq(users.id, nextOpponentId));
+				const [opponentParticipant] = await db.select({ seed: tournamentParticipants.seed })
+					.from(tournamentParticipants)
+					.where(and(
+						eq(tournamentParticipants.tournament_id, tournamentId),
+						eq(tournamentParticipants.user_id, nextOpponentId),
+					));
+				nextOpponentInfo = {
+					username: tourney.playerMap.get(nextOpponentId) ?? 'Player',
+					wins: opponentUser?.wins ?? 0,
+					seed: opponentParticipant?.seed ?? 0,
+				};
+			}
+
 			emitToUser(winnerId, 'tournament:advanced', {
 				tournamentId,
+				round,
 				nextRound: round + 1,
 				nextMatchIndex,
+				totalRounds,
+				tournamentName: tourney.name,
+				roundName: getRoundName(round, totalRounds),
+				nextRoundName: getRoundName(round + 1, totalRounds),
+				nextOpponent: nextOpponentInfo,
 			});
 
 			// If both players are set, start the match
@@ -331,15 +396,54 @@ export async function advanceWinner(
 		await db.update(tournamentParticipants).set({
 			status: 'champion',
 			placement: 1,
-			}).where(and(
-				eq(tournamentParticipants.tournament_id, tournamentId),
-				eq(tournamentParticipants.user_id, winnerId),
+		}).where(and(
+			eq(tournamentParticipants.tournament_id, tournamentId),
+			eq(tournamentParticipants.user_id, winnerId),
 		));
+
+		// Build podium (top 3)
+		const podiumParticipants = await db.select({
+			userId: tournamentParticipants.user_id,
+			placement: tournamentParticipants.placement,
+			username: users.username,
+			avatarUrl: users.avatar_url,
+		})
+			.from(tournamentParticipants)
+			.innerJoin(users, eq(users.id, tournamentParticipants.user_id))
+			.where(eq(tournamentParticipants.tournament_id, tournamentId))
+			.orderBy(tournamentParticipants.placement);
+
+		const podium = podiumParticipants
+			.filter(p => p.placement !== null && p.placement <= 3)
+			.map(p => ({
+				userId: p.userId,
+				username: p.username,
+				avatarUrl: p.avatarUrl,
+				placement: p.placement!,
+			}));
+
+		// Count champion's wins
+		const championWins = tourney.bracket.reduce((count, r) => {
+			return count + r.matches.filter(m => m.winnerId === winnerId).length;
+		}, 0);
+
+		// Count runner-up's wins
+		const runnerUpWins = tourney.bracket.reduce((count, r) => {
+			return count + r.matches.filter(m => m.winnerId === loserId).length;
+		}, 0);
 
 		emitToParticipants(tournamentId, 'tournament:finished', {
 			tournamentId,
 			winnerId,
+			loserId,
 			winnerUsername: tourney.playerMap.get(winnerId),
+			tournamentName: tourney.name,
+			round,
+			totalRounds,
+			roundName: getRoundName(round, totalRounds),
+			podium,
+			championWins,
+			runnerUpWins,
 			bracket: tourney.bracket,
 		});
 

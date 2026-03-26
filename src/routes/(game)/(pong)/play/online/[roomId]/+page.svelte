@@ -6,6 +6,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
+	import TournamentGameOver from '$lib/component/tournament/TournamentGameOver.svelte';
 	import LevelUpModal from '$lib/component/progression/LevelUpModal.svelte';
 	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
@@ -58,6 +59,12 @@
 		newAchievements: NewAchievement[];
 	} | null>(null);
 
+	// Tournament result state — populated by tournament socket events
+	let tournamentEventData = $state<{
+		type: 'advanced' | 'eliminated' | 'finished';
+		data: any;
+	} | null>(null);
+
 	// Reactive to data.roomId — re-runs when navigating between rooms.
 	// This is the key fix: onMount only runs once, but $effect re-runs
 	// when data.roomId changes (same route pattern, different params).
@@ -70,6 +77,7 @@
 		// Reset all state for the new room
 		gameReady = false;
 		gameOverResult = null;
+		tournamentEventData = null;
 
 		const socket = getSocket();
 		if (!socket?.connected) {
@@ -160,12 +168,37 @@
 			}
 		}
 
+		// Tournament-specific event handlers
+		function handleTournamentAdvanced(eventData: any) {
+			if (eventData.tournamentId !== tournamentId) return;
+			tournamentEventData = { type: 'advanced', data: eventData };
+		}
+
+		function handleTournamentEliminated(eventData: any) {
+			if (eventData.tournamentId !== tournamentId) return;
+			// If we already got a 'finished' event (runner-up case), don't overwrite
+			if (tournamentEventData?.type === 'finished') return;
+			tournamentEventData = { type: 'eliminated', data: eventData };
+		}
+
+		function handleTournamentFinished(eventData: any) {
+			if (eventData.tournamentId !== tournamentId) return;
+			// Override any previous eliminated event — finished takes priority
+			tournamentEventData = { type: 'finished', data: eventData };
+		}
+
 		socket.on('game:joined', handleJoined);
 		socket.on('game:error', handleError);
 		socket.on('game:cancelled', handleCancelled);
 		socket.on('game:progression', handleProgression);
 		socket.on('chat:message', handleChatMessage);
 		socket.on('chat:sent', handleChatSent);
+
+		if (isTournament) {
+			socket.on('tournament:advanced', handleTournamentAdvanced);
+			socket.on('tournament:eliminated', handleTournamentEliminated);
+			socket.on('tournament:finished', handleTournamentFinished);
+		}
 
 		// Tell the server we're here
 		socket.emit('game:join-room', { roomId });
@@ -178,6 +211,12 @@
 			socket.off('game:progression', handleProgression);
 			socket.off('chat:message', handleChatMessage);
 			socket.off('chat:sent', handleChatSent);
+
+			if (isTournament) {
+				socket.off('tournament:advanced', handleTournamentAdvanced);
+				socket.off('tournament:eliminated', handleTournamentEliminated);
+				socket.off('tournament:finished', handleTournamentFinished);
+			}
 		};
 	});
 
@@ -266,6 +305,18 @@
 		})),
 	};
 	});
+
+	// Determine tournament outcome for TournamentGameOver component
+	let tournamentOutcome = $derived.by(() => {
+		if (!isTournament || !gameOverResult || !tournamentEventData) return null;
+		const iWon = gameOverResult.winnerId === data.userId;
+		if (tournamentEventData.type === 'finished') {
+			return iWon ? 'champion' as const : 'runner-up' as const;
+		}
+		if (tournamentEventData.type === 'advanced') return 'advancing' as const;
+		if (tournamentEventData.type === 'eliminated') return 'eliminated' as const;
+		return null;
+	});
 </script>
 
 <AmbientBackground bgColor="#0a0a1e" maxDelay={1} />
@@ -285,12 +336,63 @@
 
 	{:else if gameOverResult && gameOverData}
 		<!-- Game over state: show results -->
-		<GameOver
-			{gameOverData}
-			gameMode={isTournament ? 'tournament' : 'online'}
-			onRematch={isTournament ? () => goto(`/tournaments/${tournamentId}`) : challengeAgain}
-			onBackToMenu={isTournament ? () => goto(`/tournaments/${tournamentId}`) : goBack}
-		/>
+		{#if isTournament && tournamentOutcome && tournamentEventData}
+			{@const iWon = gameOverResult.winnerId === data.userId}
+			{@const iAmPlayer1 = data.userId === player1.userId}
+			{@const myPlayer = iAmPlayer1 ? player1 : player2}
+			{@const theirPlayer = iAmPlayer1 ? player2 : player1}
+			{@const myResult = iAmPlayer1 ? gameOverResult.player1 : gameOverResult.player2}
+			{@const theirResult = iAmPlayer1 ? gameOverResult.player2 : gameOverResult.player1}
+			{@const evtData = tournamentEventData.data}
+			<TournamentGameOver
+				outcome={tournamentOutcome}
+				myScore={myResult.score}
+				opponentScore={theirResult.score}
+				myUsername={myPlayer.username}
+				myAvatarUrl={myPlayer.avatarUrl}
+				opponentUsername={theirPlayer.username}
+				opponentAvatarUrl={theirPlayer.avatarUrl}
+				durationSeconds={gameOverResult.durationSeconds}
+				speedPreset={gameOverResult.settings.speedPreset}
+				tournamentName={evtData.tournamentName ?? 'Tournament'}
+				round={evtData.round ?? 1}
+				totalRounds={evtData.totalRounds ?? 1}
+				roundName={evtData.roundName ?? ''}
+				nextRoundName={evtData.nextRoundName}
+				nextOpponent={evtData.nextOpponent}
+				xpEarned={progressionResult?.xpEarned ?? 0}
+				placement={evtData.placement}
+				tournamentWins={evtData.tournamentWins ?? (tournamentOutcome === 'runner-up' ? evtData.runnerUpWins : evtData.championWins) ?? 0}
+				tournamentLosses={evtData.tournamentLosses ?? (iWon ? 0 : 1)}
+				tournamentContinues={evtData.tournamentContinues}
+				podium={evtData.podium}
+				championWins={evtData.championWins ?? 0}
+				championXpEarned={progressionResult?.xpEarned ?? 0}
+				newBadges={(progressionResult?.newAchievements ?? []).map(a => ({
+					emoji: TIER_EMOJIS[a.tier] ?? '🏅',
+					name: a.name,
+				}))}
+				onViewBracket={() => goto(`/tournaments/${tournamentId}`)}
+				onBackToLobby={() => goto('/tournaments')}
+				onWatchFinal={tournamentOutcome === 'eliminated' ? () => goto(`/tournaments/${tournamentId}`) : undefined}
+				onContinue={tournamentOutcome === 'advancing' ? () => goto(`/tournaments/${tournamentId}`) : undefined}
+			/>
+		{:else if isTournament}
+			<!-- Fallback: waiting for tournament event data -->
+			<GameOver
+				{gameOverData}
+				gameMode="tournament"
+				onRematch={() => goto(`/tournaments/${tournamentId}`)}
+				onBackToMenu={() => goto(`/tournaments/${tournamentId}`)}
+			/>
+		{:else}
+			<GameOver
+				{gameOverData}
+				gameMode="online"
+				onRematch={challengeAgain}
+				onBackToMenu={goBack}
+			/>
+		{/if}
 
 	{:else}
 		<!-- Playing state: show the game -->

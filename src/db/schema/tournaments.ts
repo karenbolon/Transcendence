@@ -12,6 +12,8 @@ export const tournaments = pgTable('tournaments', {
 		.references(() => users.id, { onDelete: 'restrict' }),
 	winner_id: integer('winner_id').references(() => users.id, { onDelete: 'set null' }),
 	max_players: integer('max_players').notNull().default(4),
+	speed_preset: varchar('speed_preset', { length: 20 }).notNull().default('normal'),
+	win_score: integer('win_score').notNull().default(5),
 	current_round: integer('current_round').default(0),
 	started_at: timestamp('started_at'),
 	finished_at: timestamp('finished_at'),

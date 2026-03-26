@@ -29,6 +29,10 @@
 		se.setMuted(prefs.soundMuted);
 	});
 
+	// Detect if this is a tournament match from the roomId
+	let isTournament = $derived(data.roomId.startsWith('tournament-'));
+	let tournamentId = $derived(isTournament ? Number(data.roomId.split('-')[1]) : null);
+
 	// State: waiting for room join confirmation → playing → game over
 	let gameReady = $state(false);
 	let side = $state<'left' | 'right'>('left');
@@ -283,9 +287,9 @@
 		<!-- Game over state: show results -->
 		<GameOver
 			{gameOverData}
-			gameMode="online"
-			onRematch={challengeAgain}
-			onBackToMenu={goBack}
+			gameMode={isTournament ? 'tournament' : 'online'}
+			onRematch={isTournament ? () => goto(`/tournaments/${tournamentId}`) : challengeAgain}
+			onBackToMenu={isTournament ? () => goto(`/tournaments/${tournamentId}`) : goBack}
 		/>
 
 	{:else}

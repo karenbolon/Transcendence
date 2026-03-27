@@ -10,7 +10,7 @@
 		validateConfirmPassword
 	} from '$lib/validation/frontend';
 
-	let { form }: { form: RegisterFormResult } = $props();
+	let { form }: { form: RegisterFormResult | null } = $props();
 
 	// Tracks what user is typing
 	let loading = $state(false);
@@ -18,17 +18,6 @@
 	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
-
-	const registerErrors: Record<string, string> = {
-		'errors.accept_terms_required': 'You must accept the Terms of Service and Privacy Policy',
-		'errors.server_error': 'Something went wrong. Please try again.',
-		'errors.passwords_do_not_match': 'Passwords do not match'
-	};
-
-	function getRegisterErrorMessage(key?: string) {
-		if (!key) return '';
-		return registerErrors[key] ?? key;
-	}
 
 	let touched = $state({
 		username: false,
@@ -73,7 +62,7 @@
 <div class="register-page flex items-center justify-center min-h-[calc(100vh-200px)] px-4 py-8">
 	<div class="container">
 	<div class="text-center">
-		<h1 class="brand-name text-4xl mb-2">Sign up</h1>
+		<h1 class="brand-name text-4xl mb-2">Sign Up</h1>
 		<p >Join the game and start playing!</p>
 	</div>
 
@@ -85,9 +74,9 @@
 		};
 	}} >
 
-		{#if form?.errorKey}
+		{#if form?.error}
 			<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
-				{getRegisterErrorMessage(form.errorKey)}
+				{form.error}
 			</div>
 		{/if}
 
@@ -153,11 +142,11 @@
 		</div>
 
 		<div class="form-group">
-			<label for="confirmPassword">Confirm password</label>
+			<label for="confirmPassword">Confirm Password</label>
 			<PasswordInput
 				id="confirmPassword"
 				name="confirmPassword"
-				placeholder="Confirm password"
+				placeholder="Re-enter your password"
 				required
 				bind:value={confirmPassword}
 				onfocusout={() => touched.confirmPassword = true}
@@ -166,7 +155,7 @@
 				<p class="text-red-500 text-sm mt-1">{confirmPasswordError}</p>
 			{/if}
 			{#if form?.errors?.confirmPassword}
-				<p class="text-red-500 text-sm mt-1">{getRegisterErrorMessage(form.errors.confirmPassword)}</p>
+				<p class="text-red-500 text-sm mt-1">{form.errors.confirmPassword}</p>
 			{/if}
 		</div>
 
@@ -178,7 +167,8 @@
 			</label>
 			<p class="text-[0.65rem] text-gray-400">
 				<br>
-				We use your email and username to create and secure your accounts. No tracking or analytics cookies are used.
+				We use your email and username to create and secure your accounts.
+				<br>No tracking or analytics cookies are used.
 			</p>
 		</div>
 
@@ -186,7 +176,7 @@
 			{#if loading}
 				Signing up...
 			{:else}
-				Sign up
+				Sign Up
 			{/if}
 		</button>
 	</form>
@@ -207,12 +197,12 @@
 			<button
 				type="button"
 				class="login py-2 text-sm" disabled>
-				42 OAuth (coming soon)
+				🔗 42 Intra (Coming Soon)
 			</button>
 			<button
 			type="button"
 			class="login py-2 text-sm" disabled>
-				OAuth (coming soon)
+				👤 OAuth (Coming Soon)
 			</button>
 		</div>
 	</div>

@@ -6,6 +6,8 @@ export interface BracketMatch {
 	player1Username: string | null;
 	player2Username: string | null;
 	winnerId: number | null;
+	player1Score: number | null;
+	player2Score: number | null;
 	status: 'pending' | 'playing' | 'finished' | 'bye';
 }
 
@@ -48,6 +50,8 @@ export function generateBracket(players: BracketPlayer[]): BracketRound[] {
 			player1Username: p1?.username ?? null,
 			player2Username: p2?.username ?? null,
 			winnerId: winner?.id ?? null,
+			player1Score: null,
+			player2Score: null,
 			status: isBye ? 'bye' : 'pending',
 		});
 	}
@@ -65,6 +69,8 @@ export function generateBracket(players: BracketPlayer[]): BracketRound[] {
 				player1Username: null,
 				player2Username: null,
 				winnerId: null,
+				player1Score: null,
+				player2Score: null,
 				status: 'pending',
 			});
 		}

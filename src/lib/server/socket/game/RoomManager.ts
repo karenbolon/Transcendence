@@ -185,7 +185,11 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				const round = Number(parts[2].replace('r', ''));
 				const matchIndex = Number(parts[3].replace('m', ''));
 
-				await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId);
+				const winnerScore = result.player1.userId === result.winnerId
+				? result.player1.score : result.player2.score;
+			const loserScore = result.player1.userId === result.loserId
+				? result.player1.score : result.player2.score;
+			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
 			}
 
 			await tx.insert(messages).values({

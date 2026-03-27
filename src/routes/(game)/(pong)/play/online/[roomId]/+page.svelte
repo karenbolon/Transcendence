@@ -148,7 +148,11 @@
 
 		function handleProgression(data: any) {
 			progressionResult = data;
-			showLevelUpModal = true;
+			// Don't show level-up modal for tournament matches —
+			// the tournament result screen shows XP instead
+			if (!isTournament) {
+				showLevelUpModal = true;
+			}
 		}
 
 		// In-game chat handlers
@@ -176,14 +180,14 @@
 
 		function handleTournamentEliminated(eventData: any) {
 			if (eventData.tournamentId !== tournamentId) return;
-			// If we already got a 'finished' event (runner-up case), don't overwrite
-			if (tournamentEventData?.type === 'finished') return;
 			tournamentEventData = { type: 'eliminated', data: eventData };
 		}
 
 		function handleTournamentFinished(eventData: any) {
 			if (eventData.tournamentId !== tournamentId) return;
-			// Override any previous eliminated event — finished takes priority
+			// Don't override eliminated state — only players in the final
+			// (champion + runner-up) should see the finished screen
+			if (tournamentEventData?.type === 'eliminated') return;
 			tournamentEventData = { type: 'finished', data: eventData };
 		}
 
@@ -361,7 +365,7 @@
 				nextRoundName={evtData.nextRoundName}
 				nextOpponent={evtData.nextOpponent}
 				xpEarned={progressionResult?.xpEarned ?? 0}
-				placement={evtData.placement}
+				placement={evtData.placement ?? (tournamentOutcome === 'champion' ? 1 : tournamentOutcome === 'runner-up' ? 2 : undefined)}
 				tournamentWins={evtData.tournamentWins ?? (tournamentOutcome === 'runner-up' ? evtData.runnerUpWins : evtData.championWins) ?? 0}
 				tournamentLosses={evtData.tournamentLosses ?? (iWon ? 0 : 1)}
 				tournamentContinues={evtData.tournamentContinues}

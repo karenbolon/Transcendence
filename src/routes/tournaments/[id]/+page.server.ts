@@ -19,6 +19,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		username: users.username,
 		name: users.name,
 		avatarUrl: users.avatar_url,
+		wins: users.wins,
 		seed: tournamentParticipants.seed,
 		status: tournamentParticipants.status,
 		placement: tournamentParticipants.placement,
@@ -29,6 +30,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const active = getActiveTournament(tournamentId);
 
+	// Use in-memory bracket if active, otherwise fall back to DB
+	const bracket = active?.bracket ?? (tournament.bracket_data as any[] | null) ?? null;
+
 	const userId = Number(locals.user!.id);
 
 	return {
@@ -37,6 +41,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			name: tournament.name,
 			status: tournament.status,
 			maxPlayers: tournament.max_players,
+			speedPreset: tournament.speed_preset,
+			winScore: tournament.win_score,
 			currentRound: tournament.current_round,
 			createdBy: tournament.created_by,
 			winnerId: tournament.winner_id,
@@ -47,7 +53,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			...p,
 			avatarUrl: p.avatarUrl,
 		})),
-		bracket: active?.bracket ?? null,
+		bracket,
 		userId,
 		isCreator: tournament.created_by === userId,
 		isParticipant: participants.some(p => p.userId === userId),

@@ -5,8 +5,10 @@
 	import { onMount, onDestroy } from 'svelte';
 	import Bracket from '$lib/component/tournament/Bracket.svelte';
 	import TournamentLobby from '$lib/component/tournament/TournamentLobby.svelte';
+	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
+	import { dev } from '$app/environment';
 
 	let { data } = $props();
 
@@ -63,6 +65,25 @@
 		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
 	}
 
+	function handleCancel() {
+		const socket = getSocket();
+		if (!socket?.connected) { toast.error('Not connected'); return; }
+		socket.emit('tournament:cancel', { tournamentId: tournament.id });
+		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		// The onMount 'tournament:cancelled' listener handles the redirect
+	}
+
+	function handleFillBots() {
+		const socket = getSocket();
+		if (!socket?.connected) { toast.error('Not connected'); return; }
+		socket.emit('tournament:fill-bots', { tournamentId: tournament.id });
+		socket.once('tournament:bots-filled', (d: any) => {
+			toast.success(`Added ${d.added} bots`);
+			invalidateAll();
+		});
+		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+	}
+
 	// Listen for real-time updates
 	onMount(() => {
 		const socket = getSocket();
@@ -73,6 +94,12 @@
 		});
 		socket.on('tournament:player-left', (d: any) => {
 			if (d.tournamentId === tournament.id) invalidateAll();
+		});
+		socket.on('tournament:cancelled', (d: any) => {
+			if (d.tournamentId === tournament.id) {
+				toast.info('Tournament was cancelled');
+				goto('/tournaments');
+			}
 		});
 		socket.on('tournament:started', (d: any) => {
 			if (d.tournamentId === tournament.id) {
@@ -87,6 +114,7 @@
 		socket.on('tournament:finished', (d: any) => {
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, status: 'finished', winnerId: d.winnerId, bracket: d.bracket };
+				invalidateAll(); // Reload participants with final placements
 			}
 		});
 	});
@@ -94,12 +122,19 @@
 	onDestroy(() => {
 		const socket = getSocket();
 		if (!socket) return;
+		socket.off('tournament:cancelled');
 		socket.off('tournament:player-joined');
 		socket.off('tournament:player-left');
 		socket.off('tournament:started');
 		socket.off('tournament:bracket-update');
 		socket.off('tournament:finished');
 	});
+
+	function ordinal(n: number): string {
+		const s = ['th', 'st', 'nd', 'rd'];
+		const v = n % 100;
+		return n + (s[(v - 20) % 10] || s[v] || s[0]);
+	}
 
 	function statusLabel(status: string): string {
 		if (status === 'scheduled') return 'Open';
@@ -112,10 +147,18 @@
 		const winner = participants.find((p: any) => p.userId === tournament.winnerId);
 		return winner?.name ?? winner?.username ?? null;
 	});
+
+	// Podium: top 3 participants sorted by placement
+	let podium = $derived.by(() => {
+		if (tournament.status !== 'finished') return [];
+		return [...participants]
+			.filter((p: any) => p.placement !== null && p.placement <= 3)
+			.sort((a: any, b: any) => a.placement - b.placement);
+	});
 </script>
 
 <Starfield />
-<NoiseGrain />
+<!-- <NoiseGrain /> -->
 
 <div class="page">
 	<div class="back-row">
@@ -129,29 +172,80 @@
 		</div>
 	</div>
 
-	{#if tournament.status === 'finished' && winnerUsername}
-		<div class="winner-banner">
-			🏆 <strong>{winnerUsername}</strong> is the champion!
+	{#if tournament.status === 'finished' && podium.length > 0}
+		{@const first = podium.find((p: any) => p.placement === 1)}
+		{@const second = podium.find((p: any) => p.placement === 2)}
+		{@const thirds = podium.filter((p: any) => p.placement === 3)}
+		<div class="podium-section">
+			<div class="podium">
+				<!-- 2nd place (left) -->
+				{#if second}
+					<div class="podium-entry second">
+						<div class="podium-avatar silver-ring">
+							<UserAvatar username={second.username} avatarUrl={second.avatarUrl} size="lg" />
+						</div>
+						<span class="podium-name">{second.name ?? second.username}</span>
+						<span class="podium-place silver">2nd Place 🥈</span>
+						<div class="podium-block silver-block">2</div>
+					</div>
+				{/if}
+
+				<!-- 1st place (center, tallest) -->
+				{#if first}
+					<div class="podium-entry first">
+						<span class="crown">👑</span>
+						<div class="podium-avatar gold-ring">
+							<UserAvatar username={first.username} avatarUrl={first.avatarUrl} size="xl" />
+						</div>
+						<span class="podium-name">{first.name ?? first.username}</span>
+						<span class="podium-place gold">1st Place</span>
+						<div class="podium-block gold-block">1</div>
+					</div>
+				{/if}
+
+				<!-- 3rd place (right) — can be multiple (tied semifinal losers) -->
+				{#if thirds.length > 0}
+					<div class="podium-entry third">
+						<div class="podium-avatars-group">
+							{#each thirds as p3}
+								<div class="podium-avatar-stacked">
+									<div class="podium-avatar bronze-ring">
+										<UserAvatar username={p3.username} avatarUrl={p3.avatarUrl} size={thirds.length > 1 ? 'md' : 'lg'} />
+									</div>
+									<span class="podium-name">{p3.name ?? p3.username}</span>
+								</div>
+							{/each}
+						</div>
+						<span class="podium-place bronze">3rd Place 🥉</span>
+						<div class="podium-block bronze-block">3</div>
+					</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 
 	{#if tournament.status === 'scheduled'}
 		<TournamentLobby
+			tournamentName={tournament.name}
 			{participants}
 			maxPlayers={tournament.maxPlayers}
+			speedPreset={tournament.speedPreset}
+			winScore={tournament.winScore}
 			{isCreator}
 			{isParticipant}
-			tournamentId={tournament.id}
+			currentUserId={data.userId}
 			onJoin={handleJoin}
 			onLeave={handleLeave}
 			onStart={handleStart}
+			onCancel={handleCancel}
+			onFillBots={dev ? handleFillBots : undefined}
 		/>
 	{/if}
 
 	{#if bracket && bracket.length > 0}
 		<div class="bracket-section">
 			<h2 class="section-title">Bracket</h2>
-			<Bracket {bracket} currentUserId={data.userId} />
+			<Bracket {bracket} currentUserId={data.userId} tournamentName={tournament.name} currentRound={tournament.currentRound ?? 1} />
 		</div>
 	{/if}
 
@@ -169,7 +263,7 @@
 						{:else if p.placement === 3}
 							<span class="p-badge bronze-badge">🥉 3rd Place</span>
 						{:else if p.status === 'eliminated' && p.placement}
-							<span class="p-badge elim-badge">{p.placement}th Place</span>
+							<span class="p-badge elim-badge">{ordinal(p.placement)} Place</span>
 						{:else if p.status === 'eliminated'}
 							<span class="p-badge elim-badge">Eliminated</span>
 						{:else if p.status === 'active'}
@@ -220,14 +314,128 @@
 	.status-in_progress { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
 	.status-finished { background: rgba(255, 255, 255, 0.1); color: #888; }
 
-	.winner-banner {
-		background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(255, 107, 157, 0.1));
-		border: 1px solid rgba(251, 191, 36, 0.3);
-		border-radius: 12px;
-		padding: 16px 20px;
+	/* ── Podium ──────────────────────────── */
+	.podium-section {
+		margin-bottom: 32px;
+	}
+
+	.podium {
+		display: flex;
+		justify-content: center;
+		align-items: flex-end;
+		gap: 12px;
+	}
+
+	.podium-entry {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.podium-entry.first {
+		order: 2;
+	}
+	.podium-entry.second {
+		order: 1;
+	}
+	.podium-entry.third {
+		order: 3;
+	}
+
+	.crown {
+		font-size: 1.6rem;
+		animation: crown-bob 2s ease-in-out infinite;
+	}
+
+	@keyframes crown-bob {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-4px); }
+	}
+
+	.podium-avatar {
+		border-radius: 50%;
+		padding: 3px;
+	}
+
+	.gold-ring {
+		background: linear-gradient(135deg, #fbbf24, #f59e0b, #fbbf24);
+		box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+	}
+
+	.silver-ring {
+		background: linear-gradient(135deg, #d1d5db, #9ca3af, #d1d5db);
+		box-shadow: 0 0 12px rgba(192, 192, 192, 0.2);
+	}
+
+	.bronze-ring {
+		background: linear-gradient(135deg, #cd7f32, #b8702e, #cd7f32);
+		box-shadow: 0 0 12px rgba(205, 127, 50, 0.2);
+	}
+
+	.podium-avatars-group {
+		display: flex;
+		gap: 8px;
+		align-items: flex-end;
+	}
+
+	.podium-avatar-stacked {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.podium-name {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #f3f4f6;
+		max-width: 100px;
 		text-align: center;
-		font-size: 1.1rem;
-		margin-bottom: 24px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.podium-place {
+		font-size: 0.7rem;
+		font-weight: 600;
+	}
+
+	.podium-place.gold { color: #fbbf24; }
+	.podium-place.silver { color: #c0c0c0; }
+	.podium-place.bronze { color: #cd7f32; }
+
+	.podium-block {
+		width: 80px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px 6px 0 0;
+		font-size: 1.2rem;
+		font-weight: 800;
+		color: rgba(0, 0, 0, 0.3);
+	}
+
+	.gold-block {
+		height: 80px;
+		background: linear-gradient(180deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1));
+		border: 1px solid rgba(251, 191, 36, 0.3);
+		border-bottom: none;
+	}
+
+	.silver-block {
+		height: 56px;
+		background: linear-gradient(180deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.06));
+		border: 1px solid rgba(192, 192, 192, 0.2);
+		border-bottom: none;
+	}
+
+	.bronze-block {
+		height: 40px;
+		background: linear-gradient(180deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.06));
+		border: 1px solid rgba(205, 127, 50, 0.15);
+		border-bottom: none;
 	}
 
 	.bracket-section, .participants-section {

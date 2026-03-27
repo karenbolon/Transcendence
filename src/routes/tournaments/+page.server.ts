@@ -7,12 +7,16 @@ import { redirect } from '@sveltejs/kit';
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/login');
 
+	const userId = Number(locals.user.id);
+
 	const rows = await db
 		.select({
 			id: tournaments.id,
 			name: tournaments.name,
 			status: tournaments.status,
 			maxPlayers: tournaments.max_players,
+			speedPreset: tournaments.speed_preset,
+			winScore: tournaments.win_score,
 			createdBy: tournaments.created_by,
 			creatorUsername: users.username,
 			winnerId: tournaments.winner_id,
@@ -28,8 +32,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.orderBy(desc(tournaments.created_at))
 		.limit(50);
 
+	// Find if user is currently in an active tournament
+	const myActiveTournament = await db
+		.select({
+			id: tournaments.id,
+			name: tournaments.name,
+			status: tournaments.status,
+		})
+		.from(tournamentParticipants)
+		.innerJoin(tournaments, eq(tournaments.id, tournamentParticipants.tournament_id))
+		.where(eq(tournamentParticipants.user_id, userId))
+		.then(rows => rows.find(r => r.status === 'in_progress') ?? null);
+
 	return {
 		tournaments: rows,
-		userId: Number(locals.user.id),
+		userId,
+		myActiveTournament,
 	};
 };

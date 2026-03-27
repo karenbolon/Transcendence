@@ -90,7 +90,7 @@
 		<div class="result-icon">⬆️</div>
 		<div class="result-label advancing">ROUND COMPLETE</div>
 		<h1 class="result-text">You're advancing!</h1>
-		<p class="result-sub">{roundName} → <strong>{nextRoundName}</strong></p>
+		<p class="result-sub">{roundName} → <strong>{nextRoundName || 'Next Round'}</strong></p>
 
 		<div class="vs-layout">
 			<div class="player-card">
@@ -163,7 +163,7 @@
 
 		<div class="actions">
 			<button class="btn btn-primary" onclick={onContinue}>
-				Continue to {nextRoundName}
+				Continue to {nextRoundName || 'Next Round'}
 			</button>
 			<button class="btn btn-secondary" onclick={onViewBracket}>
 				Bracket
@@ -286,10 +286,6 @@
 				<span class="stat-label">LOSSES</span>
 			</div>
 			<div class="stat">
-				<span class="stat-value">{formatDuration(championTotalTime)}</span>
-				<span class="stat-label">TOTAL TIME</span>
-			</div>
-			<div class="stat">
 				<span class="stat-value xp">+{championXpEarned}</span>
 				<span class="stat-label">XP EARNED</span>
 			</div>
@@ -361,10 +357,6 @@
 				<div class="stat">
 					<span class="stat-value losses">{tournamentLosses}</span>
 					<span class="stat-label">LOSS</span>
-				</div>
-				<div class="stat">
-					<span class="stat-value">{formatDuration(championTotalTime)}</span>
-					<span class="stat-label">TOTAL</span>
 				</div>
 				<div class="stat">
 					<span class="stat-value xp">+{xpEarned}</span>

@@ -29,14 +29,14 @@ export const actions: Actions = {
 
 		if (!acceptTerms) {
 			return fail(400, {
-				errorKey: 'errors.accept_terms_required',
+				error: 'You must accept the Terms of Service and Privacy Policy',
 				errors: {} as FormErrors
 			});
 		}
 		if (password !== confirmPassword) {
 			return fail(400, {
-				errorKey: undefined,
-				errors: { confirmPassword: 'errors.passwords_do_not_match' } as FormErrors
+				error: undefined,
+				errors: { confirmPassword: 'Passwords do not match' } as FormErrors
 			});
 		}
 
@@ -44,7 +44,7 @@ export const actions: Actions = {
 
 		if (!formatValidation.success) {
 			return fail(400, {
-				errorKey: undefined,
+				error: undefined,
 				errors: (formatValidation.errors ?? {}) as FormErrors
 			});
 		}
@@ -53,7 +53,7 @@ export const actions: Actions = {
 
 		if (!uniquenessCheck.success) {
 			return fail(400, {
-				errorKey: undefined,
+				error: undefined,
 				errors: (uniquenessCheck.errors ?? {}) as FormErrors
 			});
 		}
@@ -77,7 +77,7 @@ export const actions: Actions = {
 			authLogger.error({ err }, 'Registration error');
 
 			return fail(500, {
-				errorKey: 'errors.server_error',
+				error: 'Something went wrong. Please try again.',
 				errors: {} as FormErrors
 			});
 		}

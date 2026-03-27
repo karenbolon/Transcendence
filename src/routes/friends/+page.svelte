@@ -9,6 +9,7 @@
 	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
+	import { openChat } from '$lib/stores/chat.svelte';
 
 	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
 
@@ -339,7 +340,7 @@
 									</a>
 									<div class="friend-actions">
 										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username, item.name, item.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
-										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
+										<button class="btn btn-message" onclick={() => openChat(item.id)}><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}
@@ -373,7 +374,7 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										<button class="btn btn-message"><span class="btn-icon">✉️</span> Message</button>
+										<button class="btn btn-message" onclick={() => openChat(item.id)}><span class="btn-icon">✉️</span> Message</button>
 										<button
 											class="btn btn-block"
 											disabled={loading === `block-${item.id}`}

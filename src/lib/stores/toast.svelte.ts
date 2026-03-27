@@ -1,4 +1,4 @@
-export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'friend' | 'game' | 'badge';
+export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'friend' | 'game' | 'badge' | 'chat';
 
 type Toast = {
 	id: number;
@@ -9,6 +9,7 @@ type Toast = {
 	duration: number;
 	createdAt: number;
 	timeoutId: number;
+	onclick?: () => void;
 };
 
 const TOAST_CONFIG: Record<ToastType, { icon: string; color: string; duration: number }> = {
@@ -19,6 +20,7 @@ const TOAST_CONFIG: Record<ToastType, { icon: string; color: string; duration: n
 	friend:  { icon: '💜', color: '#a855f7', duration: 4000 },
 	game:    { icon: '🎮', color: '#f97316', duration: 4000 },
 	badge:   { icon: '🏆', color: '#f59e0b', duration: 5000 },
+	chat:    { icon: '💬', color: '#60a5fa', duration: 5000 },
 };
 
 const MAX_TOASTS = 5;
@@ -30,14 +32,9 @@ export { TOAST_CONFIG };
 const pending: { type: ToastType; title: string; message: string }[] = [];
 
 
-function showToast(type: ToastType, title: string, message: string) {
+function showToast(type: ToastType, title: string, message: string, onclick?: () => void) {
 	const config = TOAST_CONFIG[type];
 	const id = Date.now() + Math.random();
-
-	// Dismiss oldest if at max
-	// if (toasts.length >= MAX_TOASTS) {
-	// 	dismiss(toasts[toasts.length - 1].id);
-	// }
 
 	const timeoutId = window.setTimeout(() => {
 		dismiss(id);
@@ -52,15 +49,15 @@ function showToast(type: ToastType, title: string, message: string) {
 		duration: config.duration,
 		createdAt: Date.now(),
 		timeoutId,
+		onclick,
 	});
 }
 
-function addToast(type: ToastType, title: string, message: string = '') {
+function addToast(type: ToastType, title: string, message: string = '', onclick?: () => void) {
 	if (toasts.length >= MAX_TOASTS) {
-		// Queue it — will show when a slot opens
 		pending.push({ type, title, message });
 	} else {
-		showToast(type, title, message);
+		showToast(type, title, message, onclick);
 	}
 }
 
@@ -87,6 +84,7 @@ export const toast = {
 	friend:  (title: string, message: string = '') => addToast('friend', title, message),
 	game:    (title: string, message: string = '') => addToast('game', title, message),
 	badge:   (title: string, message: string = '') => addToast('badge', title, message),
+	chat:    (title: string, message: string = '', onclick?: () => void) => addToast('chat', title, message, onclick),
 	dismiss,
 	clear: () => {
 		while (toasts.length > 0) {

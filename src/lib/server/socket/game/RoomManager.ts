@@ -1,7 +1,7 @@
 import { GameRoom } from './GameRoom';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
 import { db } from '$lib/server/db';
-import { games, users } from '$lib/server/db/schema';
+import { games, users, messages } from '$lib/server/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { processMatchProgression } from '$lib/server/progression';
 import { getIO, userSockets } from '../index';
@@ -83,7 +83,7 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 		const startedAt = new Date(finishedAt.getTime() - result.durationSeconds * 1000);
 		await db.transaction(async (tx) => {
 			// 1. Insert the game record
-			await tx.insert(games).values({
+			const [gameRecord] = await tx.insert(games).values({
 				type: 'pong',
 				status: 'finished',
 				game_mode: 'online',           // This is what makes it different from local/computer
@@ -99,7 +99,7 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				duration_seconds: result.durationSeconds,
 				started_at: startedAt,
 				finished_at: finishedAt,
-			}).returning();
+			}).returning({ id: games.id });
 
 			// 2. Update player 1 stats (games_played, wins, losses)
 			const p1Won = result.winnerId === result.player1.userId;
@@ -162,6 +162,13 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 					}
 				}
 			}
+			await tx.insert(messages).values({
+				sender_id: result.player1.userId,
+				recipient_id: result.player2.userId,
+				game_id: gameRecord.id, // from the insert returning
+				type: 'system',
+				content: `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`,
+			});
 		});
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
 	} catch (err) {

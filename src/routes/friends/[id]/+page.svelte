@@ -13,6 +13,7 @@
 	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
+	import { openChat } from '$lib/stores/chat.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -87,6 +88,7 @@
 		onaddfriend={handleAddFriend}
 		onunfriend={handleUnfriend}
 		onchallenge={handleChallenge}
+		onmessage={() => openChat(data.friend.id)}
 	/>
 
 	<!-- Head-to-Head -->

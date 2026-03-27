@@ -94,3 +94,23 @@ export async function getUserAchievements(userId: number) {
 		unlockedAt: a.unlockedAt?.toISOString() ?? null,
 	}));
 }
+
+/**
+ * Check if either user has blocked the other.
+ * Returns true if a 'blocked' friendship exists between them.
+ */
+export async function isBlocked(userId: number, otherId: number): Promise<boolean> {
+	const [row] = await db
+		.select({ id: friendships.id })
+		.from(friendships)
+		.where(
+			and(
+				eq(friendships.status, 'blocked'),
+				or(
+					and(eq(friendships.user_id, userId), eq(friendships.friend_id, otherId)),
+					and(eq(friendships.user_id, otherId), eq(friendships.friend_id, userId)),
+				)
+			)
+		);
+	return !!row;
+}

@@ -19,6 +19,7 @@
 	import MuteButton from '$lib/component/custom/MuteButton.svelte';
 	import { drawPowerUpItem, drawEffectsHUD, drawWallBarriers, getPaddleEffectTint, getBallAlpha } from '$lib/game/powerups/renderer';
 	import { getEffectivePaddleHeight, isInvisibleBallActive } from '$lib/game/powerups/engine';
+	import { interpolateSnapshots, extrapolateSnapshot } from './interpolation';
 
 	type Props = {
 		roomId: string;
@@ -47,7 +48,9 @@
 	});
 
 	let canvas: HTMLCanvasElement;
-	let latestState: GameStateSnapshot | null = $state(null);
+	// Snapshot interpolation buffer (not reactive — read/written imperatively)
+	let prevSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
+	let currSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let disconnectedPlayer: number | null = $state(null);
 
 	// ── Keyboard Input ──────────────────────────────────────────
@@ -74,6 +77,10 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
+		// Don't capture game keys when typing in chat input
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		const key = e.key.toLowerCase();
 		if (['w', 's', 'arrowup', 'arrowdown'].includes(key)) {
 			e.preventDefault();
@@ -83,6 +90,9 @@
 	}
 
 	function handleKeyUp(e: KeyboardEvent) {
+		const tag = (e.target as HTMLElement)?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
 		const key = e.key.toLowerCase();
 		if (keysDown.has(key)) {
 			keysDown.delete(key);
@@ -103,7 +113,8 @@
 
 		// Listen for state updates from the server (60 per second)
 		socket.on('game:state', (state: GameStateSnapshot) => {
-			latestState = state;
+			prevSnapshot = currSnapshot;
+			currSnapshot = { state, receivedAt: performance.now() };
 		});
 
 		socket.on('game:over', (result: any) => {
@@ -126,13 +137,44 @@
 			disconnectedPlayer = null;
 		});
 
-		// Render loop — just draws the latest state, NO physics
+		// Render loop — interpolates between the two most recent server snapshots
 		let animFrame: number;
 		function renderLoop() {
 			const now = performance.now();
 			const dt = lastRenderTime ? Math.min((now - lastRenderTime) / 1000, 0.05) : 0;
 			lastRenderTime = now;
 			gameTime += dt;
+
+			// Compute latestState via interpolation / extrapolation
+			let latestState: GameStateSnapshot | null = null;
+			if (currSnapshot) {
+				if (prevSnapshot) {
+					const elapsed = performance.now() - prevSnapshot.receivedAt;
+					const interval = currSnapshot.receivedAt - prevSnapshot.receivedAt;
+					const t = interval > 0 ? elapsed / interval : 1;
+
+					if (t <= 1) {
+						latestState = interpolateSnapshots(
+							prevSnapshot.state,
+							currSnapshot.state,
+							t,
+						);
+					} else {
+						const overTimeSec = (performance.now() - currSnapshot.receivedAt) / 1000;
+						const ballMoved =
+							Math.abs(currSnapshot.state.ballX - prevSnapshot.state.ballX) > 0.1 ||
+							Math.abs(currSnapshot.state.ballY - prevSnapshot.state.ballY) > 0.1;
+
+						if (currSnapshot.state.phase === 'playing' && ballMoved) {
+							latestState = extrapolateSnapshot(currSnapshot.state, overTimeSec);
+						} else {
+							latestState = currSnapshot.state;
+						}
+					}
+				} else {
+					latestState = currSnapshot.state;
+				}
+			}
 
 			if (latestState) {
 				// Effects updates
@@ -356,3 +398,4 @@
 	height: auto;
 	}
 </style>
+ 

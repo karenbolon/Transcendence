@@ -3,6 +3,7 @@
 	import Logout from './Logout.svelte';
 	import UserAvatar from './UserAvatar.svelte';
 	import { isConnected } from '$lib/stores/socket.svelte';
+	import { toggleChat, getTotalUnread } from '$lib/stores/chat.svelte';
 	//chat
 	//notifications
 
@@ -60,6 +61,16 @@
 
 			<div class="header-right">
 				{#if user}
+					<!-- Chat button -->
+					<button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+						</svg>
+						{#if getTotalUnread() > 0}
+							<span class="chat-badge">{getTotalUnread()}</span>
+						{/if}
+					</button>
+
 					<div class="dropdown-wrapper">
 						<button
 							class="avatar-trigger"
@@ -122,3 +133,34 @@
 		</nav>
 	</div>
 </header>
+
+<style>
+	.chat-trigger {
+		position: relative;
+		background: none;
+		border: none;
+		color: #9ca3af;
+		cursor: pointer;
+		padding: 0.4rem;
+		border-radius: 0.4rem;
+		transition: color 0.15s;
+	}
+
+	.chat-trigger:hover {
+		color: #e5e7eb;
+	}
+
+	.chat-badge {
+		position: absolute;
+		top: -4px;
+		right: -6px;
+		background: #ff6b9d;
+		color: white;
+		font-size: 0.6rem;
+		padding: 0.05rem 0.35rem;
+		border-radius: 999px;
+		font-weight: 700;
+		min-width: 16px;
+		text-align: center;
+	}
+</style>

@@ -647,18 +647,18 @@ function calculateMatchXp(result) {
 	const bonuses = [];
 	const base = result.won ? 50 : 20;
 	if (result.won && result.player2Score === 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.shutout', amount: 15 });
+		bonuses.push({ name: 'Shutout', amount: 15 });
 	}
 	if (result.won && result.currentWinStreak > 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.winStreak', amount: Math.min(result.currentWinStreak * 5, 25) });
+		bonuses.push({ name: 'Win Streak', amount: Math.min(result.currentWinStreak * 5, 25) });
 	}
 	if (result.won && result.maxDeficit >= 2) {
-		bonuses.push({ name: 'levelUpModal.bonuses.comeback', amount: 10 });
+		bonuses.push({ name: 'Comeback', amount: 10 });
 	}
 	const speedBonusMap = { chill: 0, normal: 5, fast: 10 };
 	const speedBonus = speedBonusMap[result.speedPreset] ?? 0;
 	if (speedBonus > 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.speedBonus', amount: speedBonus });
+		bonuses.push({ name: 'Speed Bonus', amount: speedBonus });
 	}
 	const total = base + bonuses.reduce((sum, b) => sum + b.amount, 0);
 	return { base, bonuses, total };
@@ -1349,6 +1349,99 @@ io.on('connection', (socket) => {
 				const targetSockets = userSockets.get(invite.toUserId);
 				if (targetSockets) { for (const sid of targetSockets) { io.to(sid).emit('game:invite-cancelled', { inviteId }); } }
 				break;
+			}
+		}
+	});
+
+	// ═══════════════════════════════════════════════════════════════
+	// CHAT HANDLERS
+	// ═══════════════════════════════════════════════════════════════
+
+	socket.on('chat:send', async (data) => {
+		const { recipientId, content, gameId } = data;
+		if (!content?.trim() || content.length > 500) return;
+		if (recipientId === userId) return;
+
+		// Block check
+		const [blocked] = await sql`
+			SELECT id FROM friendships
+			WHERE status = 'blocked'
+			AND ((user_id = ${userId} AND friend_id = ${recipientId})
+			  OR (user_id = ${recipientId} AND friend_id = ${userId}))
+			LIMIT 1
+		`;
+		if (blocked) {
+			socket.emit('chat:error', { message: 'Cannot send message to this user' });
+			return;
+		}
+
+		// Friend check (skip for in-game chat)
+		if (!gameId) {
+			const friends = await sql`
+				SELECT id FROM friendships
+				WHERE status = 'accepted'
+				AND ((user_id = ${userId} AND friend_id = ${recipientId})
+				  OR (user_id = ${recipientId} AND friend_id = ${userId}))
+				LIMIT 1
+			`;
+			if (friends.length === 0) {
+				socket.emit('chat:error', { message: 'You can only message friends' });
+				return;
+			}
+		}
+
+		const [msg] = await sql`
+			INSERT INTO messages (sender_id, recipient_id, game_id, type, content)
+			VALUES (${userId}, ${recipientId}, ${gameId ?? null}, 'chat', ${content.trim()})
+			RETURNING *
+		`;
+
+		const payload = {
+			id: msg.id,
+			senderId: userId,
+			senderUsername: username,
+			senderAvatar: socket.data?.avatarUrl ?? null,
+			recipientId,
+			content: msg.content,
+			createdAt: msg.created_at,
+			gameId: gameId ?? null,
+		};
+
+		const recipientSockets = userSockets.get(recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) io.to(sid).emit('chat:message', payload);
+		}
+		socket.emit('chat:sent', payload);
+	});
+
+	socket.on('chat:read', async (data) => {
+		const { friendId } = data;
+		await sql`
+			UPDATE messages SET is_read = true, read_at = NOW()
+			WHERE sender_id = ${friendId} AND recipient_id = ${userId} AND is_read = false
+		`;
+		const senderSockets = userSockets.get(friendId);
+		if (senderSockets) {
+			for (const sid of senderSockets) {
+				io.to(sid).emit('chat:read-receipt', { readBy: userId, friendId });
+			}
+		}
+	});
+
+	socket.on('chat:typing', (data) => {
+		const recipientSockets = userSockets.get(data.recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) {
+				io.to(sid).emit('chat:typing', { userId, username });
+			}
+		}
+	});
+
+	socket.on('chat:stop-typing', (data) => {
+		const recipientSockets = userSockets.get(data.recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) {
+				io.to(sid).emit('chat:stop-typing', { userId });
 			}
 		}
 	});

@@ -7,7 +7,15 @@
 {#if toasts.length > 0}
 	<div class="toast-container">
 		{#each toasts as t (t.id) }
-			<div class="toast toast--{t.type}" style="--toast-color: {TOAST_CONFIG[t.type].color};" transition:fly={{ x: 300, duration: 300 }}>
+			<div
+				class="toast toast--{t.type}"
+				class:clickable={!!t.onclick}
+				style="--toast-color: {TOAST_CONFIG[t.type].color};"
+				transition:fly={{ x: 300, duration: 300 }}
+				onclick={() => { if (t.onclick) { t.onclick(); toast.dismiss(t.id); } }}
+				role={t.onclick ? 'button' : undefined}
+				tabindex={t.onclick ? 0 : undefined}
+			>
 				<span class="toast-icon">{t.icon}</span>
 				<div class="toast-body">
 					<span class="toast-title">{t.title}</span>
@@ -15,7 +23,7 @@
 						<span class="toast-message">{t.message}</span>
 					{/if}
 				</div>
-				<button class="toast-dismiss" onclick={() => toast.dismiss(t.id)}>
+				<button class="toast-dismiss" onclick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }}>
 					&times;
 				</button>
 				<div class="toast-progress">
@@ -59,6 +67,15 @@
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 		pointer-events: all;
 		overflow: hidden;
+	}
+
+	.toast.clickable {
+		cursor: pointer;
+	}
+
+	.toast.clickable:hover {
+		border-color: rgba(255, 255, 255, 0.15);
+		background: rgba(22, 22, 58, 1);
 	}
 
 	.toast-icon {

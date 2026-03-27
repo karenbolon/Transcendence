@@ -2,29 +2,12 @@
 	import { enhance } from '$app/forms';
 	import type { LoginFormResult } from '$lib/types/form';
 	import { validateUsername } from '$lib/validation/frontend';
-	import PasswordInput from '$lib/component/common/PasswordInput.svelte';	
+	import PasswordInput from '$lib/component/common/PasswordInput.svelte';
 
 	let { form }: { form: LoginFormResult | null } = $props();
 	let loading = $state(false);
 	let username = $state('');
 	let password = $state('');
-
-	const loginErrors: Record<string, string> = {
-		'errors.all_fields_required': 'Please fill in all fields',
-		'errors.invalid_credentials': 'Invalid username or password'
-	};
-
-	function getLoginErrorMessage(key?: string) {
-		if (!key) return '';
-		return loginErrors[key] ?? key;
-	}
-
-	// Sync username with form data when form prop changes
-	$effect(() => {
-		if (form?.username) {
-			username = form.username;
-		}
-	});
 
 	let touched = $state({
 		username: false,
@@ -38,7 +21,7 @@
 
 	let passwordError = $derived.by(() => {
 		if (!touched.password || !password) return '';
-		if (password.length < 1) return 'Enter your password';
+		if (password.length < 1) return 'Password is required';
 		return '';
 	});
 
@@ -62,9 +45,9 @@
 				await update();
 			};
 		}}>
-			{#if form?.errorKey}
+			{#if form?.error}
 				<div class="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm">
-					{getLoginErrorMessage(form.errorKey)}
+					{form.error}
 				</div>
 			{/if}
 
@@ -101,7 +84,7 @@
 			<div class="flex items-center justify-between text-sm">
 				<label >
 					<input type="checkbox" name="rememberMe" />
-					Remember me
+					Remember Me
 				</label>
 				<a href=/forgot-password class="link text-sm">
 					Forgot password?

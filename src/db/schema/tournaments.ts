@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, timestamp, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, text, timestamp, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const tournaments = pgTable('tournaments', {
@@ -19,6 +19,7 @@ export const tournaments = pgTable('tournaments', {
 	finished_at: timestamp('finished_at'),
 	created_at: timestamp('created_at').notNull().defaultNow(),
 	updated_at: timestamp('updated_at').notNull().defaultNow(),
+	bracket_data: jsonb('bracket_data'),
 	version: integer('version').notNull().default(1)
 }, (t) => ({
 	tourneyStatusIndex: index('tourney_status_idx').on(t.status),

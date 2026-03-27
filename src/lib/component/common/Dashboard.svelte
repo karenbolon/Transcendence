@@ -140,20 +140,20 @@
         {/if}
     </div>
 
-    <!-- OPEN TOURNAMENTS -->
+    <!-- TOURNAMENTS -->
     <div class="tournaments-section">
         <div class="tourn-header">
-            <h2 class="tourn-title">Open Tournaments</h2>
-            <a href="/tournaments" class="tourn-link">Browse all</a>
+            <h2 class="tourn-title">Tournaments</h2>
+            <a href="/tournaments" class="tourn-link">View all</a>
         </div>
         {#if openTournaments.length === 0}
-            <div class="empty-mini">No open tournaments</div>
+            <div class="empty-mini">No tournaments yet</div>
         {:else}
             <div class="tourn-grid">
                 {#each openTournaments as tourn}
-                    <div class="tourn-card">
+                    <a href="/tournaments/{tourn.id}" class="tourn-card tourn-card-{tourn.status}">
                         <span class="tourn-status {tourn.status}">
-                            {tourn.status === 'open' ? 'Open' : 'Scheduled'}
+                            {tourn.status === 'scheduled' ? 'Open' : tourn.status === 'in_progress' ? 'Live' : 'Finished'}
                         </span>
                         <div class="tourn-card-name">{tourn.name}</div>
                         <div class="tourn-card-meta">
@@ -162,20 +162,20 @@
                                 {tourn.playerCount} / {tourn.maxPlayers} players
                             </div>
                             <div class="tourn-meta-row">
-                                <span class="icon">📅</span>
-                                {formatTournamentTime(tourn.startsAt)}
-                            </div>
-                            <div class="tourn-meta-row">
                                 <span class="icon">🏆</span>
                                 {formatTournamentFormat(tourn.format)}
                             </div>
                         </div>
-                        {#if tourn.playerCount < tourn.maxPlayers}
-                            <a href="/tournaments/{tourn.id}/join" class="tourn-join">Join tournament</a>
+                        {#if tourn.status === 'scheduled' && tourn.playerCount < tourn.maxPlayers}
+                            <span class="tourn-action join">Join</span>
+                        {:else if tourn.status === 'in_progress'}
+                            <span class="tourn-action live">Watch</span>
+                        {:else if tourn.status === 'finished'}
+                            <span class="tourn-action finished">Results</span>
                         {:else}
-                            <button class="tourn-join" disabled>Full</button>
+                            <span class="tourn-action full">Full</span>
                         {/if}
-                    </div>
+                    </a>
                 {/each}
             </div>
         {/if}
@@ -517,7 +517,7 @@
 
 	.tourn-link:hover { color: #60a5fa; }
 
-	.tourn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+	.tourn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 
 	.tourn-card {
 		padding: 1rem;
@@ -566,31 +566,46 @@
 	}
 
 	.tourn-status.scheduled {
+		background: rgba(74, 222, 128, 0.1);
+		color: #4ade80;
+		border: 1px solid rgba(74, 222, 128, 0.15);
+	}
+
+	.tourn-status.in_progress {
 		background: rgba(251, 191, 36, 0.1);
 		color: #fbbf24;
 		border: 1px solid rgba(251, 191, 36, 0.15);
 	}
 
-	.tourn-join {
+	.tourn-status.finished {
+		background: rgba(255, 255, 255, 0.06);
+		color: #888;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.tourn-card-in_progress {
+		border-color: rgba(251, 191, 36, 0.2);
+	}
+
+	.tourn-action {
 		display: block;
 		margin-top: 0.6rem;
 		width: 100%;
 		padding: 0.35rem;
 		border-radius: 0.4rem;
 		border: none;
-		background: rgba(96, 165, 250, 0.1);
-		color: #60a5fa;
 		font-family: inherit;
 		font-size: 0.72rem;
 		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s;
 		text-decoration: none;
 		text-align: center;
 	}
 
-	.tourn-join:hover { background: rgba(96, 165, 250, 0.2); }
-	.tourn-join:disabled { opacity: 0.4; cursor: not-allowed; }
+	.tourn-action.join { background: rgba(74, 222, 128, 0.1); color: #4ade80; }
+	.tourn-action.live { background: rgba(251, 191, 36, 0.1); color: #fbbf24; }
+	.tourn-action.finished { background: rgba(255, 255, 255, 0.04); color: #888; }
+	.tourn-action.full { background: rgba(255, 255, 255, 0.04); color: #555; }
+
 
 	/* QUICK PLAY */
 	.quick-header { margin-bottom: 0.75rem; }

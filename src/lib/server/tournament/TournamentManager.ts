@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
 import { users } from '$lib/server/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, count } from 'drizzle-orm';
 import { generateBracket, type BracketRound, type BracketPlayer } from './bracket';
 import { createRoom, getRoom, destroyRoom } from '../socket/game/RoomManager';
 import { getIO, userSockets } from '../socket/index';
@@ -57,6 +57,13 @@ function emitToUser(userId: number, event: string, data: any): void {
 	if (sockets) {
 		for (const sid of sockets) io.to(sid).emit(event, data);
 	}
+}
+
+/** Persist bracket JSON to the database */
+async function saveBracketToDb(tournamentId: number, bracket: BracketRound[]): Promise<void> {
+	await db.update(tournaments).set({
+		bracket_data: JSON.parse(JSON.stringify(bracket)),
+	}).where(eq(tournaments.id, tournamentId));
 }
 
 /** Convert round number to human-readable name */
@@ -129,6 +136,20 @@ export async function leaveTournament(tournamentId: number, userId: number): Pro
 	return true;
 }
 
+export async function cancelTournament(tournamentId: number, requestedBy: number): Promise<boolean> {
+	const [tournament] = await db.select().from(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	if (!tournament || tournament.created_by !== requestedBy) return false;
+	if (tournament.status !== 'scheduled') return false;
+
+	// Delete participants first (foreign key), then tournament
+	await db.delete(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+	await db.delete(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	return true;
+}
+
 export async function startTournament(
 	tournamentId: number,
 	requestedBy: number,
@@ -172,11 +193,12 @@ export async function startTournament(
 		playerMap,
 	});
 
-	// Update DB
+	// Update DB (including initial bracket)
 	await db.update(tournaments).set({
 		status: 'in_progress',
 		current_round: 1,
 		started_at: new Date(),
+		bracket_data: JSON.parse(JSON.stringify(bracket)),
 	}).where(eq(tournaments.id, tournamentId));
 
 	// Update all participants to active
@@ -189,6 +211,9 @@ export async function startTournament(
 		tournamentId,
 		bracket,
 	});
+
+	// Notify ALL clients so tournament list pages refresh
+	getIO().emit('tournament:list-updated');
 
 	// Start round 1 matches (skip byes)
 	await startRoundMatches(tournamentId, 1);
@@ -205,6 +230,49 @@ async function startRoundMatches(tournamentId: number, round: number): Promise<v
 
 	for (const match of roundData.matches) {
 		if (match.status !== 'pending' || !match.player1Id || !match.player2Id) continue;
+
+		const p1IsBot = isBot(match.player1Id, tourney.playerMap);
+		const p2IsBot = isBot(match.player2Id, tourney.playerMap);
+
+		// Auto-resolve matches involving bots
+		if (p1IsBot || p2IsBot) {
+			let winnerId: number;
+			let loserId: number;
+			let winnerScore = tourney.settings.winScore;
+			let loserScore = Math.floor(Math.random() * (tourney.settings.winScore - 1));
+
+			if (p1IsBot && p2IsBot) {
+				// Both bots — random winner
+				if (Math.random() < 0.5) {
+					winnerId = match.player1Id;
+					loserId = match.player2Id;
+				} else {
+					winnerId = match.player2Id;
+					loserId = match.player1Id;
+				}
+			} else {
+				// Human vs bot — human always wins
+				winnerId = p1IsBot ? match.player2Id : match.player1Id;
+				loserId = p1IsBot ? match.player1Id : match.player2Id;
+			}
+
+			match.status = 'finished';
+			match.winnerId = winnerId;
+			if (match.player1Id === winnerId) {
+				match.player1Score = winnerScore;
+				match.player2Score = loserScore;
+			} else {
+				match.player1Score = loserScore;
+				match.player2Score = winnerScore;
+			}
+
+			// Small delay so bracket updates don't all fire at once
+			const capturedMatch = { ...match };
+			setTimeout(async () => {
+				await advanceWinner(tournamentId, round, capturedMatch.matchIndex, winnerId, loserId, winnerScore, loserScore);
+			}, 500 * match.matchIndex);
+			continue;
+		}
 
 		match.status = 'playing';
 
@@ -273,6 +341,8 @@ export async function advanceWinner(
 	matchIndex: number,
 	winnerId: number,
 	loserId: number,
+	winnerScore: number = 0,
+	loserScore: number = 0,
 ): Promise<void> {
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) return;
@@ -280,17 +350,33 @@ export async function advanceWinner(
 	const roundData = tourney.bracket.find(r => r.round === round);
 	if (!roundData) return;
 
-	// Mark match finished
+	// Mark match finished with scores
 	const match = roundData.matches[matchIndex];
 	if (match) {
 		match.winnerId = winnerId;
 		match.status = 'finished';
+		// Map winner/loser scores to player1/player2 slots
+		if (match.player1Id === winnerId) {
+			match.player1Score = winnerScore;
+			match.player2Score = loserScore;
+		} else {
+			match.player1Score = loserScore;
+			match.player2Score = winnerScore;
+		}
 	}
 
-	// Eliminate loser — calculate placement based on round
-	// Final round loser = 2nd, semifinal losers = 3rd, quarterfinal losers = 5th, etc.
+	// Eliminate loser — placement = totalPlayers - alreadyEliminated
+	// This gives unique placements: last eliminated = better rank
 	const totalRounds = tourney.bracket.length;
-	const placement = Math.pow(2, totalRounds - round) + 1;
+	const totalPlayers = tourney.playerMap.size;
+	const [{ value: eliminatedCount }] = await db
+		.select({ value: count() })
+		.from(tournamentParticipants)
+		.where(and(
+			eq(tournamentParticipants.tournament_id, tournamentId),
+			eq(tournamentParticipants.status, 'eliminated'),
+		));
+	const placement = totalPlayers - Number(eliminatedCount);
 
 	await db.update(tournamentParticipants).set({
 		status: 'eliminated',
@@ -323,18 +409,20 @@ export async function advanceWinner(
 		}
 	}
 
-	emitToUser(loserId, 'tournament:eliminated', {
-		tournamentId,
-		round,
-		placement,
-		totalRounds,
-		tournamentName: tourney.name,
-		roundName: getRoundName(round, totalRounds),
-		tournamentWins: loserWins,
-		tournamentLosses: 1,
-		tournamentContinues,
-	});
 	if (nextRound) {
+		// Emit tournament:eliminated for non-final rounds only
+		// Final round loser gets tournament:finished instead (shows runner-up screen)
+		emitToUser(loserId, 'tournament:eliminated', {
+			tournamentId,
+			round,
+			placement,
+			totalRounds,
+			tournamentName: tourney.name,
+			roundName: getRoundName(round, totalRounds),
+			tournamentWins: loserWins,
+			tournamentLosses: 1,
+			tournamentContinues,
+		});
 		const nextMatchIndex = Math.floor(matchIndex / 2);
 		const nextMatch = nextRound.matches[nextMatchIndex];
 		if (nextMatch) {
@@ -368,6 +456,11 @@ export async function advanceWinner(
 				};
 			}
 
+			// Count winner's tournament wins so far
+			const winnerTournamentWins = tourney.bracket.reduce((count, r) => {
+				return count + r.matches.filter(m => m.winnerId === winnerId).length;
+			}, 0);
+
 			emitToUser(winnerId, 'tournament:advanced', {
 				tournamentId,
 				round,
@@ -378,11 +471,17 @@ export async function advanceWinner(
 				roundName: getRoundName(round, totalRounds),
 				nextRoundName: getRoundName(round + 1, totalRounds),
 				nextOpponent: nextOpponentInfo,
+				tournamentWins: winnerTournamentWins,
 			});
 
-			// If both players are set, start the match
+			// If both players are set, start the match after a delay
+			// so players can see their result screen (advancing/eliminated)
 			if (nextMatch.player1Id && nextMatch.player2Id) {
-				await startRoundMatches(tournamentId, round + 1);
+				const capturedTournamentId = tournamentId;
+				const capturedNextRound = round + 1;
+				setTimeout(() => {
+					startRoundMatches(capturedTournamentId, capturedNextRound);
+				}, 10_000);
 			}
 		}
 	} else {
@@ -448,9 +547,13 @@ export async function advanceWinner(
 		});
 
 		activeTournaments.delete(tournamentId);
+
+		// Notify ALL clients so tournament list pages refresh
+		getIO().emit('tournament:list-updated');
 	}
 
-	// Broadcast updated bracket to all participants
+	// Persist bracket to DB and broadcast to all participants
+	await saveBracketToDb(tournamentId, tourney.bracket);
 	if (activeTournaments.has(tournamentId)) {
 		emitToParticipants(tournamentId, 'tournament:bracket-update', {
 			tournamentId,
@@ -465,4 +568,55 @@ export function getActiveTournament(id: number) {
 
 export function getActiveTournamentIds(): number[] {
 	return Array.from(activeTournaments.keys());
+}
+
+// ── Bot System (dev/testing only) ────────────────────────
+
+const BOT_NAMES = [
+	'Bolt', 'Nova', 'Echo', 'Zap', 'Pixel', 'Glitch', 'Spark', 'Drift',
+	'Blaze', 'Comet', 'Viper', 'Frost', 'Turbo', 'Neon', 'Prism',
+];
+
+/** Create or find bot users, then join them to fill the tournament */
+export async function fillWithBots(tournamentId: number): Promise<{ added: number; error?: string }> {
+	const [tournament] = await db.select().from(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	if (!tournament) return { added: 0, error: 'Tournament not found' };
+	if (tournament.status !== 'scheduled') return { added: 0, error: 'Tournament already started' };
+
+	const currentParticipants = await db.select().from(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+	const spotsToFill = tournament.max_players - currentParticipants.length;
+	if (spotsToFill <= 0) return { added: 0, error: 'Tournament is already full' };
+
+	let added = 0;
+	for (let i = 0; i < spotsToFill; i++) {
+		const botName = `bot_${BOT_NAMES[i % BOT_NAMES.length]}${i >= BOT_NAMES.length ? i : ''}`;
+		// Find or create bot user
+		let [botUser] = await db.select().from(users)
+			.where(eq(users.username, botName));
+		if (!botUser) {
+			[botUser] = await db.insert(users).values({
+				username: botName,
+				name: BOT_NAMES[i % BOT_NAMES.length],
+				email: `${botName}@bot.local`,
+				password_hash: 'bot-no-login',
+				bio: 'Tournament bot',
+			}).returning();
+		}
+		await db.insert(tournamentParticipants).values({
+			tournament_id: tournamentId,
+			user_id: botUser.id,
+			seed: currentParticipants.length + added + 1,
+			status: 'registered',
+		}).onConflictDoNothing();
+		added++;
+	}
+	return { added };
+}
+
+/** Check if a user is a bot */
+export function isBot(userId: number, playerMap: Map<number, string>): boolean {
+	const username = playerMap.get(userId);
+	return username?.startsWith('bot_') ?? false;
 }

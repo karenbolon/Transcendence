@@ -1728,7 +1728,7 @@ io.on('connection', (socket) => {
 
 			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
 			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-			io.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+			socket.emit('tournament:cancelled', { tournamentId: data.tournamentId });
 			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);

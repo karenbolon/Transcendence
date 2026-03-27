@@ -24,13 +24,12 @@
 		onLeave: () => void;
 		onStart: () => void;
 		onCancel: () => void;
-		onFillBots?: () => void;
 	};
 
 	let {
 		tournamentName, participants, maxPlayers, speedPreset, winScore,
 		isCreator, isParticipant, currentUserId,
-		onJoin, onLeave, onStart, onCancel, onFillBots,
+		onJoin, onLeave, onStart, onCancel,
 	}: Props = $props();
 
 	let rounds = $derived(Math.log2(maxPlayers));
@@ -145,9 +144,6 @@
 	<div class="lobby-actions">
 		{#if isCreator}
 			<button class="btn btn-cancel" onclick={onCancel}>Cancel</button>
-			{#if onFillBots && !isFull}
-				<button class="btn btn-bots" onclick={onFillBots}>Fill with bots</button>
-			{/if}
 		{:else if isParticipant}
 			<button class="btn btn-leave" onclick={onLeave}>Leave</button>
 		{:else}
@@ -380,15 +376,6 @@
 	.btn-cancel:hover,
 	.btn-leave:hover {
 		background: rgba(248, 113, 113, 0.08);
-	}
-
-	.btn-bots {
-		background: transparent;
-		border: 1px solid rgba(139, 92, 246, 0.3);
-		color: #a78bfa;
-	}
-	.btn-bots:hover {
-		background: rgba(139, 92, 246, 0.08);
 	}
 
 	.btn-start {

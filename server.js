@@ -1488,16 +1488,22 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 		}
 	} else {
 		// Tournament is over
-		await sql`UPDATE tournaments SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW() WHERE id = ${tournamentId}`;
+		await sql`UPDATE tournaments SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW(), bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
 		await sql`UPDATE tournament_participants SET status = 'champion', placement = 1 WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}`;
+
+		// Determine 2nd place from the final match loser
+		await sql`UPDATE tournament_participants SET placement = 2 WHERE tournament_id = ${tournamentId} AND user_id = ${loserId} AND (placement IS NULL OR placement > 2)`;
 
 		emitToTournamentParticipants(tournamentId, 'tournament:finished', {
 			tournamentId, winnerId, winnerUsername: tourney.playerMap.get(winnerId), bracket: tourney.bracket,
 		});
 		activeTournaments.delete(tournamentId);
+		io.emit('tournament:list-updated');
 	}
 
+	// Persist bracket to DB after each update
 	if (activeTournaments.has(tournamentId)) {
+		await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
 		emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
 	}
 }
@@ -1883,6 +1889,7 @@ io.on('connection', (socket) => {
 		`;
 
 		socket.emit('tournament:created', { tournamentId: tournament.id });
+		io.emit('tournament:list-updated');
 	});
 
 	socket.on('tournament:join', async (data) => {
@@ -1915,20 +1922,25 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('tournament:cancel', async (data) => {
-		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament || tournament.created_by !== userId) {
-			socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
-			return;
-		}
-		if (tournament.status !== 'scheduled') {
-			socket.emit('tournament:error', { message: 'Cannot cancel a started tournament' });
-			return;
-		}
+		try {
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
+			if (!tournament || tournament.created_by !== userId) {
+				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
+				return;
+			}
+			if (tournament.status !== 'scheduled') {
+				socket.emit('tournament:error', { message: 'Cannot cancel a started tournament' });
+				return;
+			}
 
-		await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
-		await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-		io.emit('tournament:cancelled', { tournamentId: data.tournamentId });
-		io.emit('tournament:list-updated');
+			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
+			io.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Cancel failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });
+		}
 	});
 
 	socket.on('tournament:start', async (data) => {
@@ -1960,6 +1972,7 @@ io.on('connection', (socket) => {
 		await sql`UPDATE tournament_participants SET status = 'active' WHERE tournament_id = ${data.tournamentId}`;
 
 		emitToTournamentParticipants(data.tournamentId, 'tournament:started', { tournamentId: data.tournamentId, bracket });
+		io.emit('tournament:list-updated');
 		await startTournamentRoundMatches(data.tournamentId, 1);
 	});
 

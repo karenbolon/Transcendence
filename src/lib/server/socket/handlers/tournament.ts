@@ -1,5 +1,5 @@
 import type { Socket } from 'socket.io';
-import { getIO, userSockets } from '../index';
+import { getIO } from '../index';
 import {
 	createTournament,
 	joinTournament,
@@ -7,7 +7,6 @@ import {
 	cancelTournament,
 	startTournament,
 	getActiveTournament,
-	fillWithBots,
 } from '../../tournament/TournamentManager';
 
 export function registerTournamentHandlers(socket: Socket) {
@@ -104,31 +103,6 @@ export function registerTournamentHandlers(socket: Socket) {
 			return;
 		}
 		// tournament:started is emitted to all participants inside startTournament()
-	});
-
-	// Fill tournament with bot players (dev/testing)
-	socket.on('tournament:fill-bots', async (data: { tournamentId: number }) => {
-		try {
-			const result = await fillWithBots(data.tournamentId);
-			if (result.error) {
-				socket.emit('tournament:error', { message: result.error });
-				return;
-			}
-			socket.emit('tournament:bots-filled', {
-				tournamentId: data.tournamentId,
-				added: result.added,
-			});
-			// Notify all clients so lobby refreshes
-			const io = getIO();
-			io.emit('tournament:player-joined', {
-				tournamentId: data.tournamentId,
-				userId: 0,
-				username: `${result.added} bots`,
-			});
-		} catch (err) {
-			console.error('[Tournament] Fill bots failed:', err);
-			socket.emit('tournament:error', { message: 'Failed to add bots' });
-		}
 	});
 
 	// Get tournament bracket state

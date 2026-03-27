@@ -8,7 +8,7 @@
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
-	import { dev } from '$app/environment';
+
 
 	let { data } = $props();
 
@@ -69,17 +69,6 @@
 		const socket = getSocket();
 		if (!socket?.connected) { toast.error('Not connected'); return; }
 		socket.emit('tournament:cancel', { tournamentId: tournament.id });
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
-	}
-
-	function handleFillBots() {
-		const socket = getSocket();
-		if (!socket?.connected) { toast.error('Not connected'); return; }
-		socket.emit('tournament:fill-bots', { tournamentId: tournament.id });
-		socket.once('tournament:bots-filled', (d: any) => {
-			toast.success(`Added ${d.added} bots`);
-			invalidateAll();
-		});
 		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
 	}
 
@@ -237,7 +226,6 @@
 			onLeave={handleLeave}
 			onStart={handleStart}
 			onCancel={handleCancel}
-			onFillBots={dev ? handleFillBots : undefined}
 		/>
 	{/if}
 

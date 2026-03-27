@@ -1709,16 +1709,18 @@ io.on('connection', (socket) => {
 
 	socket.on('tournament:cancel', async (data) => {
 		try {
-			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-			if (!tournament || tournament.created_by !== userId || tournament.status !== 'scheduled') {
+			const tournamentId = Number(data.tournamentId);
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${tournamentId}`;
+			if (!tournament || Number(tournament.created_by) !== userId || tournament.status !== 'scheduled') {
 				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
 				return;
 			}
-			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
-			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-			io.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${tournamentId}`;
+			await sql`DELETE FROM tournaments WHERE id = ${tournamentId}`;
+			io.emit('tournament:cancelled', { tournamentId });
+			io.emit('tournament:list-updated');
 		} catch (err) {
-			logger.error({ err }, '[Tournament] Cancel failed');
+			socketLog.error({ err: err.message, userId }, '[Tournament] Cancel failed');
 			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });
 		}
 	});

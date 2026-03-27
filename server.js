@@ -69,7 +69,7 @@ const io = new SocketIOServer(httpServer, {
 import postgres from 'postgres';
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.DB_URL;
-const sql = postgres(DATABASE_URL);
+const sql = postgres(DATABASE_URL, { prepare: false });
 
 function parseCookies(cookieHeader) {
 	const cookies = {};

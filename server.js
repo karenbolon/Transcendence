@@ -646,18 +646,18 @@ function calculateMatchXp(result) {
 	const bonuses = [];
 	const base = result.won ? 50 : 20;
 	if (result.won && result.player2Score === 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.shutout', amount: 15 });
+		bonuses.push({ name: 'Shutout', amount: 15 });
 	}
 	if (result.won && result.currentWinStreak > 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.winStreak', amount: Math.min(result.currentWinStreak * 5, 25) });
+		bonuses.push({ name: 'Win Streak', amount: Math.min(result.currentWinStreak * 5, 25) });
 	}
 	if (result.won && result.maxDeficit >= 2) {
-		bonuses.push({ name: 'levelUpModal.bonuses.comeback', amount: 10 });
+		bonuses.push({ name: 'Comeback', amount: 10 });
 	}
 	const speedBonusMap = { chill: 0, normal: 5, fast: 10 };
 	const speedBonus = speedBonusMap[result.speedPreset] ?? 0;
 	if (speedBonus > 0) {
-		bonuses.push({ name: 'levelUpModal.bonuses.speedBonus', amount: speedBonus });
+		bonuses.push({ name: 'Speed Bonus', amount: speedBonus });
 	}
 	const total = base + bonuses.reduce((sum, b) => sum + b.amount, 0);
 	return { base, bonuses, total };

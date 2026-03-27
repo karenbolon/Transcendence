@@ -379,6 +379,14 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
+// AI difficulty settings — tweak these to adjust how good the computer is
+const AI_ERROR_RANGE = 80;    // ±px of random error added to prediction (higher = worse aim)
+const AI_REACTION_FRAMES = 8; // AI only updates its target every N frames (higher = slower reaction)
+
+// Persistent AI state between frames
+let aiTargetY: number = CANVAS_HEIGHT / 2;
+let aiFrameCounter: number = 0;
+
 /**
  * Fuzzy Logic AI Controller for Computer Paddle
  *
@@ -391,54 +399,62 @@ export function computeComputerInput(state: GameState): InputState {
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
 	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
 
-	let targetY: number;
+	// Only recalculate target every AI_REACTION_FRAMES frames (simulates reaction delay)
+	aiFrameCounter++;
+	if (aiFrameCounter >= AI_REACTION_FRAMES) {
+		aiFrameCounter = 0;
 
-	// Rule 1: Ball approaching → Use predictive tracking
-	if (state.ballVX > 0) {
-		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
-		const distanceToPaddle = paddleX - state.ballX;
-		const timeToReach = distanceToPaddle / state.ballVX;
+		let targetY: number;
 
-		// Predict future ball position (account for spin curving the trajectory)
-		// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
-		// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
-		let predictedY = state.ballY
-			+ (state.ballVY * timeToReach)
-			+ (0.5 * state.ballSpin * SPIN_ACCELERATION * timeToReach * timeToReach);
+		// Rule 1: Ball approaching → Use predictive tracking
+		if (state.ballVX > 0) {
+			const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+			const distanceToPaddle = paddleX - state.ballX;
+			const timeToReach = distanceToPaddle / state.ballVX;
 
-		// Simulate wall bounces with safety limit (prevent infinite loops)
-		let bounces = 0;
-		const maxBounces = 10; // Safety limit
+			// Predict future ball position (account for spin curving the trajectory)
+			// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
+			// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
+			let predictedY = state.ballY
+				+ (state.ballVY * timeToReach)
+				+ (0.5 * state.ballSpin * SPIN_ACCELERATION * timeToReach * timeToReach);
 
-		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
-			if (predictedY < 0) {
-				predictedY = Math.abs(predictedY);
-			} else if (predictedY > CANVAS_HEIGHT) {
-				predictedY = 2 * CANVAS_HEIGHT - predictedY;
+			// Simulate wall bounces with safety limit (prevent infinite loops)
+			let bounces = 0;
+			const maxBounces = 10; // Safety limit
+
+			while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
+				if (predictedY < 0) {
+					predictedY = Math.abs(predictedY);
+				} else if (predictedY > CANVAS_HEIGHT) {
+					predictedY = 2 * CANVAS_HEIGHT - predictedY;
+				}
+				bounces++;
 			}
-			bounces++;
+
+			// Clamp if still out of bounds (safety fallback)
+			predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+
+			// Add random error so the AI doesn't aim perfectly every time
+			const error = (Math.random() * 2 - 1) * AI_ERROR_RANGE;
+			targetY = predictedY + error;
+		}
+		// Rule 2: Ball moving away → Return to center (defensive positioning)
+		else {
+			targetY = CANVAS_HEIGHT / 2;
 		}
 
-		// Clamp if still out of bounds (safety fallback)
-		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
-
-		targetY = predictedY;
+		// Defuzzification: Constrain target to valid paddle bounds
+		// Extend range by deadZone so the paddle can fully reach the top/bottom edges
+		aiTargetY = Math.max(
+			PADDLE_HEIGHT / 2 - deadZone,
+			Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
+		);
 	}
-	// Rule 2: Ball moving away → Return to center (defensive positioning)
-	else {
-		targetY = CANVAS_HEIGHT / 2;
-	}
-
-	// Defuzzification: Constrain target to valid paddle bounds
-	// Extend range by deadZone so the paddle can fully reach the top/bottom edges
-	targetY = Math.max(
-		PADDLE_HEIGHT / 2 - deadZone,
-		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
-	);
 
 	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
-	const moveUp = targetY < paddleCenter - deadZone;
-	const moveDown = targetY > paddleCenter + deadZone;
+	const moveUp = aiTargetY < paddleCenter - deadZone;
+	const moveDown = aiTargetY > paddleCenter + deadZone;
 
 	return {
 		paddle1Up: false,

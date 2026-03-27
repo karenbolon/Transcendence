@@ -126,16 +126,37 @@ function collectPowerUp(state: GameState, item: PowerUpItem): void {
 		duration: config.duration,
 	});
 
-	// TODO: Add immediate effects for speedBall/slowBall here (Step 1 in behavior guide)
+	// speedBall/slowBall: immediately rescale the ball velocity
+	if (item.type === 'speedBall' || item.type === 'slowBall') {
+		const multiplier = item.type === 'speedBall' ? 1.5 : 0.6;
+		state.currentBallSpeed *= multiplier;
+		const currentSpeed = Math.sqrt(state.ballVX ** 2 + state.ballVY ** 2);
+		if (currentSpeed > 0) {
+			const scale = state.currentBallSpeed / currentSpeed;
+			state.ballVX *= scale;
+			state.ballVY *= scale;
+		}
+	}
 }
 
 /**
  * Called when an effect's timer reaches 0.
- * Should undo any persistent changes (e.g., restore ball speed
- * for speedBall/slowBall effects).
+ * Undoes any persistent changes made on collection.
  */
-function onEffectExpired(state: GameState, effect: ActiveEffect, settings: GameSettings): void {
-	// TODO: Implement — see guide-powerups-behavior.md Step 2
+function onEffectExpired(state: GameState, effect: ActiveEffect, _settings: GameSettings): void {
+	// speedBall/slowBall: reverse the multiplier when the effect wears off
+	if (effect.type === 'speedBall' || effect.type === 'slowBall') {
+		const multiplier = effect.type === 'speedBall' ? 1.5 : 0.6;
+		state.currentBallSpeed /= multiplier;
+		const currentSpeed = Math.sqrt(state.ballVX ** 2 + state.ballVY ** 2);
+		if (currentSpeed > 0) {
+			const scale = state.currentBallSpeed / currentSpeed;
+			state.ballVX *= scale;
+			state.ballVY *= scale;
+		}
+	}
+	// All other effects (bigPaddle, smallPaddle, freeze, reverse, invisible, wall, magnet)
+	// work by checking activeEffects each frame — removing the entry is sufficient.
 }
 
 /**
@@ -153,12 +174,56 @@ export function getEffectivePaddleHeight(state: GameState, player: 'player1' | '
 	return height;
 }
 
+// Wall geometry — must match renderer.ts drawWallBarriers
+const WALL_WIDTH = 8;
+const WALL_HEIGHT = 100;
+
 /**
  * Called every frame for effects that need continuous application
- * (e.g., wall barrier collision, magnet attraction).
+ * (wall barrier collision, magnet attraction).
  */
 function applyContinuousEffects(state: GameState, dt: number): void {
-	// TODO: Implement — see guide-powerups-behavior.md Step 4
+	for (const effect of state.activeEffects) {
+		if (effect.type === 'wall') {
+			const wallX = effect.target === 'player1'
+				? PADDLE_OFFSET + PADDLE_WIDTH + 60
+				: CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - 68;
+			const wallY = CANVAS_HEIGHT / 2 - WALL_HEIGHT / 2;
+
+			// Check ball ↔ wall collision
+			if (
+				state.ballX + BALL_RADIUS >= wallX &&
+				state.ballX - BALL_RADIUS <= wallX + WALL_WIDTH &&
+				state.ballY + BALL_RADIUS >= wallY &&
+				state.ballY - BALL_RADIUS <= wallY + WALL_HEIGHT
+			) {
+				state.ballVX = -state.ballVX;
+				// Push ball out of wall to prevent sticking
+				if (state.ballVX > 0) {
+					state.ballX = wallX + WALL_WIDTH + BALL_RADIUS;
+				} else {
+					state.ballX = wallX - BALL_RADIUS;
+				}
+			}
+		}
+
+		if (effect.type === 'magnet') {
+			// Only attract when ball is moving toward the magnet owner's paddle
+			const approaching =
+				(effect.target === 'player1' && state.ballVX < 0) ||
+				(effect.target === 'player2' && state.ballVX > 0);
+
+			if (approaching) {
+				const paddleCenterY = effect.target === 'player1'
+					? state.paddle1Y + PADDLE_HEIGHT / 2
+					: state.paddle2Y + PADDLE_HEIGHT / 2;
+
+				const dy = paddleCenterY - state.ballY;
+				const ATTRACTION = 250; // px/s²
+				state.ballVY += Math.sign(dy) * ATTRACTION * dt;
+			}
+		}
+	}
 }
 
 /**
@@ -166,8 +231,7 @@ function applyContinuousEffects(state: GameState, dt: number): void {
  * Used in movePaddles() in gameEngine.ts.
  */
 export function isReversed(state: GameState, player: 'player1' | 'player2'): boolean {
-	// TODO: Implement — see guide-powerups-behavior.md Step 5
-	return false;
+	return state.activeEffects.some(e => e.type === 'reverseControls' && e.target === player);
 }
 
 /**
@@ -175,8 +239,7 @@ export function isReversed(state: GameState, player: 'player1' | 'player2'): boo
  * Used in movePaddles() in gameEngine.ts.
  */
 export function isFrozen(state: GameState, player: 'player1' | 'player2'): boolean {
-	// TODO: Implement — see guide-powerups-behavior.md Step 6
-	return false;
+	return state.activeEffects.some(e => e.type === 'freeze' && e.target === player);
 }
 
 /**
@@ -184,6 +247,5 @@ export function isFrozen(state: GameState, player: 'player1' | 'player2'): boole
  * Used in rendering only — the ball still exists in physics.
  */
 export function isInvisibleBallActive(state: GameState): boolean {
-	// TODO: Implement — see guide-powerups-behavior.md Step 7
-	return false;
+	return state.activeEffects.some(e => e.type === 'invisibleBall');
 }

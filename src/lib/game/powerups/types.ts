@@ -57,15 +57,14 @@ export const POWERUP_CONFIG: Partial<Record<PowerUpType, {
 }>> = {
 	bigPaddle:       { duration: 10, positive: true,  spawnWeight: 3 },
 	smallPaddle:     { duration: 10, positive: false, spawnWeight: 3 },
+	reverseControls: { duration: 8,  positive: false, spawnWeight: 1 },
+	freeze:          { duration: 3,  positive: false, spawnWeight: 1 },
+	invisibleBall:   { duration: 8,  positive: false, spawnWeight: 1 },
+	wall:            { duration: 10, positive: true,  spawnWeight: 1 },
+	magnet:          { duration: 8,  positive: true,  spawnWeight: 1 },
 
-	// ── NOT YET IMPLEMENTED — uncomment when behavior stubs are filled in ──
-	// speedBall:       { duration: 8,  positive: false, spawnWeight: 2 },
-	// slowBall:        { duration: 8,  positive: true,  spawnWeight: 2 },
-	// reverseControls: { duration: 8,  positive: false, spawnWeight: 1 },
-	// freeze:          { duration: 3,  positive: false, spawnWeight: 1 },
-	// invisibleBall:   { duration: 8,  positive: false, spawnWeight: 1 },
-	// wall:            { duration: 10, positive: true,  spawnWeight: 1 },
-	// magnet:          { duration: 8,  positive: true,  spawnWeight: 1 },
+	speedBall:       { duration: 8,  positive: false, spawnWeight: 2 },
+	slowBall:        { duration: 8,  positive: true,  spawnWeight: 2 },
 };
 
 // ── Spawn Constants ─────────────────────────────────────────

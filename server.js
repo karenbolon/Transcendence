@@ -1914,6 +1914,22 @@ io.on('connection', (socket) => {
 		io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
 	});
 
+	socket.on('tournament:cancel', async (data) => {
+		try {
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
+			if (!tournament || tournament.created_by !== userId || tournament.status !== 'scheduled') {
+				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
+				return;
+			}
+			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
+			io.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+		} catch (err) {
+			logger.error({ err }, '[Tournament] Cancel failed');
+			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });
+		}
+	});
+
 	socket.on('tournament:start', async (data) => {
 		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
 		if (!tournament || tournament.created_by !== userId) { socket.emit('tournament:error', { message: 'Only the creator can start' }); return; }

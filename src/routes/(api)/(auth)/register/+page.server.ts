@@ -1,10 +1,11 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, isRedirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 // import { lucia } from '$lib/server/auth/lucia';
 import { hashPassword } from '$lib/server/auth/password';
 import { validateRegistration } from '$lib/server/auth/validation';
 import { validateRegistrationUniqueness } from '$lib/server/auth/db_valid';
 import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
+import { generateOAuthState, buildOAuthAuthorizationUrl } from '$lib/server/auth/oauth';
 import { authLogger } from '$lib/server/logger';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	password: async ({ request, cookies }) => {
 		const formData = await request.formData();
 
 		const username = formData.get('username')?.toString().trim().toLowerCase() ?? '';
@@ -83,5 +84,27 @@ export const actions: Actions = {
 		}
 
 		redirect(302, '/');
+	},
+	github: async () => {
+		try {
+			const state = await generateOAuthState();
+			const authUrl = buildOAuthAuthorizationUrl('github', state);
+			redirect(302, authUrl);
+		} catch (err) {
+			if (isRedirect(err)) throw err;
+			console.error('GitHub OAuth error:', err);
+			return fail(500, { errorKey: 'errors.server_error', errors: {} as FormErrors });
+		}
+	},
+	oauth42: async () => {
+		try {
+			const state = await generateOAuthState();
+			const authUrl = buildOAuthAuthorizationUrl('42', state);
+			redirect(302, authUrl);
+		} catch (err) {
+			if (isRedirect(err)) throw err;
+			console.error('42 OAuth error:', err);
+			return fail(500, { errorKey: 'errors.server_error', errors: {} as FormErrors });
+		}
 	}
 };

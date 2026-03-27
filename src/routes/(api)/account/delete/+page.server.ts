@@ -32,6 +32,13 @@ export const actions: Actions = {
 		}
 
 		// ── VERIFY PASSWORD ────────────────────────────────────────
+		// OAuth-only users cannot delete via password
+		if (!user.password_hash) {
+			return fail(400, { 
+				errorKey: 'errors.oauth_only_account'
+			});
+		}
+
 		const valid = await verifyPassword(user.password_hash, password);
 		if (!valid) {
 			return fail(400, { 

@@ -57,6 +57,13 @@
       "when": 1775020800000,
       "tag": "0007_add_bracket_data",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775107200000,
+      "tag": "0008_add_tournament_columns",
+      "breakpoints": true
     }
   ]
 }

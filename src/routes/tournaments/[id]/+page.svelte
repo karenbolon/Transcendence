@@ -66,12 +66,9 @@
 	}
 
 	function handleCancel() {
-		console.log('[Cancel] clicked, tournament:', tournament.id);
 		const socket = getSocket();
-		console.log('[Cancel] socket connected:', socket?.connected);
 		if (!socket?.connected) { toast.error('Not connected'); return; }
 		socket.emit('tournament:cancel', { tournamentId: tournament.id });
-		console.log('[Cancel] emitted tournament:cancel');
 		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
 	}
 

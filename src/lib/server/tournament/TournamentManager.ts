@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
 import { users } from '$lib/server/db/schema';
-import { eq, and, inArray, count } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import { generateBracket, type BracketRound, type BracketPlayer } from './bracket';
 import { createRoom, getRoom, destroyRoom } from '../socket/game/RoomManager';
 import { getIO, userSockets } from '../socket/index';
@@ -128,7 +128,7 @@ export async function leaveTournament(tournamentId: number, userId: number): Pro
 		.where(eq(tournaments.id, tournamentId));
 	if (!tournament || tournament.status !== 'scheduled') return false;
 
-	const result = await db.delete(tournamentParticipants)
+	await db.delete(tournamentParticipants)
 		.where(and(
 			eq(tournamentParticipants.tournament_id, tournamentId),
 			eq(tournamentParticipants.user_id, userId),
@@ -230,49 +230,6 @@ async function startRoundMatches(tournamentId: number, round: number): Promise<v
 
 	for (const match of roundData.matches) {
 		if (match.status !== 'pending' || !match.player1Id || !match.player2Id) continue;
-
-		const p1IsBot = isBot(match.player1Id, tourney.playerMap);
-		const p2IsBot = isBot(match.player2Id, tourney.playerMap);
-
-		// Auto-resolve matches involving bots
-		if (p1IsBot || p2IsBot) {
-			let winnerId: number;
-			let loserId: number;
-			let winnerScore = tourney.settings.winScore;
-			let loserScore = Math.floor(Math.random() * (tourney.settings.winScore - 1));
-
-			if (p1IsBot && p2IsBot) {
-				// Both bots — random winner
-				if (Math.random() < 0.5) {
-					winnerId = match.player1Id;
-					loserId = match.player2Id;
-				} else {
-					winnerId = match.player2Id;
-					loserId = match.player1Id;
-				}
-			} else {
-				// Human vs bot — human always wins
-				winnerId = p1IsBot ? match.player2Id : match.player1Id;
-				loserId = p1IsBot ? match.player1Id : match.player2Id;
-			}
-
-			match.status = 'finished';
-			match.winnerId = winnerId;
-			if (match.player1Id === winnerId) {
-				match.player1Score = winnerScore;
-				match.player2Score = loserScore;
-			} else {
-				match.player1Score = loserScore;
-				match.player2Score = winnerScore;
-			}
-
-			// Small delay so bracket updates don't all fire at once
-			const capturedMatch = { ...match };
-			setTimeout(async () => {
-				await advanceWinner(tournamentId, round, capturedMatch.matchIndex, winnerId, loserId, winnerScore, loserScore);
-			}, 500 * match.matchIndex);
-			continue;
-		}
 
 		match.status = 'playing';
 
@@ -570,53 +527,3 @@ export function getActiveTournamentIds(): number[] {
 	return Array.from(activeTournaments.keys());
 }
 
-// ── Bot System (dev/testing only) ────────────────────────
-
-const BOT_NAMES = [
-	'Bolt', 'Nova', 'Echo', 'Zap', 'Pixel', 'Glitch', 'Spark', 'Drift',
-	'Blaze', 'Comet', 'Viper', 'Frost', 'Turbo', 'Neon', 'Prism',
-];
-
-/** Create or find bot users, then join them to fill the tournament */
-export async function fillWithBots(tournamentId: number): Promise<{ added: number; error?: string }> {
-	const [tournament] = await db.select().from(tournaments)
-		.where(eq(tournaments.id, tournamentId));
-	if (!tournament) return { added: 0, error: 'Tournament not found' };
-	if (tournament.status !== 'scheduled') return { added: 0, error: 'Tournament already started' };
-
-	const currentParticipants = await db.select().from(tournamentParticipants)
-		.where(eq(tournamentParticipants.tournament_id, tournamentId));
-	const spotsToFill = tournament.max_players - currentParticipants.length;
-	if (spotsToFill <= 0) return { added: 0, error: 'Tournament is already full' };
-
-	let added = 0;
-	for (let i = 0; i < spotsToFill; i++) {
-		const botName = `bot_${BOT_NAMES[i % BOT_NAMES.length]}${i >= BOT_NAMES.length ? i : ''}`;
-		// Find or create bot user
-		let [botUser] = await db.select().from(users)
-			.where(eq(users.username, botName));
-		if (!botUser) {
-			[botUser] = await db.insert(users).values({
-				username: botName,
-				name: BOT_NAMES[i % BOT_NAMES.length],
-				email: `${botName}@bot.local`,
-				password_hash: 'bot-no-login',
-				bio: 'Tournament bot',
-			}).returning();
-		}
-		await db.insert(tournamentParticipants).values({
-			tournament_id: tournamentId,
-			user_id: botUser.id,
-			seed: currentParticipants.length + added + 1,
-			status: 'registered',
-		}).onConflictDoNothing();
-		added++;
-	}
-	return { added };
-}
-
-/** Check if a user is a bot */
-export function isBot(userId: number, playerMap: Map<number, string>): boolean {
-	const username = playerMap.get(userId);
-	return username?.startsWith('bot_') ?? false;
-}

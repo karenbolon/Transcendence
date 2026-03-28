@@ -1,16 +1,14 @@
 <script lang="ts">
+	import { onEscape } from '$lib/utils/keyboard';
+
 	type Props = {
 		onClose: () => void;
 	};
 
 	let { onClose }: Props = $props();
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onClose();
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={onEscape(onClose)} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->

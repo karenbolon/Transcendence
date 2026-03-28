@@ -49,15 +49,19 @@
 	<!-- Result header -->
 	<div
 		class="result-label"
-		class:win={gameOverData.winner === 'player1' || gameMode === 'local'}
-		class:loss={gameOverData.winner !== 'player1' && gameMode !== 'local'}
+		class:win={gameOverData.winner === 'player1' || gameMode === 'local' || gameMode === 'tournament'}
+		class:loss={gameOverData.winner !== 'player1' && gameMode !== 'local' && gameMode !== 'tournament'}
 	>
-		{gameMode === 'local' ? 'GAME OVER' : gameOverData.winner === 'player1' ? 'VICTORY' : 'DEFEAT'}
+		{gameMode === 'local' ? 'GAME OVER' : gameMode === 'tournament' ? 'TOURNAMENT MATCH' : gameOverData.winner === 'player1' ? 'VICTORY' : 'DEFEAT'}
 	</div>
 	<h1 class="result-text">
-		{gameMode === 'local'
-			? `${gameOverData.winner === 'player1' ? (gameOverData.player1.displayName ?? gameOverData.player1.username) : (gameOverData.player2.displayName ?? gameOverData.player2.username)} Wins!`
-			: gameOverData.winner === 'player1' ? 'You Won!' : 'Better luck next time!'}
+		{#if gameMode === 'local'}
+			{gameOverData.winner === 'player1' ? (gameOverData.player1.displayName ?? gameOverData.player1.username) : (gameOverData.player2.displayName ?? gameOverData.player2.username)} Wins!
+		{:else if gameMode === 'tournament'}
+			{gameOverData.winner === 'player1' ? 'You advance!' : 'You have been eliminated'}
+		{:else}
+			{gameOverData.winner === 'player1' ? 'You Won!' : 'Better luck next time!'}
+		{/if}
 	</h1>
 
 	<!-- VS Layout -->
@@ -115,7 +119,7 @@
 	{#if gameOverData.newBadges.length > 0}
 		<div class="badges">
 			{#each gameOverData.newBadges as badge, i}
-				<div class="badge" style="animation-delay: {i * 0.15}s">
+				<div class="badge" style="animation-delay: {0.8 + i * 0.1}s">
 					<span class="badge-emoji">{badge.emoji}</span>
 					<span class="badge-name">{badge.name}</span>
 				</div>
@@ -125,12 +129,18 @@
 
 	<!-- Actions -->
 	<div class="actions">
-		<button class="btn btn-rematch" onclick={handleRematch}>
-			🔄 Rematch
-		</button>
-		<button class="btn btn-menu" onclick={handleBackToMenu}>
-			← Go back
-		</button>
+		{#if gameMode === 'tournament'}
+			<button class="btn btn-rematch" onclick={handleRematch}>
+				🏆 Back to Tournament
+			</button>
+		{:else}
+			<button class="btn btn-rematch" onclick={handleRematch}>
+				🔄 Rematch
+			</button>
+			<button class="btn btn-menu" onclick={handleBackToMenu}>
+				← Go back
+			</button>
+		{/if}
 	</div>
 </div>
 
@@ -140,7 +150,7 @@
 	   RESULT PAGE
 	   ═════════════════════════════════════════════════ */
 	.result-page {
-		max-width: 600px;
+		max-width: 700px;
 		margin: 0 auto;
 		padding: 9rem 3.5rem;
 		display: flex;

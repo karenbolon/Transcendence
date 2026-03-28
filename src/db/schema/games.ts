@@ -1,4 +1,5 @@
 import { pgTable, serial, varchar, integer, timestamp, index, check } from 'drizzle-orm/pg-core';
+import { tournaments } from './tournaments';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
 
@@ -23,7 +24,10 @@ export const games = pgTable('games', {
 	finished_at: timestamp('finished_at'),
 	created_at: timestamp('created_at').notNull().defaultNow(),
 	updated_at: timestamp('updated_at').notNull().defaultNow(),
-	version: integer('version').notNull().default(1)
+	version: integer('version').notNull().default(1),
+	tournament_id: integer('tournament_id').references(() => tournaments.id, { onDelete: 'set null' }),
+	tournament_round: integer('tournament_round'),
+	tournament_match_index: integer('tournament_match_index'),
 }, (table) => ({
 	// MANDATORY VALIDATION: A player cannot play against themselves
 	notSelfPlay: check('not_self_play', sql`${table.player1_id} <> ${table.player2_id}`),

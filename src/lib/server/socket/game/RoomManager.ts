@@ -1,9 +1,10 @@
 import { GameRoom } from './GameRoom';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
 import { db } from '$lib/server/db';
-import { games, users, messages } from '$lib/server/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { games, users, messages, tournamentParticipants } from '$lib/server/db/schema';
+import { eq, sql, and } from 'drizzle-orm';
 import { processMatchProgression } from '$lib/server/progression';
+import { advanceWinner } from '$lib/server/tournament/TournamentManager';
 import { getIO, userSockets } from '../index';
 
 // ── Active Room Storage ───────────────────────────────────────
@@ -60,8 +61,15 @@ export function destroyRoom(roomId: string): void {
 	const room = activeRooms.get(roomId);
 	if (!room) return;
 	room.destroy();
-	playerRoomMap.delete(room.player1.userId);
-	playerRoomMap.delete(room.player2.userId);
+	// Only delete playerRoomMap entries if they still point to THIS room.
+	// In tournaments, advanceWinner → createRoom may have already reassigned
+	// the winner to a new room — we must not delete that new mapping.
+	if (playerRoomMap.get(room.player1.userId) === roomId) {
+		playerRoomMap.delete(room.player1.userId);
+	}
+	if (playerRoomMap.get(room.player2.userId) === roomId) {
+		playerRoomMap.delete(room.player2.userId);
+	}
 	activeRooms.delete(roomId);
 }
 
@@ -99,6 +107,12 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				duration_seconds: result.durationSeconds,
 				started_at: startedAt,
 				finished_at: finishedAt,
+				tournament_id: result.roomId.startsWith('tournament-')
+					? Number(result.roomId.split('-')[1]) : null,
+				tournament_round: result.roomId.startsWith('tournament-')
+					? Number(result.roomId.split('-')[2].replace('r', '')) : null,
+				tournament_match_index: result.roomId.startsWith('tournament-')
+					? Number(result.roomId.split('-')[3].replace('m', '')) : null,
 			}).returning({ id: games.id });
 
 			// 2. Update player 1 stats (games_played, wins, losses)
@@ -162,6 +176,34 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 					}
 				}
 			}
+
+			// Check if this was a tournament match
+			if (result.roomId.startsWith('tournament-')) {
+				const parts = result.roomId.split('-');
+				// Format: tournament-{id}-r{round}-m{matchIndex}
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2].replace('r', ''));
+				const matchIndex = Number(parts[3].replace('m', ''));
+
+				// Accumulate XP earned in this tournament for both players
+				for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]] as const) {
+					if (progression.xpEarned > 0) {
+						await tx.update(tournamentParticipants).set({
+							xp_earned: sql`${tournamentParticipants.xp_earned} + ${progression.xpEarned}`,
+						}).where(and(
+							eq(tournamentParticipants.tournament_id, tournamentId),
+							eq(tournamentParticipants.user_id, uid),
+						));
+					}
+				}
+
+				const winnerScore = result.player1.userId === result.winnerId
+				? result.player1.score : result.player2.score;
+			const loserScore = result.player1.userId === result.loserId
+				? result.player1.score : result.player2.score;
+			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
+			}
+
 			await tx.insert(messages).values({
 				sender_id: result.player1.userId,
 				recipient_id: result.player2.userId,

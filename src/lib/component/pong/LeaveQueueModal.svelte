@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
+
 	type Props = {
 		onLeave: () => void;
 		onStay: () => void;
@@ -7,7 +10,7 @@
 	let { onLeave, onStay }: Props = $props();
 </script>
 
-<div class="modal-backdrop" role="dialog" aria-modal="true">
+<Modal open={true} onclose={onStay} zIndex={100}>
 	<div class="modal">
 		<div class="modal-header">
 			<span class="warn-icon">⚠️</span>
@@ -23,19 +26,9 @@
 			<button class="btn-leave" onclick={onLeave}>Leave</button>
 		</div>
 	</div>
-</div>
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-	}
-
 	.modal {
 		background: #1a1a2e;
 		border: 1px solid rgba(255, 107, 157, 0.2);
@@ -47,12 +40,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1rem;
-		animation: modal-in 0.2s ease-out;
-	}
-
-	@keyframes modal-in {
-		from { transform: scale(0.95); opacity: 0; }
-		to { transform: scale(1); opacity: 1; }
+		animation: modal-scale-in 0.2s ease-out;
 	}
 
 	.modal-header {

@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { invalidateAll, goto } from '$app/navigation';
+	import { invalidateAll } from '$app/navigation';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import FriendCard from '$lib/component/friends/FriendCard.svelte';
 	import { FRIENDTABS, filterByQuery } from '$lib/utils/format_friends';
 	import type { FriendItem, SearchResult } from '$lib/types/friends';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import { setWaiting } from '$lib/stores/matchmaking.svelte';
+	import { sendChallenge } from '$lib/utils/challenge';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 	import { openChat } from '$lib/stores/chat.svelte';
+	import { friendAction as doFriendAction } from '$lib/utils/friends';
 
 	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
 
@@ -17,27 +19,15 @@
 		challengeTarget = { id: friendId, username, name, avatar_url: avatarUrl };
 	}
 
-	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
+	function onChallengeSend(settings: { speedPreset: string; winScore: number }) {
 		if (!challengeTarget || !data.user) return;
-		const socket = getSocket();
-		if (!socket?.connected) {
-			toast.error('Not connected to server');
-			return;
-		}
-		socket.emit('game:invite', {
-			friendId: challengeTarget.id,
+		sendChallenge(
+			challengeTarget.id,
+			{ username: data.user.username, avatarUrl: data.user.avatar_url, displayName: data.user.name },
+			{ username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
 			settings,
-		});
-
-		// Set waiting store and navigate to waiting room
-		setWaiting({
-			you: { username: data.user.username, avatarUrl: data.user.avatar_url, displayName: data.user.name },
-			opponent: { username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
-			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
-			totalTime: 30,
-		});
+		);
 		challengeTarget = null;
-		goto('/play/online/waiting');
 	}
 
 
@@ -78,11 +68,6 @@
 		return `${count} result${count !== 1 ? 's' : ''} for "${query}"`;
 	}
 
-	// Toast helper
-	function showToast(message: string, success = true) {
-		success ? toast.success(message) : toast.error(message);
-	}
-
 	// API search helper (used by input handler and tab switch)
 	async function triggerSearch(query: string) {
 		searching = true;
@@ -121,32 +106,17 @@
 		searchResults = [];
 	}
 
-	// Generic friendship action
-	async function friendAction(endpoint: string, friendId: number, successMsg: string) {
-		loading = `${endpoint}-${friendId}`;
-		try {
-			const res = await fetch(`/api/friends/${endpoint}`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ friendId }),
-			});
-			if (res.ok) {
-				showToast(successMsg);
-				await invalidateAll();
-				if (activeTab === 'find' && searchQuery.trim().length >= 2) {
-					const searchRes = await fetch(`/api/friends/search?q=${encodeURIComponent(searchQuery.trim())}`);
-					const searchJson = await searchRes.json();
-					searchResults = searchJson.results ?? [];
-				}
-			} else {
-				const err = await res.json();
-				showToast(err.error || 'Something went wrong');
-			}
-		} catch {
-			showToast('Network error');
-		} finally {
-			loading = '';
+	// Generic friendship action — delegates fetch/toast/invalidate to util,
+	// keeps loading state and Find-tab search refresh here.
+	async function handleFriendAction(action: string, friendId: number) {
+		loading = `${action}-${friendId}`;
+		const ok = await doFriendAction(action as any, friendId);
+		if (ok && activeTab === 'find' && searchQuery.trim().length >= 2) {
+			const searchRes = await fetch(`/api/friends/search?q=${encodeURIComponent(searchQuery.trim())}`);
+			const searchJson = await searchRes.json();
+			searchResults = searchJson.results ?? [];
 		}
+		loading = '';
 	}
 
 	// Socket listeners — refresh friends data in real-time
@@ -291,10 +261,9 @@
 											<button
 												class="btn btn-add"
 												disabled={loading === `request-${user.id}`}
-												onclick={() => friendAction('request', user.id, 'Friend request sent')}
+												onclick={() => handleFriendAction('request', user.id)}
 											>Add Friend</button>
 										{/if}
-										<!-- <button class="btn btn-challenge" onclick={() => openChallenge(user.id, user.username, user.name, user.avatar_url)}><span class="btn-icon">👾</span> Challenge</button> -->
 									</div>
 								</div>
 							{/each}
@@ -330,29 +299,19 @@
 						</div>
 						<div class="friend-list">
 							{#each onlineFriends as item}
-								<div class="friend-card">
-									<a href="/friends/{item.id}" class="friend-info">
-										<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
-										<div class="friend-details">
-											<span class="friend-name">{item.name ?? item.username}</span>
-											<span class="card-handle">@{item.username.toLowerCase()}</span>
-										</div>
-									</a>
-									<div class="friend-actions">
-										<button class="btn btn-challenge" onclick={() => openChallenge(item.id, item.username, item.name, item.avatar_url)}><span class="btn-icon">👾</span> Challenge</button>
-										<button class="btn btn-message" onclick={() => openChat(item.id)}><span class="btn-icon">✉️</span> Message</button>
-										<button
-											class="btn btn-block"
-											disabled={loading === `block-${item.id}`}
-											onclick={() => friendAction('block', item.id, 'User blocked')}
-										><span class="btn-icon">🚫</span> Block</button>
-										<button
-											class="btn btn-unfriend"
-											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										>Unfriend</button>
-									</div>
-								</div>
+								<FriendCard
+									id={item.id}
+									username={item.username}
+									displayName={item.name}
+									avatarUrl={item.avatar_url}
+									loading={loading === `challenge-${item.id}` ? 'challenge' : loading === `block-${item.id}` ? 'block' : loading === `remove-${item.id}` ? 'remove' : ''}
+									actions={[
+										{ label: 'Challenge', icon: '👾', variant: 'challenge', onclick: () => openChallenge(item.id, item.username, item.name, item.avatar_url) },
+										{ label: 'Message', icon: '✉️', variant: 'message', onclick: () => openChat(item.id) },
+										{ label: 'Block', icon: '🚫', variant: 'block', onclick: () => handleFriendAction('block', item.id) },
+										{ label: 'Unfriend', icon: '', variant: 'remove', onclick: () => handleFriendAction('remove', item.id) },
+									]}
+								/>
 							{/each}
 						</div>
 					{/if}
@@ -365,28 +324,18 @@
 						</div>
 						<div class="friend-list">
 							{#each offlineFriends as item}
-								<div class="friend-card">
-									<a href="/friends/{item.id}" class="friend-info">
-										<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
-										<div class="friend-details">
-											<span class="friend-name">{item.name ?? item.username}</span>
-											<span class="card-handle">@{item.username.toLowerCase()}</span>
-										</div>
-									</a>
-									<div class="friend-actions">
-										<button class="btn btn-message" onclick={() => openChat(item.id)}><span class="btn-icon">✉️</span> Message</button>
-										<button
-											class="btn btn-block"
-											disabled={loading === `block-${item.id}`}
-											onclick={() => friendAction('block', item.id, 'User blocked')}
-										><span class="btn-icon">🚫</span> Block</button>
-										<button
-											class="btn btn-unfriend"
-											disabled={loading === `remove-${item.id}`}
-											onclick={() => friendAction('remove', item.id, 'Friend removed')}
-										>Unfriend</button>
-									</div>
-								</div>
+								<FriendCard
+									id={item.id}
+									username={item.username}
+									displayName={item.name}
+									avatarUrl={item.avatar_url}
+									loading={loading === `block-${item.id}` ? 'block' : loading === `remove-${item.id}` ? 'remove' : ''}
+									actions={[
+										{ label: 'Message', icon: '✉️', variant: 'message', onclick: () => openChat(item.id) },
+										{ label: 'Block', icon: '🚫', variant: 'block', onclick: () => handleFriendAction('block', item.id) },
+										{ label: 'Unfriend', icon: '', variant: 'remove', onclick: () => handleFriendAction('remove', item.id) },
+									]}
+								/>
 							{/each}
 						</div>
 					{/if}
@@ -407,27 +356,17 @@
 				{:else}
 					<div class="friend-list">
 						{#each currentItems as item}
-							<div class="friend-card">
-								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
-									<div class="friend-details">
-										<span class="friend-name">{item.name ?? item.username}</span>
-										<span class="card-handle">@{item.username.toLowerCase()}</span>
-									</div>
-								</a>
-								<div class="friend-actions">
-									<button
-										class="btn btn-accept"
-										disabled={loading === `accept-${item.id}`}
-										onclick={() => friendAction('accept', item.id, 'Friend added!')}
-									>Accept</button>
-									<button
-										class="btn btn-decline"
-										disabled={loading === `decline-${item.id}`}
-										onclick={() => friendAction('decline', item.id, 'Request declined')}
-									>Decline</button>
-								</div>
-							</div>
+							<FriendCard
+								id={item.id}
+								username={item.username}
+								displayName={item.name}
+								avatarUrl={item.avatar_url}
+								loading={loading === `accept-${item.id}` ? 'accept' : loading === `decline-${item.id}` ? 'decline' : ''}
+								actions={[
+									{ label: 'Accept', icon: '', variant: 'accept', onclick: () => handleFriendAction('accept', item.id) },
+									{ label: 'Decline', icon: '', variant: 'decline', onclick: () => handleFriendAction('decline', item.id) },
+								]}
+							/>
 						{/each}
 					</div>
 				{/if}
@@ -447,22 +386,16 @@
 				{:else}
 					<div class="friend-list">
 						{#each currentItems as item}
-							<div class="friend-card">
-								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
-									<div class="friend-details">
-										<span class="friend-name">{item.name ?? item.username}</span>
-										<span class="card-handle">@{item.username.toLowerCase()}</span>
-									</div>
-								</a>
-								<div class="friend-actions">
-									<button
-										class="btn btn-cancel"
-										disabled={loading === `cancel-${item.id}`}
-										onclick={() => friendAction('cancel', item.id, 'Request cancelled')}
-									>Cancel</button>
-								</div>
-							</div>
+							<FriendCard
+								id={item.id}
+								username={item.username}
+								displayName={item.name}
+								avatarUrl={item.avatar_url}
+								loading={loading === `cancel-${item.id}` ? 'cancel' : ''}
+								actions={[
+									{ label: 'Cancel', icon: '', variant: 'cancel', onclick: () => handleFriendAction('cancel', item.id) },
+								]}
+							/>
 						{/each}
 					</div>
 				{/if}
@@ -482,22 +415,16 @@
 				{:else}
 					<div class="friend-list">
 						{#each currentItems as item}
-							<div class="friend-card">
-								<a href="/friends/{item.id}" class="friend-info">
-									<UserAvatar avatarUrl={item.avatar_url} username={item.username} displayName={item.name} size="md" />
-									<div class="friend-details">
-										<span class="friend-name">{item.name ?? item.username}</span>
-										<span class="card-handle">@{item.username.toLowerCase()}</span>
-									</div>
-								</a>
-								<div class="friend-actions">
-									<button
-										class="btn btn-unblock"
-										disabled={loading === `unblock-${item.id}`}
-										onclick={() => friendAction('unblock', item.id, 'User unblocked')}
-									>Unblock</button>
-								</div>
-							</div>
+							<FriendCard
+								id={item.id}
+								username={item.username}
+								displayName={item.name}
+								avatarUrl={item.avatar_url}
+								loading={loading === `unblock-${item.id}` ? 'unblock' : ''}
+								actions={[
+									{ label: 'Unblock', icon: '', variant: 'unblock', onclick: () => handleFriendAction('unblock', item.id) },
+								]}
+							/>
 						{/each}
 					</div>
 				{/if}
@@ -509,7 +436,7 @@
 {#if challengeTarget}
 	<ChallengePicker
 		targetName={{ username: challengeTarget.username, displayName: challengeTarget.name, avatarUrl: challengeTarget.avatar_url }}
-		onSend={sendChallenge}
+		onSend={onChallengeSend}
 		onCancel={() => challengeTarget = null}
 	/>
 {/if}
@@ -779,13 +706,14 @@
 		color: #6b7280;
 	}
 
-/* ===== Friend list & cards ===== */
+/* ===== Friend list ===== */
 	.friend-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
 	}
 
+/* ===== Find tab inline card (kept for relationship badge support) ===== */
 	.friend-card {
 		display: flex;
 		align-items: center;
@@ -868,7 +796,7 @@
 		border: 1px solid rgba(239, 68, 68, 0.25);
 	}
 
-/* ===== Action buttons ===== */
+/* ===== Find tab action buttons ===== */
 	.friend-actions {
 		display: flex;
 		gap: 0.4rem;
@@ -905,62 +833,9 @@
 		filter: none;
 	}
 
-	.btn-icon {
-		font-size: 0.9rem;
-		line-height: 1;
-	}
-
 	.btn-add {
 		background: var(--accent, #ff6b9d);
 		color: #fff;
-	}
-
-	.btn-accept {
-		background: rgba(34, 197, 94, 0.2);
-		color: #22c55e;
-		border-color: rgba(34, 197, 94, 0.3);
-	}
-
-	.btn-decline {
-		background: rgba(239, 68, 68, 0.12);
-		color: #ef4444;
-		border-color: rgba(239, 68, 68, 0.2);
-	}
-
-	.btn-cancel {
-		background: rgba(234, 179, 8, 0.12);
-		color: #eab308;
-		border-color: rgba(234, 179, 8, 0.2);
-	}
-
-	.btn-unblock {
-		background: rgba(99, 102, 241, 0.12);
-		color: #818cf8;
-		border-color: rgba(99, 102, 241, 0.2);
-	}
-
-	.btn-challenge {
-		background: rgba(255, 107, 157, 0.12);
-		color: #ff6b9d;
-		border-color: rgba(255, 107, 157, 0.2);
-	}
-
-	.btn-message {
-		background: rgba(102, 166, 255, 0.12);
-		color: #66a6ff;
-		border-color: rgba(102, 166, 255, 0.2);
-	}
-
-	.btn-unfriend {
-		background: rgba(156, 163, 175, 0.12);
-		color: #9ca3af;
-		border-color: rgba(156, 163, 175, 0.2);
-	}
-
-	.btn-block {
-		background: rgba(239, 68, 68, 0.12);
-		color: #ef4444;
-		border-color: rgba(239, 68, 68, 0.2);
 	}
 
 /* ===== Responsive ===== */

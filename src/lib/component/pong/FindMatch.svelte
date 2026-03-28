@@ -1,24 +1,8 @@
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     🌐 ONLINE PLAY PANEL — src/lib/component/pong/FindMatch.svelte
-
-     Replaces the settings panel when "Online" mode is selected.
-
-     Sections:
-       1. Quick Play — Random / My Prefs / Custom → "Find Match"
-       2. Friends looking to play — Accept (in queue) or Challenge (online)
-       3. Open queue — strangers waiting, Join button
-
-     Props:
-       friends       — online friends list
-       queuePlayers  — strangers in the public queue
-       userPrefs     — logged-in user's default settings
-       onFindMatch   — callback with selected settings
-       onAcceptMatch — callback when accepting a friend's/stranger's game
-       onChallenge   — callback when challenging an online friend (not in queue)
-═══════════════════════════════════════════════════════════════════════════ -->
 <script lang="ts">
 	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
 	import MatchmakingInfo from '$lib/component/pong/MatchmakingInfo.svelte';
+	import { speedEmoji } from '$lib/utils/format_game';
+	import { capitalize } from '$lib/utils/format_progression';
 
 	let showInfo = $state(false);
 
@@ -77,20 +61,6 @@
 			const s = getActiveSettings();
 			onFindMatch({ mode: quickMode, speedPreset: s.speedPreset, winScore: s.winScore });
 		}
-	}
-
-	// Helpers
-	function speedEmoji(preset: string): string {
-		switch (preset) {
-			case 'chill': return '🐢';
-			case 'normal': return '🏓';
-			case 'fast': return '🔥';
-			default: return '🏓';
-		}
-	}
-
-	function capitalize(s: string): string {
-		return s.charAt(0).toUpperCase() + s.slice(1);
 	}
 
 	const speedOptions: { value: SpeedPreset; emoji: string; label: string }[] = [

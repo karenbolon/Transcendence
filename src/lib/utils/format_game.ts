@@ -22,7 +22,7 @@ export function speedEmoji(preset: string): string {
 		case 'chill': return '🐢';
 		case 'normal': return '🏓';
 		case 'fast': return '🔥';
-		default: return '';
+		default: return '🏓';
 	}
 };
 

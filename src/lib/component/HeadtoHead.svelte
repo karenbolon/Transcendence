@@ -2,6 +2,8 @@
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import { formatDate } from '$lib/utils/format_date';
 	import { speedEmoji } from '$lib/utils/format_game';
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 
 	type H2hMatch = {
 		id: number;
@@ -45,130 +47,109 @@
 	let yourWinPct = $derived(total > 0 ? Math.round((yourWins / total) * 100) : 50);
 	let theirWinPct = $derived(total > 0 ? 100 - yourWinPct : 50);
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if open}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<Modal {open} {onclose}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-backdrop" onclick={onclose}>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="modal" onclick={(e) => e.stopPropagation()}>
+	<div class="modal" onclick={(e) => e.stopPropagation()}>
 
-			<!-- Header -->
-			<div class="modal-header">
-				<h2 class="modal-title">Head to Head</h2>
-				<span class="games-badge">{total} Games{total !== 1 ? 's' : ''}</span>
-			</div>
-
-			<!-- Avatars + Score -->
-			<div class="versus">
-				<div class="player you-side">
-					<div class="player-avatar">
-						<UserAvatar username={you.username} displayName={you.name} avatarUrl={you.avatarUrl} size="xl" />
-					</div>
-					<span class="player-name">You</span>
-				</div>
-
-				<div class="score-center">
-					<span class="win-count you-wins">{yourWins}</span>
-					<div class="h2h-divider">
-						<div class="h2h-dash"></div>
-						<span class="h2h-vs">vs</span>
-						<div class="h2h-dash"></div>
-					</div>
-					<span class="win-count them-wins">{theirWins}</span>
-				</div>
-
-				<div class="player them-side">
-					<div class="player-avatar">
-						<UserAvatar username={them.username} displayName={them.name} avatarUrl={them.avatarUrl} size="xl" />
-					</div>
-					<span class="player-name">{them.name}</span>
-				</div>
-			</div>
-
-			<!-- Win percentage bar -->
-			<div class="win-bar-section">
-				<div class="h2h-bar-header">
-					<span class="win-pct">{yourWinPct}% wins</span>
-					<span class="win-pct">{theirWinPct}% wins</span>
-				</div>
-				<div class="win-bar">
-					<div class="you-fill" style="width: {yourWinPct}%"></div>
-					<div class="them-fill" style="width: {theirWinPct}%"></div>
-				</div>
-			</div>
-
-			<!-- Stats row -->
-			<div class="stats-row">
-				<div class="stat">
-					<span class="stat-value">{total}</span>
-					<span class="stat-label">Total</span>
-				</div>
-				<div class="stat">
-					<span class="stat-value">{avgScore}</span>
-					<span class="stat-label">Avg Score</span>
-				</div>
-				<div class="stat">
-					<span class="stat-value">{bestWin}</span>
-					<span class="stat-label">Best Win</span>
-				</div>
-				<div class="stat">
-					<span class="stat-value">{lastPlayed ? formatDate(lastPlayed) : '—'}</span>
-					<span class="stat-label">Last Played</span>
-				</div>
-			</div>
-
-			<!-- Recent matches -->
-			{#if recentMatches.length > 0}
-				<div class="recent-section">
-					<span class="recent-title">Recent matches</span>
-					<div class="recent-list">
-						{#each recentMatches as match (match.id)}
-							<div class="recent-row" class:won={match.won} class:lost={!match.won}>
-								<span class="recent-result">{match.won ? 'W' : 'L'}</span>
-								<span class="recent-score">
-									{match.yourScore}-{match.theirScore}
-								</span>
-								<span class="recent-speed">{speedEmoji(match.speedPreset)}</span>
-								<span class="recent-time">{formatDate(match.playedAt)}</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Actions -->
-			<div class="modal-actions">
-				<button class="action-btn challenge-btn" onclick={() => { onclose(); onChallenge?.(); }}>🎮 Challenge Again</button>
-				<button class="action-btn view-btn" onclick={onclose}>Close</button>
-			</div>
-
+		<!-- Header -->
+		<div class="modal-header">
+			<h2 class="modal-title">Head to Head</h2>
+			<span class="games-badge">{total} Games{total !== 1 ? 's' : ''}</span>
 		</div>
+
+		<!-- Avatars + Score -->
+		<div class="versus">
+			<div class="player you-side">
+				<div class="player-avatar">
+					<UserAvatar username={you.username} displayName={you.name} avatarUrl={you.avatarUrl} size="xl" />
+				</div>
+				<span class="player-name">You</span>
+			</div>
+
+			<div class="score-center">
+				<span class="win-count you-wins">{yourWins}</span>
+				<div class="h2h-divider">
+					<div class="h2h-dash"></div>
+					<span class="h2h-vs">vs</span>
+					<div class="h2h-dash"></div>
+				</div>
+				<span class="win-count them-wins">{theirWins}</span>
+			</div>
+
+			<div class="player them-side">
+				<div class="player-avatar">
+					<UserAvatar username={them.username} displayName={them.name} avatarUrl={them.avatarUrl} size="xl" />
+				</div>
+				<span class="player-name">{them.name}</span>
+			</div>
+		</div>
+
+		<!-- Win percentage bar -->
+		<div class="win-bar-section">
+			<div class="h2h-bar-header">
+				<span class="win-pct">{yourWinPct}% wins</span>
+				<span class="win-pct">{theirWinPct}% wins</span>
+			</div>
+			<div class="win-bar">
+				<div class="you-fill" style="width: {yourWinPct}%"></div>
+				<div class="them-fill" style="width: {theirWinPct}%"></div>
+			</div>
+		</div>
+
+		<!-- Stats row -->
+		<div class="stats-row">
+			<div class="stat">
+				<span class="stat-value">{total}</span>
+				<span class="stat-label">Total</span>
+			</div>
+			<div class="stat">
+				<span class="stat-value">{avgScore}</span>
+				<span class="stat-label">Avg Score</span>
+			</div>
+			<div class="stat">
+				<span class="stat-value">{bestWin}</span>
+				<span class="stat-label">Best Win</span>
+			</div>
+			<div class="stat">
+				<span class="stat-value">{lastPlayed ? formatDate(lastPlayed) : '—'}</span>
+				<span class="stat-label">Last Played</span>
+			</div>
+		</div>
+
+		<!-- Recent matches -->
+		{#if recentMatches.length > 0}
+			<div class="recent-section">
+				<span class="recent-title">Recent matches</span>
+				<div class="recent-list">
+					{#each recentMatches as match (match.id)}
+						<div class="recent-row" class:won={match.won} class:lost={!match.won}>
+							<span class="recent-result">{match.won ? 'W' : 'L'}</span>
+							<span class="recent-score">
+								{match.yourScore}-{match.theirScore}
+							</span>
+							<span class="recent-speed">{speedEmoji(match.speedPreset)}</span>
+							<span class="recent-time">{formatDate(match.playedAt)}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Actions -->
+		<div class="modal-actions">
+			<button class="action-btn challenge-btn" onclick={() => { onclose(); onChallenge?.(); }}>🎮 Challenge Again</button>
+			<button class="action-btn view-btn" onclick={onclose}>Close</button>
+		</div>
+
 	</div>
-{/if}
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(10, 10, 26, 0.75);
-		backdrop-filter: blur(6px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		animation: fade-in 0.15s ease-out;
-	}
-
-	@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
 	.modal {
 		width: 100%;
 		max-width: 620px;

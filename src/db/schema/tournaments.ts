@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, timestamp, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, text, timestamp, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const tournaments = pgTable('tournaments', {
@@ -12,11 +12,14 @@ export const tournaments = pgTable('tournaments', {
 		.references(() => users.id, { onDelete: 'restrict' }),
 	winner_id: integer('winner_id').references(() => users.id, { onDelete: 'set null' }),
 	max_players: integer('max_players').notNull().default(4),
+	speed_preset: varchar('speed_preset', { length: 20 }).notNull().default('normal'),
+	win_score: integer('win_score').notNull().default(5),
 	current_round: integer('current_round').default(0),
 	started_at: timestamp('started_at'),
 	finished_at: timestamp('finished_at'),
 	created_at: timestamp('created_at').notNull().defaultNow(),
 	updated_at: timestamp('updated_at').notNull().defaultNow(),
+	bracket_data: jsonb('bracket_data'),
 	version: integer('version').notNull().default(1)
 }, (t) => ({
 	tourneyStatusIndex: index('tourney_status_idx').on(t.status),
@@ -33,6 +36,7 @@ export const tournamentParticipants = pgTable('tournament_participants', {
 	seed: integer('seed'),
 	placement: integer('placement'),
 	status: varchar('status', { length: 20 }).notNull().default('registered'), // registered, eliminated, winner
+	xp_earned: integer('xp_earned').notNull().default(0),
 	joined_at: timestamp('joined_at').notNull().defaultNow(),
 }, (t) => ({
 	// Prevent duplicate registrations

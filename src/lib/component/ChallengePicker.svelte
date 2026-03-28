@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { speedEmoji } from '$lib/utils/format_game';
+	import { onEscape } from '$lib/utils/keyboard';
 	import UserAvatar from './UserAvatar.svelte';
 
 	type SpeedOption = 'chill' | 'normal' | 'fast';
@@ -32,12 +33,9 @@
 		onSend({ speedPreset, winScore });
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onCancel();
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={onEscape(onCancel)} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->

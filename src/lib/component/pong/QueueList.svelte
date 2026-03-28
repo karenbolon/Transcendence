@@ -1,5 +1,7 @@
 <script lang="ts">
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import { speedEmoji } from '$lib/utils/format_game';
+	import { capitalize } from '$lib/utils/format_progression';
 
 	type QueuePlayer = {
 		id: number;
@@ -22,18 +24,6 @@
 		onAcceptMatch,
 	}: Props = $props();
 
-	function speedEmoji(preset: string): string {
-		switch (preset) {
-			case 'chill': return '🐢';
-			case 'normal': return '🏓';
-			case 'fast': return '🔥';
-			default: return '🏓';
-		}
-	}
-
-	function capitalize(s: string): string {
-		return s.charAt(0).toUpperCase() + s.slice(1);
-	}
 </script>
 
 <div class="list-panel">

@@ -1,4 +1,9 @@
 <script lang="ts">
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
+	import { speedEmoji } from '$lib/utils/format_game';
+	import { capitalize } from '$lib/utils/format_progression';
+
 	type Props = {
 		opponent: { username: string; avatarUrl: string | null };
 		settings: { speedPreset: string; winScore: number };
@@ -7,22 +12,9 @@
 	};
 
 	let { opponent, settings, onAccept, onDecline }: Props = $props();
-
-	function speedEmoji(preset: string): string {
-		switch (preset) {
-			case 'chill': return '🐢';
-			case 'normal': return '🏓';
-			case 'fast': return '🔥';
-			default: return '🎲';
-		}
-	}
-
-	function capitalize(s: string): string {
-		return s.charAt(0).toUpperCase() + s.slice(1);
-	}
 </script>
 
-<div class="modal-backdrop">
+<Modal open={true} onclose={onDecline} zIndex={100}>
 	<div class="modal">
 		<div class="modal-header">
 			<span class="match-icon">🎮</span>
@@ -46,19 +38,9 @@
 			<button class="btn-decline" onclick={onDecline}>Decline</button>
 		</div>
 	</div>
-</div>
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-	}
-
 	.modal {
 		background: #1a1a2e;
 		border: 1px solid rgba(255, 107, 157, 0.2);
@@ -70,12 +52,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1rem;
-		animation: modal-in 0.2s ease-out;
-	}
-
-	@keyframes modal-in {
-		from { transform: scale(0.95); opacity: 0; }
-		to { transform: scale(1); opacity: 1; }
+		animation: modal-scale-in 0.2s ease-out;
 	}
 
 	.modal-header {

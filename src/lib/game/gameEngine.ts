@@ -135,7 +135,7 @@ export function createGameState(): GameState {
 		powerUpsEnabled: false,
 		powerUpItem: null,
 		activeEffects: [],
-		powerUpCooldown: 5,
+		powerUpCooldown: 4,
 		lastBallHitter: null,
 	};
 }

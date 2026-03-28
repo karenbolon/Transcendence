@@ -4,6 +4,7 @@ export interface GamePreferences {
 	// Existing
 	speedPreset: string;
 	winScore: number;
+	powerUps: boolean;
 	// Cosmetic
 	theme: string;
 	ballSkin: string;
@@ -16,6 +17,7 @@ export interface GamePreferences {
 export const DEFAULT_PREFERENCES: GamePreferences = {
 	speedPreset: 'normal',
 	winScore: 5,
+	powerUps: false,
 	theme: 'classic',
 	ballSkin: 'default',
 	effectsPreset: 'arcade',

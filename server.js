@@ -176,6 +176,159 @@ const SPEED_CONFIGS = {
 	fast:   { ballSpeed: 700, maxBallSpeed: 1100 },
 };
 
+// ── Power-Up System (mirrors src/lib/game/powerups/) ────────────────
+
+const POWERUP_CONFIG = {
+	bigPaddle:       { duration: 10, positive: true,  spawnWeight: 3 },
+	smallPaddle:     { duration: 10, positive: false, spawnWeight: 3 },
+	reverseControls: { duration: 8,  positive: false, spawnWeight: 1 },
+	freeze:          { duration: 3,  positive: false, spawnWeight: 1 },
+	invisibleBall:   { duration: 8,  positive: false, spawnWeight: 1 },
+	wall:            { duration: 10, positive: true,  spawnWeight: 1 },
+	magnet:          { duration: 8,  positive: true,  spawnWeight: 1 },
+	speedBall:       { duration: 8,  positive: false, spawnWeight: 2 },
+	slowBall:        { duration: 8,  positive: true,  spawnWeight: 2 },
+};
+
+const POWERUP_RADIUS = 15;
+const POWERUP_SPAWN_X_MIN = CANVAS_WIDTH * 0.25;
+const POWERUP_SPAWN_X_MAX = CANVAS_WIDTH * 0.75;
+const POWERUP_SPAWN_Y_MIN = 40;
+const POWERUP_SPAWN_Y_MAX = CANVAS_HEIGHT - 40;
+const POWERUP_COOLDOWN_MIN = 4;
+const POWERUP_COOLDOWN_MAX = 4;
+const WALL_WIDTH = 8;
+const WALL_HEIGHT = 100;
+
+function spawnPowerUp(state) {
+	const types = Object.entries(POWERUP_CONFIG);
+	const totalWeight = types.reduce((sum, [, cfg]) => sum + cfg.spawnWeight, 0);
+	let roll = Math.random() * totalWeight;
+	let chosenType = types[0][0];
+	for (const [type, cfg] of types) {
+		roll -= cfg.spawnWeight;
+		if (roll <= 0) { chosenType = type; break; }
+	}
+	state.powerUpItem = {
+		type: chosenType,
+		x: POWERUP_SPAWN_X_MIN + Math.random() * (POWERUP_SPAWN_X_MAX - POWERUP_SPAWN_X_MIN),
+		y: POWERUP_SPAWN_Y_MIN + Math.random() * (POWERUP_SPAWN_Y_MAX - POWERUP_SPAWN_Y_MIN),
+		radius: POWERUP_RADIUS,
+		active: true,
+	};
+}
+
+function collectPowerUp(state, item) {
+	const collector = state.lastBallHitter ?? 'player1';
+	const opponent = collector === 'player1' ? 'player2' : 'player1';
+	const config = POWERUP_CONFIG[item.type];
+	if (!config) return;
+	const target = config.positive ? collector : opponent;
+	const existing = state.activeEffects.find(e => e.type === item.type && e.target === target);
+	if (existing) { existing.remainingTime = config.duration; return; }
+	state.activeEffects.push({ type: item.type, target, remainingTime: config.duration, duration: config.duration });
+	if (item.type === 'speedBall' || item.type === 'slowBall') {
+		const multiplier = item.type === 'speedBall' ? 1.5 : 0.6;
+		state.currentBallSpeed *= multiplier;
+		const currentSpeed = Math.sqrt(state.ballVX ** 2 + state.ballVY ** 2);
+		if (currentSpeed > 0) {
+			const scale = state.currentBallSpeed / currentSpeed;
+			state.ballVX *= scale;
+			state.ballVY *= scale;
+		}
+	}
+}
+
+function onEffectExpired(state, effect, settings) {
+	if (effect.type === 'speedBall' || effect.type === 'slowBall') {
+		const multiplier = effect.type === 'speedBall' ? 1.5 : 0.6;
+		state.currentBallSpeed /= multiplier;
+		const currentSpeed = Math.sqrt(state.ballVX ** 2 + state.ballVY ** 2);
+		if (currentSpeed > 0) {
+			const scale = state.currentBallSpeed / currentSpeed;
+			state.ballVX *= scale;
+			state.ballVY *= scale;
+		}
+	}
+}
+
+function applyContinuousEffects(state, dt) {
+	for (const effect of state.activeEffects) {
+		if (effect.type === 'wall') {
+			const wallX = effect.target === 'player1'
+				? PADDLE_OFFSET + PADDLE_WIDTH + 60
+				: CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - 68;
+			const wallY = CANVAS_HEIGHT / 2 - WALL_HEIGHT / 2;
+			if (
+				state.ballX + BALL_RADIUS >= wallX &&
+				state.ballX - BALL_RADIUS <= wallX + WALL_WIDTH &&
+				state.ballY + BALL_RADIUS >= wallY &&
+				state.ballY - BALL_RADIUS <= wallY + WALL_HEIGHT
+			) {
+				state.ballVX = -state.ballVX;
+				if (state.ballVX > 0) { state.ballX = wallX + WALL_WIDTH + BALL_RADIUS; }
+				else { state.ballX = wallX - BALL_RADIUS; }
+			}
+		}
+		if (effect.type === 'magnet') {
+			const approaching =
+				(effect.target === 'player1' && state.ballVX < 0) ||
+				(effect.target === 'player2' && state.ballVX > 0);
+			if (approaching) {
+				const paddleCenterY = effect.target === 'player1'
+					? state.paddle1Y + PADDLE_HEIGHT / 2
+					: state.paddle2Y + PADDLE_HEIGHT / 2;
+				const dy = paddleCenterY - state.ballY;
+				state.ballVY += Math.sign(dy) * 250 * dt;
+			}
+		}
+	}
+}
+
+function updatePowerUps(state, dt, settings) {
+	if (!state.powerUpItem) {
+		state.powerUpCooldown -= dt;
+		if (state.powerUpCooldown <= 0) spawnPowerUp(state);
+	}
+	if (state.powerUpItem && state.powerUpItem.active) {
+		const dx = state.ballX - state.powerUpItem.x;
+		const dy = state.ballY - state.powerUpItem.y;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+		if (dist < BALL_RADIUS + state.powerUpItem.radius) {
+			collectPowerUp(state, state.powerUpItem);
+			state.powerUpItem = null;
+			state.powerUpCooldown = POWERUP_COOLDOWN_MIN + Math.random() * (POWERUP_COOLDOWN_MAX - POWERUP_COOLDOWN_MIN);
+		}
+	}
+	const effects = state.activeEffects;
+	for (let i = effects.length - 1; i >= 0; i--) {
+		effects[i].remainingTime -= dt;
+		if (effects[i].remainingTime <= 0) {
+			onEffectExpired(state, effects[i], settings);
+			effects.splice(i, 1);
+		}
+	}
+	applyContinuousEffects(state, dt);
+}
+
+function getEffectivePaddleHeight(state, player) {
+	let height = PADDLE_HEIGHT;
+	for (const effect of state.activeEffects) {
+		if (effect.target !== player) continue;
+		if (effect.type === 'bigPaddle') height *= 2;
+		if (effect.type === 'smallPaddle') height *= 0.5;
+	}
+	return height;
+}
+
+function isFrozen(state, player) {
+	return state.activeEffects.some(e => e.type === 'freeze' && e.target === player);
+}
+
+function isReversed(state, player) {
+	return state.activeEffects.some(e => e.type === 'reverseControls' && e.target === player);
+}
+
 function createGameState() {
 	return {
 		phase: 'menu',
@@ -195,6 +348,12 @@ function createGameState() {
 		ballReturns: 0,
 		maxDeficit: 0,
 		reachedDeuce: false,
+		// Power-ups
+		powerUpsEnabled: false,
+		powerUpItem: null,
+		activeEffects: [],
+		powerUpCooldown: 4,
+		lastBallHitter: null,
 	};
 }
 
@@ -216,6 +375,8 @@ function resetBall(state, settings) {
 	const direction = Math.random() > 0.5 ? 1 : -1;
 	state.ballVX = settings.ballSpeed * direction;
 	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
+	state.powerUpItem = null;
+	state.powerUpCooldown = POWERUP_COOLDOWN_MIN + Math.random() * (POWERUP_COOLDOWN_MAX - POWERUP_COOLDOWN_MIN);
 }
 
 function startCountdown(state, settings) {
@@ -244,19 +405,34 @@ function endGameState(state, winnerName) {
 function movePaddles(state, dt, input) {
 	const prevP1Y = state.paddle1Y;
 	const prevP2Y = state.paddle2Y;
-	if (input.paddle1Up)   state.paddle1Y -= PADDLE_SPEED * dt;
-	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up)   state.paddle2Y -= PADDLE_SPEED * dt;
-	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
-	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle1Y));
-	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle2Y));
+	const p1Frozen = isFrozen(state, 'player1');
+	const p2Frozen = isFrozen(state, 'player2');
+	const p1Reversed = isReversed(state, 'player1');
+	const p2Reversed = isReversed(state, 'player2');
+	if (!p1Frozen) {
+		const up = p1Reversed ? input.paddle1Down : input.paddle1Up;
+		const down = p1Reversed ? input.paddle1Up : input.paddle1Down;
+		if (up)   state.paddle1Y -= PADDLE_SPEED * dt;
+		if (down) state.paddle1Y += PADDLE_SPEED * dt;
+	}
+	if (!p2Frozen) {
+		const up = p2Reversed ? input.paddle2Down : input.paddle2Up;
+		const down = p2Reversed ? input.paddle2Up : input.paddle2Down;
+		if (up)   state.paddle2Y -= PADDLE_SPEED * dt;
+		if (down) state.paddle2Y += PADDLE_SPEED * dt;
+	}
+	const p1Height = getEffectivePaddleHeight(state, 'player1');
+	const p2Height = getEffectivePaddleHeight(state, 'player2');
+	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - p1Height, state.paddle1Y));
+	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - p2Height, state.paddle2Y));
 	state.paddle1VY = dt > 0 ? (state.paddle1Y - prevP1Y) / dt : 0;
 	state.paddle2VY = dt > 0 ? (state.paddle2Y - prevP2Y) / dt : 0;
 }
 
-function handlePaddleBounce(state, paddleY, direction, settings, paddleVY) {
-	const paddleCenter = paddleY + PADDLE_HEIGHT / 2;
-	const offset = (state.ballY - paddleCenter) / (PADDLE_HEIGHT / 2);
+function handlePaddleBounce(state, paddleY, direction, settings, paddleVY, paddleHeight) {
+	if (paddleHeight === undefined) paddleHeight = PADDLE_HEIGHT;
+	const paddleCenter = paddleY + paddleHeight / 2;
+	const offset = (state.ballY - paddleCenter) / (paddleHeight / 2);
 	const clampedOffset = Math.max(-1, Math.min(1, offset));
 	state.currentBallSpeed = Math.min(state.currentBallSpeed + BALL_SPEED_INCREMENT, settings.maxBallSpeed);
 	const bounceAngle = clampedOffset * MAX_BOUNCE_ANGLE;
@@ -271,22 +447,26 @@ function handlePaddleBounce(state, paddleY, direction, settings, paddleVY) {
 }
 
 function checkPaddleCollision(state, settings) {
+	const p1Height = getEffectivePaddleHeight(state, 'player1');
+	const p2Height = getEffectivePaddleHeight(state, 'player2');
 	if (state.ballVX < 0 &&
 		state.ballX - BALL_RADIUS <= PADDLE_OFFSET + PADDLE_WIDTH &&
 		state.ballX + BALL_RADIUS >= PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
-		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT) {
+		state.ballY - BALL_RADIUS <= state.paddle1Y + p1Height) {
 		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY);
+		state.lastBallHitter = 'player1';
+		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY, p1Height);
 	}
 	const p2Left = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
 	if (state.ballVX > 0 &&
 		state.ballX + BALL_RADIUS >= p2Left &&
 		state.ballX - BALL_RADIUS <= CANVAS_WIDTH - PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
-		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT) {
+		state.ballY - BALL_RADIUS <= state.paddle2Y + p2Height) {
 		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY);
+		state.lastBallHitter = 'player2';
+		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY, p2Height);
 	}
 }
 
@@ -353,6 +533,9 @@ function updateGame(state, dt, input, settings) {
 		if (state.ballY - BALL_RADIUS <= 0) { state.ballY = BALL_RADIUS; state.ballVY = Math.abs(state.ballVY); }
 		if (state.ballY + BALL_RADIUS >= CANVAS_HEIGHT) { state.ballY = CANVAS_HEIGHT - BALL_RADIUS; state.ballVY = -Math.abs(state.ballVY); }
 		checkPaddleCollision(state, settings);
+		if (settings.powerUps) {
+			updatePowerUps(state, dt, settings);
+		}
 		checkScoring(state, settings);
 	}
 }
@@ -413,7 +596,7 @@ class ServerGameRoom {
 			ballSpeed: speedConfig.ballSpeed,
 			maxBallSpeed: speedConfig.maxBallSpeed,
 			gameMode: 'local',
-			powerUps: settings.powerUps ?? false,
+			powerUps: settings.powerUps ?? true,
 		};
 
 		const emptyInput = { paddle1Up: false, paddle1Down: false, paddle2Up: false, paddle2Down: false };
@@ -511,6 +694,19 @@ class ServerGameRoom {
 			winner: this.state.winner,
 			scoreFlash: this.state.scoreFlash, scoreFlashTimer: this.state.scoreFlashTimer,
 			timestamp: Date.now(),
+			powerUpItem: this.state.powerUpItem ? {
+				type: this.state.powerUpItem.type,
+				x: this.state.powerUpItem.x,
+				y: this.state.powerUpItem.y,
+				radius: this.state.powerUpItem.radius,
+			} : null,
+			activeEffects: (this.state.activeEffects || []).map(e => ({
+				type: e.type,
+				target: e.target,
+				remainingTime: e.remainingTime,
+				duration: e.duration,
+			})),
+			lastBallHitter: this.state.lastBallHitter,
 		};
 	}
 
@@ -933,9 +1129,13 @@ async function saveOnlineMatch(result) {
 const matchQueue = new Map(); // userId → QueueEntry
 
 function resolveQueueSettings(mode, customSettings) {
-	if (mode === 'quick') return { speedPreset: 'normal', winScore: 5 };
-	if (mode === 'wild') return { speedPreset: 'normal', winScore: 5 }; // placeholder
-	return customSettings;
+	if (mode === 'quick') return { speedPreset: 'normal', winScore: 5, powerUps: true };
+	if (mode === 'wild') return { speedPreset: 'normal', winScore: 5, powerUps: true };
+	return {
+		speedPreset: customSettings?.speedPreset || 'normal',
+		winScore: customSettings?.winScore || 5,
+		powerUps: customSettings?.powerUps ?? true,
+	};
 }
 
 function randomWildSettings() {
@@ -944,6 +1144,7 @@ function randomWildSettings() {
 	return {
 		speedPreset: speeds[Math.floor(Math.random() * speeds.length)],
 		winScore: scores[Math.floor(Math.random() * scores.length)],
+		powerUps: Math.random() > 0.3,
 	};
 }
 
@@ -955,7 +1156,8 @@ function queueCompatibilityScore(a, b) {
 	const speedB = SPEED_ORDER[b.settings.speedPreset] ?? 1;
 	const speedDiff = Math.abs(speedA - speedB);
 	const scoreDiff = Math.abs(a.settings.winScore - b.settings.winScore);
-	return speedDiff * 2 + scoreDiff;
+	const powerUpDiff = a.settings.powerUps !== b.settings.powerUps ? 2 : 0;
+	return speedDiff * 2 + scoreDiff + powerUpDiff;
 }
 
 function maxScoreForEntry(entry, now) {
@@ -1150,7 +1352,11 @@ io.on('connection', (socket) => {
 		}
 
 		const inviteId = `${userId}-${friendId}-${Date.now()}`;
-		const resolvedSettings = settings ?? { speedPreset: 'normal', winScore: 5 };
+		const resolvedSettings = {
+			speedPreset: settings?.speedPreset || 'normal',
+			winScore: Number(settings?.winScore || 5),
+			powerUps: settings?.powerUps ?? true,
+		};
 
 		const timeout = setTimeout(() => {
 			activeInvites.delete(inviteId);

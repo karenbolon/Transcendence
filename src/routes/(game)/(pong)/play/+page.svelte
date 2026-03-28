@@ -442,7 +442,7 @@
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
-	let powerUps = $state(false);
+	let powerUps = $state(prefs.powerUps ?? false);
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -650,7 +650,7 @@
 					saveStatus={prefsSaveStatus}
 					onTabChange={(tab) => settingsTab = tab}
 					{powerUps}
-					onPowerUpsChange={(v) => powerUps = v}
+					onPowerUpsChange={(v) => { powerUps = v; prefs.powerUps = v; debouncedSavePreferences(prefs); }}
 				/>
 			</div>
 			{#if gameMode === 'online' && settingsTab === 'game'}

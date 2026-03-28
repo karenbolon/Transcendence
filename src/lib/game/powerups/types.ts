@@ -75,4 +75,4 @@ export const POWERUP_SPAWN_X_MAX = CANVAS_WIDTH * 0.75;
 export const POWERUP_SPAWN_Y_MIN = 40;
 export const POWERUP_SPAWN_Y_MAX = CANVAS_HEIGHT - 40;
 export const POWERUP_COOLDOWN_MIN = 4;
-export const POWERUP_COOLDOWN_MAX = 6;
+export const POWERUP_COOLDOWN_MAX = 4;

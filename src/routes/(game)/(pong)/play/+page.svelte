@@ -72,7 +72,7 @@
 		avatarUrl: string | null;
 		isOnline: boolean;
 		inQueue: boolean;
-		queueSettings?: { speedPreset: string; winScore: number };
+		queueSettings?: { speedPreset: string; winScore: number; powerUps?: boolean };
 	};
 	type QueuePlayer = {
 		id: number;
@@ -80,7 +80,7 @@
 		displayName: string | null;
 		avatarUrl: string | null;
 		wins: number;
-		queueSettings: { speedPreset: string; winScore: number };
+		queueSettings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	};
 	let onlineFriends = $state<OnlineFriend[]>([]);
 	let queuePlayers = $state<QueuePlayer[]>([]);
@@ -91,7 +91,7 @@
 	let searchTime = $state(0);
 	let queuePosition = $state(0);
 	let searchInterval: ReturnType<typeof setInterval> | null = null;
-	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number } | null>(null);
+	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number; powerUps: boolean } | null>(null);
 
 	// Client-side safety: auto-cancel at 5 minutes if server event is delayed
 	$effect(() => {
@@ -264,7 +264,7 @@
 		}
 	}
 
-	function handleFindMatch(matchSettings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number }) {
+	function handleFindMatch(matchSettings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) {
 		const socket = getSocket();
 		if (!socket?.connected) {
 			console.warn('Socket not connected');
@@ -278,6 +278,7 @@
 			settings: queueMode === 'wild' ? undefined : {
 				speedPreset: matchSettings.speedPreset,
 				winScore: matchSettings.winScore,
+				powerUps: matchSettings.powerUps,
 			},
 		});
 
@@ -316,7 +317,7 @@
 		if (pongGame) resumeGame(pongGame.getGameState());
 	}
 
-	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }) {
+	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean }) {
 		const socket = getSocket();
 		if (!socket?.connected) return;
 
@@ -339,6 +340,7 @@
 			settings: {
 				speedPreset: challengeSettings.speedPreset,
 				winScore: challengeSettings.winScore,
+				powerUps: challengeSettings.powerUps,
 				mode: 'invite',
 			},
 			totalTime: 30,
@@ -346,7 +348,7 @@
 		goto('/play/online/waiting');
 	}
 
-	async function handleSavePrefs(prefs: { speedPreset: string; winScore: number }) {
+	async function handleSavePrefs(prefs: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		// Optimistically update local state so UI reflects immediately
 		userPrefs = { ...prefs };
 		try {
@@ -705,7 +707,7 @@
 							searchInterval = setInterval(() => { searchTime += 1; }, 1000);
 						}}
 						onChallenge={handleChallenge}
-						getActiveSettings={() => ({ speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore })}
+						getActiveSettings={() => ({ speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore, powerUps: userPrefs.powerUps ?? true })}
 					/>
 				</div>
 				<div class="list-divider"></div>

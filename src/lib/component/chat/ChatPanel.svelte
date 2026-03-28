@@ -110,7 +110,7 @@
 		challengeTarget = { id: friend.id, username: friend.username, name: friend.name, avatar_url: friend.avatar_url };
 	}
 
-	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
+	function sendChallenge(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		if (!challengeTarget) return;
 		const socket = getSocket();
 		if (!socket?.connected) return;
@@ -119,7 +119,7 @@
 		setWaiting({
 			you: { username: user.username, avatarUrl: user.avatar_url, displayName: user.name },
 			opponent: { username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
-			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, powerUps: settings.powerUps, mode: 'online' },
 			totalTime: 30,
 		});
 		challengeTarget = null;

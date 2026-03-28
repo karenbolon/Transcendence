@@ -148,11 +148,12 @@ export function registerGameHandlers(socket: Socket) {
 		}
 		// Save system message to chat history
 		const speed = resolvedSettings.speedPreset.charAt(0).toUpperCase() + resolvedSettings.speedPreset.slice(1);
+		const pwr = resolvedSettings.powerUps ? 'Power-ups: On' : 'Power-ups: Off';
 		await db.insert(messages).values({
 			sender_id: userId,
 			recipient_id: friendId,
 			type: 'system',
-			content: `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore})`,
+			content: `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore}, ${pwr})`,
 		});
 	});
 
@@ -376,7 +377,7 @@ export function registerGameHandlers(socket: Socket) {
 	// Join the queue
 	socket.on('game:queue-join', async (data: {
 		mode: QueueMode;
-		settings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number };
+		settings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean };
 	}) => {
 		// Validate: not already in a game
 		if (isPlayerInGame(userId)) {

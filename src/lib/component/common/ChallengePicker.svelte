@@ -6,7 +6,7 @@
 
 	type Props = {
 		targetName: { username: string; displayName: string | null; avatarUrl: string | null };
-		onSend: (settings: { speedPreset: string; winScore: number }) => void;
+		onSend: (settings: { speedPreset: string; winScore: number; powerUps: boolean }) => void;
 		onCancel: () => void;
 	};
 
@@ -14,6 +14,7 @@
 
 	let speedPreset = $state<SpeedOption>('normal');
 	let winScore = $state(5);
+	let powerUps = $state(true);
 
 	const speedOptions: { label: SpeedOption; emoji: string }[] = [
 		{ label: 'chill', emoji: speedEmoji('chill') },
@@ -29,7 +30,7 @@
 	];
 
 	function handleSend() {
-		onSend({ speedPreset, winScore });
+		onSend({ speedPreset, winScore, powerUps });
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -87,6 +88,31 @@
 						<span class="opt-text">{opt.label}</span>
 					</button>
 				{/each}
+		</div>
+		</div>
+
+		<!-- Power-ups -->
+		<div class="option-group">
+			<span class="option-label">Power-ups</span>
+			<div class="options">
+				<button
+					type="button"
+					class="opt-btn"
+					class:selected={powerUps}
+					onclick={() => powerUps = true}
+				>
+					<span class="opt-emoji">⚡</span>
+					<span class="opt-text">Enabled</span>
+				</button>
+				<button
+					type="button"
+					class="opt-btn"
+					class:selected={!powerUps}
+					onclick={() => powerUps = false}
+				>
+					<span class="opt-emoji">🚫</span>
+					<span class="opt-text">Disabled</span>
+				</button>
 			</div>
 		</div>
 

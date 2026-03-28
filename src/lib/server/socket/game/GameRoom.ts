@@ -101,6 +101,9 @@ export class GameRoom {
 
 		// Create fresh game state (same function used client-side)
 		this.state = createGameState();
+		this.state.powerUpsEnabled = this.settings.powerUps;
+		
+		console.log(`[GameRoom] Initialized room ${this.roomId} | Power-ups: ${this.settings.powerUps} | First to: ${this.settings.winScore}`);
 	}
 
 	// ── Socket Management ─────────────────────────────────────

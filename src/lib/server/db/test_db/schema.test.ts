@@ -285,13 +285,13 @@ describe('Users Schema - Integration Tests', () => {
 
 	describe('CONSTRAINTS - Not null fields', () => {
 		it('should require all mandatory fields', async () => {
-			// Missing password_hash should fail
+			// Missing username should fail
 			await expect(
 				db.insert(users).values({
-					username: 'test',
+					// username is missing!
 					name: 'Test',
-					email: 'test@example.com'
-					// password_hash is missing!
+					email: 'test@example.com',
+					password_hash: 'hashed'
 				} as any)
 			).rejects.toThrow();
 		});

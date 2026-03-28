@@ -12,6 +12,10 @@ import { getIO, userSockets } from '../socket/index';
 import type { GameStateSnapshot } from '$lib/types/game';
 import { tournamentLogger } from '$lib/server/logger';
 import type { Pair } from '$lib/types/utils';
+import { flipBy } from '$lib/types/utils';
+
+type MatchPlayer = { userId: number; username: string };
+type MatchPlayers = Pair<MatchPlayer>;
 
 // ── Active Tournament Storage ────────────────────────────
 // tournamentId → tournament state
@@ -376,6 +380,7 @@ async function startRoundMatches(
 			round,
 			matchIndex: match.matchIndex,
 		};
+		const players: MatchPlayers = [gameData.player1, gameData.player2];
 
 		emitToUser(match.player1Id, 'tournament:match-ready', gameData);
 		emitToUser(match.player2Id, 'tournament:match-ready', gameData);
@@ -387,6 +392,7 @@ async function startRoundMatches(
 		// 60s timeout — if the game hasn't started, auto-forfeit the absent player
 		const capturedP1Id = match.player1Id;
 		const capturedP2Id = match.player2Id;
+
 		setTimeout(async () => {
 			try {
 				const room = getRoom(roomId);
@@ -400,21 +406,20 @@ async function startRoundMatches(
 					return;
 				}
 
-				const absentId = p1Joined ? capturedP2Id : capturedP1Id;
-				const presentId = p1Joined ? capturedP1Id : capturedP2Id;
 				if (p1Joined !== p2Joined) {
-					const winner = p1Joined || p2Joined;
+					const presentPlayer = p1Joined ? players[0] : players[1];
+					const absentPlayer = flipBy(players, presentPlayer, 'userId');
+					destroyRoom(roomId);
+					await advanceWinner(
+						tournamentId,
+						round,
+						match.matchIndex,
+						presentPlayer.userId,
+						absentPlayer.userId,
+						1,
+						0,
+					);
 				}
-				destroyRoom(roomId);
-				await advanceWinner(
-					tournamentId,
-					round,
-					match.matchIndex,
-					presentId,
-					absentId,
-					1,
-					0,
-				);
 			} catch (err) {
 				tournamentLogger.error(
 					{ err },

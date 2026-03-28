@@ -8,7 +8,7 @@ export type QueueEntry = {
 	displayName: string | null;
 	socketId: string;
 	mode: QueueMode;
-	settings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number };
+	settings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean };
 	joinedAt: number;       // Date.now() when they joined
 	flexibleAt: number;     // Date.now() + 30000 — when matching widens
 };
@@ -16,7 +16,7 @@ export type QueueEntry = {
 export type MatchResult = {
 	player1: QueueEntry;
 	player2: QueueEntry;
-	settings: { speedPreset: string; winScore: number };
+	settings: { speedPreset: string; winScore: number; powerUps: boolean };
 };
 
 // ── Queue Storage ────────────────────────────────────────────
@@ -30,27 +30,32 @@ const queue = new Map<number, QueueEntry>();
 // Custom = whatever the player picked.
 function resolveSettings(
 	mode: QueueMode,
-	customSettings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }
-): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number } {
+	customSettings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean }
+): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean } {
 	switch (mode) {
 		case 'quick':
-			return { speedPreset: 'normal', winScore: 5 };
+			return { speedPreset: 'normal', winScore: 5, powerUps: true };
 		case 'wild':
 			// Placeholder — wild settings get resolved when the match happens
 			// We store dummy values; they'll be overwritten at match time
-			return { speedPreset: 'normal', winScore: 5 };
+			return { speedPreset: 'normal', winScore: 5, powerUps: true };
 		case 'custom':
-			return customSettings!;
+			return {
+				speedPreset: customSettings?.speedPreset || 'normal',
+				winScore: customSettings?.winScore || 5,
+				powerUps: customSettings?.powerUps ?? true,
+			};
 	}
 }
 
 // Generate random settings for Wild mode (called when two wild players match)
-function randomWildSettings(): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number } {
+function randomWildSettings(): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean } {
 	const speeds: Array<'chill' | 'normal' | 'fast'> = ['chill', 'normal', 'fast'];
 	const scores = [3, 5, 7, 11];
 	return {
 		speedPreset: speeds[Math.floor(Math.random() * speeds.length)],
 		winScore: scores[Math.floor(Math.random() * scores.length)],
+		powerUps: Math.random() > 0.3, // 70% chance of power-ups in wild
 	};
 }
 
@@ -74,8 +79,9 @@ function compatibilityScore(a: QueueEntry, b: QueueEntry): number {
 	const speedB = SPEED_ORDER[b.settings.speedPreset] ?? 1;
 	const speedDiff = Math.abs(speedA - speedB); // 0, 1, or 2
 	const scoreDiff = Math.abs(a.settings.winScore - b.settings.winScore); // 0–8
+	const powerUpDiff = a.settings.powerUps !== b.settings.powerUps ? 2 : 0;
 	// Speed matters more: adjacent speed = 2, opposite speed = 4
-	return speedDiff * 2 + scoreDiff;
+	return speedDiff * 2 + scoreDiff + powerUpDiff;
 }
 
 /** Max allowed score for this entry based on how long they've waited. */
@@ -88,7 +94,7 @@ function maxScoreForEntry(entry: QueueEntry, now: number): number {
 /** Resolve which settings a matched pair plays with — closer to the longer-waiting player. */
 function resolveMatchSettings(
 	a: QueueEntry, b: QueueEntry
-): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number } {
+): { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean } {
 	// Longer-waiting player's settings win
 	return a.joinedAt <= b.joinedAt ? { ...a.settings } : { ...b.settings };
 }
@@ -156,7 +162,7 @@ export function addToQueue(
 	displayName: string | null,
 	socketId: string,
 	mode: QueueMode,
-	customSettings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }
+	customSettings?: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean }
 ): MatchResult | null {
 	// Don't allow double-queue
 	if (queue.has(userId)) return null;

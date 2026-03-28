@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { RANK_MEDALS } from '$lib/utils/format_progression';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	let { data }: { data: PageData } = $props();
 

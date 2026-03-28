@@ -2,7 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 	import { speedEmoji, speedLabel } from '$lib/utils/format_game';
-	import UserAvatar from './UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	// interface Props {
 	// 	inviteId: string;
@@ -19,6 +19,7 @@
 		settings: {
 			speedPreset: string;
 			winScore: number;
+			powerUps: boolean;
 		};
 		timeoutSecs?: number;
 		onAccept: () => void;
@@ -85,6 +86,10 @@
 			<div class="setting">
 				<span class="setting-label">Mode</span>
 				<span class="setting-value">1v1</span>
+			</div>
+			<div class="setting">
+				<span class="setting-label">Power-ups</span>
+				<span class="setting-value">{settings.powerUps ? '⚡ On' : '🚫 Off'}</span>
 			</div>
 		</div>
 

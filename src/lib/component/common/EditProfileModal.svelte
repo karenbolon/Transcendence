@@ -2,8 +2,8 @@
 	import { untrack } from 'svelte';
 	import { handleFormSubmit } from '$lib/utils/format_utils';
 	import { invalidateAll } from '$app/navigation';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
-	import AvatarGallery from '$lib/component/AvatarGallery.svelte';
+	import UserAvatar from './UserAvatar.svelte';
+	import AvatarGallery from './AvatarGallery.svelte';
 
 	type Props = {
 		open: boolean;

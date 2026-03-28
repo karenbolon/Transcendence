@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import type { SpeedPreset } from '$lib/game/gameEngine';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type FriendInfo = {
 		id: number;
@@ -9,15 +9,15 @@
 		avatarUrl: string | null;
 		isOnline: boolean;
 		inQueue: boolean;
-		queueSettings?: { speedPreset: string; winScore: number };
+		queueSettings?: { speedPreset: string; winScore: number; powerUps?: boolean };
 	};
 
 	type Props = {
 		friends?: FriendInfo[];
 		searching?: boolean;
 		onAcceptMatch: (playerId: number) => void;
-		onChallenge: (friend: FriendInfo, settings: { speedPreset: SpeedPreset; winScore: number }) => void;
-		getActiveSettings: () => { speedPreset: SpeedPreset; winScore: number };
+		onChallenge: (friend: FriendInfo, settings: { speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) => void;
+		getActiveSettings: () => { speedPreset: SpeedPreset; winScore: number; powerUps: boolean };
 	};
 
 	let {

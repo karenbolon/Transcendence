@@ -10,12 +10,12 @@
 	import Aurora from "$lib/component/effect/Aurora.svelte";
 	import Scanlines from "$lib/component/effect/Scanlines.svelte";
 	import NoiseGrain from "$lib/component/effect/NoiseGrain.svelte";
-	import FindMatch from "$lib/component/pong/FindMatch.svelte";
-	import FriendsList from "$lib/component/pong/FriendsList.svelte";
-	import QueueList from "$lib/component/pong/QueueList.svelte";
-	import QueueSearchBanner from "$lib/component/pong/QueueSearchBanner.svelte";
-	import MatchFoundModal from "$lib/component/pong/MatchFoundModal.svelte";
-	import LeaveQueueModal from "$lib/component/pong/LeaveQueueModal.svelte";
+	import FindMatch from "$lib/component/matchmaking/FindMatch.svelte";
+	import FriendsList from "$lib/component/matchmaking/FriendsList.svelte";
+	import QueueList from "$lib/component/matchmaking/QueueList.svelte";
+	import QueueSearchBanner from "$lib/component/matchmaking/QueueSearchBanner.svelte";
+	import MatchFoundModal from "$lib/component/matchmaking/MatchFoundModal.svelte";
+	import LeaveQueueModal from "$lib/component/matchmaking/LeaveQueueModal.svelte";
 	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
 	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
 	import { setWaiting, setGameStart, setQueuedSettings } from "$lib/stores/matchmaking.svelte";
@@ -28,11 +28,11 @@
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
-	} from "$lib/component/pong/gameEngine";
-	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
-	import { getTheme } from '$lib/component/pong/themes';
-	import { getSoundEngine } from '$lib/component/pong/soundEngine';
-	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
+	} from "$lib/game/gameEngine";
+	import { mergePreferences, debouncedSavePreferences } from '$lib/game/preferences';
+	import { getTheme } from '$lib/game/themes';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/game/effectsEngine';
 
 	let layoutData = $derived($page.data);
 	let isLoggedIn = $derived(!!layoutData?.user);
@@ -72,7 +72,7 @@
 		avatarUrl: string | null;
 		isOnline: boolean;
 		inQueue: boolean;
-		queueSettings?: { speedPreset: string; winScore: number };
+		queueSettings?: { speedPreset: string; winScore: number; powerUps?: boolean };
 	};
 	type QueuePlayer = {
 		id: number;
@@ -80,7 +80,7 @@
 		displayName: string | null;
 		avatarUrl: string | null;
 		wins: number;
-		queueSettings: { speedPreset: string; winScore: number };
+		queueSettings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	};
 	let onlineFriends = $state<OnlineFriend[]>([]);
 	let queuePlayers = $state<QueuePlayer[]>([]);
@@ -91,7 +91,7 @@
 	let searchTime = $state(0);
 	let queuePosition = $state(0);
 	let searchInterval: ReturnType<typeof setInterval> | null = null;
-	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number } | null>(null);
+	let searchSettings = $state<{ mode: 'random' | 'prefs' | 'custom'; speedPreset: string; winScore: number; powerUps: boolean } | null>(null);
 
 	// Client-side safety: auto-cancel at 5 minutes if server event is delayed
 	$effect(() => {
@@ -264,7 +264,7 @@
 		}
 	}
 
-	function handleFindMatch(matchSettings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number }) {
+	function handleFindMatch(matchSettings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) {
 		const socket = getSocket();
 		if (!socket?.connected) {
 			console.warn('Socket not connected');
@@ -278,6 +278,7 @@
 			settings: queueMode === 'wild' ? undefined : {
 				speedPreset: matchSettings.speedPreset,
 				winScore: matchSettings.winScore,
+				powerUps: matchSettings.powerUps,
 			},
 		});
 
@@ -316,7 +317,7 @@
 		if (pongGame) resumeGame(pongGame.getGameState());
 	}
 
-	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number }) {
+	function handleChallenge(friend: any, challengeSettings: { speedPreset: 'chill' | 'normal' | 'fast'; winScore: number; powerUps: boolean }) {
 		const socket = getSocket();
 		if (!socket?.connected) return;
 
@@ -339,6 +340,7 @@
 			settings: {
 				speedPreset: challengeSettings.speedPreset,
 				winScore: challengeSettings.winScore,
+				powerUps: challengeSettings.powerUps,
 				mode: 'invite',
 			},
 			totalTime: 30,
@@ -346,7 +348,7 @@
 		goto('/play/online/waiting');
 	}
 
-	async function handleSavePrefs(prefs: { speedPreset: string; winScore: number }) {
+	async function handleSavePrefs(prefs: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		// Optimistically update local state so UI reflects immediately
 		userPrefs = { ...prefs };
 		try {
@@ -440,6 +442,7 @@
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
+	let powerUps = $state(prefs.powerUps ?? false);
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -448,6 +451,7 @@
 		maxBallSpeed: SPEED_CONFIGS[speedPreset].maxBallSpeed,
 		gameMode,
 		difficulty: 'medium',
+		powerUps,
 	});
 
 	let pongGame: PongGame;
@@ -645,6 +649,8 @@
 					onSavePreferences={savePreferences}
 					saveStatus={prefsSaveStatus}
 					onTabChange={(tab) => settingsTab = tab}
+					{powerUps}
+					onPowerUpsChange={(v) => { powerUps = v; prefs.powerUps = v; debouncedSavePreferences(prefs); }}
 				/>
 			</div>
 			{#if gameMode === 'online' && settingsTab === 'game'}
@@ -701,7 +707,7 @@
 							searchInterval = setInterval(() => { searchTime += 1; }, 1000);
 						}}
 						onChallenge={handleChallenge}
-						getActiveSettings={() => ({ speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore })}
+						getActiveSettings={() => ({ speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore, powerUps: userPrefs.powerUps ?? true })}
 					/>
 				</div>
 				<div class="list-divider"></div>
@@ -1076,7 +1082,7 @@
 		color: #9ca3af;
 		font-style: italic;
 	}
-	
+
 	.xp-indicator {
 		color: #ff6b9d;
 		font-size: 0.85rem;

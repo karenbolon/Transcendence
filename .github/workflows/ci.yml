@@ -47,6 +47,7 @@ jobs:
           POSTGRES_DB: db_test
           POSTGRES_USER: root
           POSTGRES_PASSWORD: mysecretpassword
+          DB_PORT: 5432
 
       - name: Wait for database
         run: |

@@ -6,8 +6,8 @@
 		isLoadingHistory, loadOlderMessages, hasMore,
 	} from '$lib/stores/chat.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
-	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
+	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -110,7 +110,7 @@
 		challengeTarget = { id: friend.id, username: friend.username, name: friend.name, avatar_url: friend.avatar_url };
 	}
 
-	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
+	function sendChallenge(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		if (!challengeTarget) return;
 		const socket = getSocket();
 		if (!socket?.connected) return;
@@ -119,7 +119,7 @@
 		setWaiting({
 			you: { username: user.username, avatarUrl: user.avatar_url, displayName: user.name },
 			opponent: { username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
-			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, powerUps: settings.powerUps, mode: 'online' },
 			totalTime: 30,
 		});
 		challengeTarget = null;

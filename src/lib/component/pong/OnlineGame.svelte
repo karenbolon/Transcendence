@@ -8,15 +8,17 @@
 	PADDLE_HEIGHT,
 	PADDLE_OFFSET,
 	BALL_RADIUS,
-	} from './gameEngine';
+	} from '$lib/game/gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
-	import { getTheme } from './themes';
-	import { getBallSkin } from './ballSkins';
-	import { drawThemeBackground, drawCourtLine, drawPaddles } from './themeRenderer';
-	import { drawBall, drawBallTrail } from './ballSkinRenderer';
-	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from './effectsEngine';
-	import { getSoundEngine } from './soundEngine';
-	import MuteButton from './MuteButton.svelte';
+	import { getTheme } from '$lib/game/themes';
+	import { getBallSkin } from '$lib/game/ballSkins';
+	import { drawThemeBackground, drawCourtLine, drawPaddles } from '$lib/game/themeRenderer';
+	import { drawBall, drawBallTrail } from '$lib/game/ballSkinRenderer';
+	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from '$lib/game/effectsEngine';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import MuteButton from '$lib/component/custom/MuteButton.svelte';
+	import { drawPowerUpItem, drawEffectsHUD, drawWallBarriers, getPaddleEffectTint, getBallAlpha } from '$lib/game/powerups/renderer';
+	import { getEffectivePaddleHeight, isInvisibleBallActive } from '$lib/game/powerups/engine';
 	import { interpolateSnapshots, extrapolateSnapshot } from './interpolation';
 
 	type Props = {
@@ -50,6 +52,7 @@
 	let prevSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let currSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let disconnectedPlayer: number | null = $state(null);
+	let firstStateReceived = false;  // diagnostic flag
 
 	// ── Keyboard Input ──────────────────────────────────────────
 	// Track individual keys to handle simultaneous presses correctly.
@@ -111,6 +114,18 @@
 
 		// Listen for state updates from the server (60 per second)
 		socket.on('game:state', (state: GameStateSnapshot) => {
+			if (!firstStateReceived) {
+				firstStateReceived = true;
+				console.log('[OnlineGame] First game:state received. Phase:', state.phase,
+					'| activeEffects ok:', Array.isArray(state.activeEffects),
+					'| powerUpItem:', state.powerUpItem);
+			}
+
+			// Trace power-up appearance in snapshot
+			if (state.powerUpItem && (!prevSnapshot || !prevSnapshot.state.powerUpItem)) {
+				console.log(`[OnlineGame] 🎁 POWER-UP ITEM DETECTED: ${state.powerUpItem.type} at (${state.powerUpItem.x.toFixed(0)}, ${state.powerUpItem.y.toFixed(0)})`);
+			}
+
 			prevSnapshot = currSnapshot;
 			currSnapshot = { state, receivedAt: performance.now() };
 		});
@@ -175,33 +190,37 @@
 			}
 
 			if (latestState) {
-				// Effects updates
-				effects.update(dt);
-				if (latestState.phase === 'playing' || latestState.phase === 'countdown') {
-					effects.addTrailPoint(latestState.ballX, latestState.ballY);
-					effects.maybeSpawnSpeedLine(latestState.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
-				}
+				try {
+					// Effects updates
+					effects.update(dt);
+					if (latestState.phase === 'playing' || latestState.phase === 'countdown') {
+						effects.addTrailPoint(latestState.ballX, latestState.ballY);
+						effects.maybeSpawnSpeedLine(latestState.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
+					}
 
-				// Detect paddle hit
-				if (latestState.phase === 'playing' && Math.sign(latestState.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
-					const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
-					const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
-					effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
-					getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
-				}
+					// Detect paddle hit
+					if (latestState.phase === 'playing' && Math.sign(latestState.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
+						const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
+						const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+						effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
+						getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
+					}
 
-				// Detect score change
-				if (latestState.score1 !== prevScore1 || latestState.score2 !== prevScore2) {
-					const scoredLeft = latestState.score1 !== prevScore1;
-					const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
-					effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
-					getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
-					prevScore1 = latestState.score1;
-					prevScore2 = latestState.score2;
-				}
+					// Detect score change
+					if (latestState.score1 !== prevScore1 || latestState.score2 !== prevScore2) {
+						const scoredLeft = latestState.score1 !== prevScore1;
+						const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
+						effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
+						getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
+						prevScore1 = latestState.score1;
+						prevScore2 = latestState.score2;
+					}
 
-				prevBallVX = latestState.ballVX;
-				draw(ctx!, latestState);
+					prevBallVX = latestState.ballVX;
+					draw(ctx!, latestState);
+				} catch (err) {
+					console.error('[OnlineGame] Render error:', err, '\nState snapshot:', JSON.stringify({ phase: latestState.phase, activeEffects: latestState.activeEffects }));
+				}
 			}
 			animFrame = requestAnimationFrame(renderLoop);
 		}
@@ -258,11 +277,26 @@
 		}
 
 		// Paddles (themed, no glow intensity from server — use 0.5 default)
-		drawPaddles(ctx, theme, state.paddle1Y, state.paddle2Y, 0.5, effects.paddleFlashLeft, effects.paddleFlashRight);
+		const p1Height = getEffectivePaddleHeight(state as any, 'player1');
+		const p2Height = getEffectivePaddleHeight(state as any, 'player2');
+		const p1Tint = getPaddleEffectTint(state.activeEffects ?? [], 'player1');
+		const p2Tint = getPaddleEffectTint(state.activeEffects ?? [], 'player2');
+		drawPaddles(ctx, theme, state.paddle1Y, state.paddle2Y, 0.5, effects.paddleFlashLeft, effects.paddleFlashRight, p1Height, p2Height, p1Tint, p2Tint);
 
-		// Ball (skinned)
+		if (state.activeEffects) {
+			drawWallBarriers(ctx, state.activeEffects, gameTime);
+		}
+
+		// Ball (skinned, with invisible ball check)
 		if (state.phase !== 'menu') {
+			const ballAlpha = getBallAlpha(state.ballX, isInvisibleBallActive(state as any));
+			ctx.globalAlpha = ballAlpha;
 			drawBall(ctx, ballSkin, theme, state.ballX, state.ballY, gameTime, state.ballSpin, state.ballRotation);
+			ctx.globalAlpha = 1;
+		}
+
+		if (state.powerUpItem) {
+			drawPowerUpItem(ctx, state.powerUpItem, gameTime);
 		}
 
 		// Scores
@@ -317,6 +351,9 @@
 			ctx.fillStyle = '#9ca3af';
 			ctx.font = "14px 'Inter', sans-serif";
 			ctx.fillText('Waiting for reconnection...', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+		}
+		if (state.activeEffects) {
+			drawEffectsHUD(ctx, state.activeEffects);
 		}
 	}
 

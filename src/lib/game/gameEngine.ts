@@ -1,4 +1,12 @@
+import { isFrozen, isReversed, getEffectivePaddleHeight } from './powerups/engine';
+import type { PowerUpItem, ActiveEffect } from './powerups/types';
+import { POWERUP_COOLDOWN_MIN, POWERUP_COOLDOWN_MAX } from './powerups/types';
+import { updatePowerUps } from './powerups/engine';
+
 export type GamePhase = 'menu' | 'countdown' | 'playing' | 'paused' | 'gameover';
+export type GameMode = 'local' | 'computer' | 'online';
+export type SpeedPreset = 'chill' | 'normal' | 'fast';
+export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface GameState {
 	// Current phase
@@ -47,6 +55,13 @@ export interface GameState {
 	ballReturns: number;     // total paddle hits this match
 	maxDeficit: number;      // biggest point deficit player 1 faced
 	reachedDeuce: boolean;   // true if scores tied at >= (winScore - 1)
+
+	// Power-ups
+	powerUpsEnabled: boolean;
+	powerUpItem: PowerUpItem | null;
+	activeEffects: ActiveEffect[];
+	powerUpCooldown: number;
+	lastBallHitter: 'player1' | 'player2' | null;
 }
 
 export interface InputState {
@@ -62,12 +77,8 @@ export interface GameSettings {
 	maxBallSpeed: number;
 	gameMode: GameMode;
 	difficulty: Difficulty;
+	powerUps: boolean;
 }
-
-
-export type GameMode = 'local' | 'computer' | 'online';
-export type SpeedPreset = 'chill' | 'normal' | 'fast';
-export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
 	chill:  { ballSpeed: 300, maxBallSpeed: 400 },
@@ -121,6 +132,11 @@ export function createGameState(): GameState {
 		ballReturns: 0,
 		maxDeficit: 0,
 		reachedDeuce: false,
+		powerUpsEnabled: false,
+		powerUpItem: null,
+		activeEffects: [],
+		powerUpCooldown: 4,
+		lastBallHitter: null,
 	};
 }
 
@@ -163,6 +179,10 @@ export function returnToMenu(state: GameState): void {
 	state.ballReturns = 0;
 	state.maxDeficit = 0;
 	state.reachedDeuce = false;
+	state.powerUpItem = null;
+	state.activeEffects = [];
+	state.powerUpCooldown = 5;
+	state.lastBallHitter = null;
 	resetPositions(state);
 }
 
@@ -203,6 +223,10 @@ function resetBall(state: GameState, settings: GameSettings): void {
 	const direction = Math.random() > 0.5 ? 1 : -1;
 	state.ballVX = settings.ballSpeed * direction;
 	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
+	// Reset power-up item so a new one spawns
+	state.powerUpItem = null;
+	state.powerUpCooldown = POWERUP_COOLDOWN_MIN
+		+ Math.random() * (POWERUP_COOLDOWN_MAX - POWERUP_COOLDOWN_MIN);
 }
 
 export function update(
@@ -262,6 +286,11 @@ function updatePlaying(
 	// Track total play time
 	state.playTime += dt;
 
+	// Diagnostic: log every 10 seconds of play time on the server
+	if (typeof window === 'undefined' && Math.floor(state.playTime) % 10 === 0 && Math.floor(state.playTime) !== Math.floor(state.playTime - dt)) {
+		console.log(`[gameEngine] updatePlaying | Room check: settings.powerUps=${settings.powerUps} | item=${state.powerUpItem?.type ?? 'none'}`);
+	}
+
 	// Move paddles FIRST — players should always be able to move
 	movePaddles(state, dt, input);
 
@@ -301,6 +330,11 @@ function updatePlaying(
 	// Paddle collisions
 	checkPaddleCollision(state, settings);
 
+	// In updatePlaying(), add:
+	if (settings.powerUps) {
+		updatePowerUps(state, dt, settings);
+	}
+
 	// Scoring
 	checkScoring(state, settings);
 }
@@ -309,14 +343,31 @@ function movePaddles(state: GameState, dt: number, input: InputState): void {
 	const prevP1Y = state.paddle1Y;
 	const prevP2Y = state.paddle2Y;
 
-	if (input.paddle1Up)   state.paddle1Y -= PADDLE_SPEED * dt;
-	if (input.paddle1Down) state.paddle1Y += PADDLE_SPEED * dt;
-	if (input.paddle2Up)   state.paddle2Y -= PADDLE_SPEED * dt;
-	if (input.paddle2Down) state.paddle2Y += PADDLE_SPEED * dt;
+	// Check effects (stubs — return false until implemented)
+	const p1Frozen = isFrozen(state, 'player1');
+	const p2Frozen = isFrozen(state, 'player2');
+	const p1Reversed = isReversed(state, 'player1');
+	const p2Reversed = isReversed(state, 'player2');
 
-	// Clamp to canvas bounds
-	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle1Y));
-	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, state.paddle2Y));
+	// Apply input (with freeze/reverse)
+	if (!p1Frozen) {
+		const up = p1Reversed ? input.paddle1Down : input.paddle1Up;
+		const down = p1Reversed ? input.paddle1Up : input.paddle1Down;
+		if (up)   state.paddle1Y -= PADDLE_SPEED * dt;
+		if (down) state.paddle1Y += PADDLE_SPEED * dt;
+	}
+	if (!p2Frozen) {
+		const up = p2Reversed ? input.paddle2Down : input.paddle2Up;
+		const down = p2Reversed ? input.paddle2Up : input.paddle2Down;
+		if (up)   state.paddle2Y -= PADDLE_SPEED * dt;
+		if (down) state.paddle2Y += PADDLE_SPEED * dt;
+	}
+
+	// Clamp to canvas (using effective height for power-ups)
+	const p1Height = getEffectivePaddleHeight(state, 'player1');
+	const p2Height = getEffectivePaddleHeight(state, 'player2');
+	state.paddle1Y = Math.max(0, Math.min(CANVAS_HEIGHT - p1Height, state.paddle1Y));
+	state.paddle2Y = Math.max(0, Math.min(CANVAS_HEIGHT - p2Height, state.paddle2Y));
 
 	// Track paddle velocities for spin calculation
 	state.paddle1VY = dt > 0 ? (state.paddle1Y - prevP1Y) / dt : 0;
@@ -324,16 +375,20 @@ function movePaddles(state: GameState, dt: number, input: InputState): void {
 }
 
 function checkPaddleCollision(state: GameState, settings: GameSettings): void {
+	const p1Height = getEffectivePaddleHeight(state, 'player1');
+	const p2Height = getEffectivePaddleHeight(state, 'player2');
+
 	// Left paddle
 	if (
 		state.ballVX < 0 &&
 		state.ballX - BALL_RADIUS <= PADDLE_OFFSET + PADDLE_WIDTH &&
 		state.ballX + BALL_RADIUS >= PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle1Y &&
-		state.ballY - BALL_RADIUS <= state.paddle1Y + PADDLE_HEIGHT
+		state.ballY - BALL_RADIUS <= state.paddle1Y + p1Height
 	) {
 		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY);
+		state.lastBallHitter = 'player1';
+		handlePaddleBounce(state, state.paddle1Y, 1, settings, state.paddle1VY, p1Height);
 	}
 
 	// Right paddle
@@ -343,10 +398,11 @@ function checkPaddleCollision(state: GameState, settings: GameSettings): void {
 		state.ballX + BALL_RADIUS >= p2Left &&
 		state.ballX - BALL_RADIUS <= CANVAS_WIDTH - PADDLE_OFFSET &&
 		state.ballY + BALL_RADIUS >= state.paddle2Y &&
-		state.ballY - BALL_RADIUS <= state.paddle2Y + PADDLE_HEIGHT
+		state.ballY - BALL_RADIUS <= state.paddle2Y + p2Height
 	) {
 		state.ballReturns++;
-		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY);
+		state.lastBallHitter = 'player2';
+		handlePaddleBounce(state, state.paddle2Y, -1, settings, state.paddle2VY, p2Height);
 	}
 }
 
@@ -355,10 +411,11 @@ function handlePaddleBounce(
 	paddleY: number,
 	direction: number,
 	settings: GameSettings,
-	paddleVY: number
+	paddleVY: number,
+	paddleHeight: number = PADDLE_HEIGHT  // default for backwards compat
 ): void {
-	const paddleCenter = paddleY + PADDLE_HEIGHT / 2;
-	const offset = (state.ballY - paddleCenter) / (PADDLE_HEIGHT / 2);
+	const paddleCenter = paddleY + paddleHeight / 2;
+	const offset = (state.ballY - paddleCenter) / (paddleHeight / 2);
 	const clampedOffset = Math.max(-1, Math.min(1, offset));
 
 	// Speed up (capped at max)

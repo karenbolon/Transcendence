@@ -17,8 +17,8 @@
        onChallenge   — callback when challenging an online friend (not in queue)
 ═══════════════════════════════════════════════════════════════════════════ -->
 <script lang="ts">
-	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
-	import MatchmakingInfo from '$lib/component/pong/MatchmakingInfo.svelte';
+	import type { SpeedPreset } from '$lib/game/gameEngine';
+	import MatchmakingInfo from '$lib/component/matchmaking/MatchmakingInfo.svelte';
 
 	let showInfo = $state(false);
 
@@ -26,11 +26,11 @@
 		friends?: any[];
 		queuePlayers?: any[];
 		playersOnline?: number;
-		userPrefs?: { speedPreset: string; winScore: number };
-		onFindMatch: (settings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number }) => void;
+		userPrefs?: { speedPreset: string; winScore: number; powerUps?: boolean };
+		onFindMatch: (settings: { mode: 'random' | 'prefs' | 'custom'; speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) => void;
 		onAcceptMatch: (playerId: number) => void;
-		onChallenge: (friend: any, settings: { speedPreset: SpeedPreset; winScore: number }) => void;
-		onSavePrefs?: (prefs: { speedPreset: SpeedPreset; winScore: number }) => void;
+		onChallenge: (friend: any, settings: { speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) => void;
+		onSavePrefs?: (prefs: { speedPreset: SpeedPreset; winScore: number; powerUps: boolean }) => void;
 		searching?: boolean;
 		queuePosition?: number;
 		searchTime?: number;
@@ -41,7 +41,7 @@
 		friends = [],
 		queuePlayers = [],
 		playersOnline = 0,
-		userPrefs = { speedPreset: 'normal', winScore: 5 },
+		userPrefs = { speedPreset: 'normal', winScore: 5, powerUps: true },
 		onFindMatch,
 		onAcceptMatch,
 		onChallenge,
@@ -60,22 +60,27 @@
 	// Custom settings (for custom mode only)
 	let customSpeed = $state<SpeedPreset>('normal');
 	let customScore = $state(5);
+	let customPowerUps = $state(true);
 
 	// The active settings based on current mode
-	function getActiveSettings(): { speedPreset: SpeedPreset; winScore: number } {
+	function getActiveSettings(): { speedPreset: SpeedPreset; winScore: number; powerUps: boolean } {
 		if (quickMode === 'prefs') {
-			return { speedPreset: userPrefs.speedPreset as SpeedPreset, winScore: userPrefs.winScore };
+			return { 
+				speedPreset: userPrefs.speedPreset as SpeedPreset, 
+				winScore: userPrefs.winScore,
+				powerUps: userPrefs.powerUps ?? true
+			};
 		}
-		return { speedPreset: customSpeed, winScore: customScore };
+		return { speedPreset: customSpeed, winScore: customScore, powerUps: customPowerUps };
 	}
 
 	// ── HANDLERS ───────────────────────────────────────────────
 	function handleFindMatch() {
 		if (quickMode === 'random') {
-			onFindMatch({ mode: 'random', speedPreset: 'normal', winScore: 5 });
+			onFindMatch({ mode: 'random', speedPreset: 'normal', winScore: 5, powerUps: true });
 		} else {
 			const s = getActiveSettings();
-			onFindMatch({ mode: quickMode, speedPreset: s.speedPreset, winScore: s.winScore });
+			onFindMatch({ mode: quickMode, speedPreset: s.speedPreset, winScore: s.winScore, powerUps: s.powerUps });
 		}
 	}
 
@@ -197,8 +202,10 @@
 				{#if !editingPrefs}
 					<button class="edit-prefs-btn" onclick={() => {
 						editingPrefs = true;
+						editingPrefs = true;
 						customSpeed = userPrefs.speedPreset as SpeedPreset;
 						customScore = userPrefs.winScore;
+						customPowerUps = userPrefs.powerUps ?? true;
 					}}>
 						Edit preferences
 					</button>
@@ -232,10 +239,17 @@
 								{/each}
 							</div>
 						</div>
+						<div class="custom-group">
+							<span class="custom-label">Power-ups</span>
+							<div class="custom-options">
+								<button class="custom-opt" class:active={customPowerUps} onclick={() => customPowerUps = true}>Enabled</button>
+								<button class="custom-opt" class:active={!customPowerUps} onclick={() => customPowerUps = false}>Disabled</button>
+							</div>
+						</div>
 					</div>
 					<div class="edit-prefs-actions">
 						<button class="save-prefs-btn" onclick={() => {
-							onSavePrefs?.({ speedPreset: customSpeed, winScore: customScore });
+							onSavePrefs?.({ speedPreset: customSpeed, winScore: customScore, powerUps: customPowerUps });
 							editingPrefs = false;
 						}}>
 							Save
@@ -276,6 +290,13 @@
 									{score}
 								</button>
 							{/each}
+						</div>
+					</div>
+					<div class="custom-group">
+						<span class="custom-label">Power-ups</span>
+						<div class="custom-options">
+							<button class="custom-opt" class:active={customPowerUps} onclick={() => customPowerUps = true}>Enabled</button>
+							<button class="custom-opt" class:active={!customPowerUps} onclick={() => customPowerUps = false}>Disabled</button>
 						</div>
 					</div>
 				</div>

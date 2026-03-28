@@ -137,5 +137,5 @@ export function getBallSkin(id: string): BallSkin {
 }
 
 export function getCompatibleSkins(themeCompatibleIds: string[]): BallSkin[] {
-  return BALL_SKINS.filter(s => themeCompatibleIds.includes(s.id));
+	return BALL_SKINS.filter(s => themeCompatibleIds.includes(s.id));
 }

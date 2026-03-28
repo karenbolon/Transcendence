@@ -347,7 +347,7 @@
 		border: 1px solid rgba(255,255,255,0.06);
 		background: transparent;
 		color: #6b7280;
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		font-family: inherit;
 		cursor: pointer;
 		transition: all 0.15s;

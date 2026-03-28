@@ -9,7 +9,7 @@ import {
 	endGame,
 	SPEED_CONFIGS,
 	type SpeedPreset,
-} from '$lib/component/pong/gameEngine';
+} from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
 
 export type { GameResult, GameStateSnapshot };
@@ -46,7 +46,7 @@ export class GameRoom {
 
 	private state: GameState;
 	private settings: GameSettings;
-	private rawSettings: { speedPreset: string; winScore: number };
+	private rawSettings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	private interval: ReturnType<typeof setInterval> | null = null;
 	private lastTick: number = 0;
 	private onGameEnd: GameRoomOptions['onGameEnd'];
@@ -76,6 +76,7 @@ export class GameRoom {
 			// The server controls both paddles via socket input.
 			gameMode: 'local',
 			difficulty: 'medium',
+			powerUps: false,
 		};
 
 		// Initialize both players with empty input
@@ -129,8 +130,8 @@ export class GameRoom {
 		// If player has NO sockets left and game is active → start forfeit timer
 		if (player.socketIds.size === 0 &&
 			(this.state.phase === 'playing' || this.state.phase === 'countdown')) {
-				this.broadcastEvent(this.roomId, 'game:player-disconnected', {
-					userId, timeout: RECONNECT_TIMEOUT
+			this.broadcastEvent(this.roomId, 'game:player-disconnected', {
+				userId, timeout: RECONNECT_TIMEOUT
 			});
 
 			const timer = setTimeout(() => {
@@ -240,6 +241,19 @@ export class GameRoom {
 			scoreFlash: this.state.scoreFlash,
 			scoreFlashTimer: this.state.scoreFlashTimer,
 			timestamp: Date.now(),
+			powerUpItem: this.state.powerUpItem ? {
+				type: this.state.powerUpItem.type,
+				x: this.state.powerUpItem.x,
+				y: this.state.powerUpItem.y,
+				radius: this.state.powerUpItem.radius,
+			} : null,
+			activeEffects: this.state.activeEffects.map(e => ({
+				type: e.type,
+				target: e.target,
+				remainingTime: e.remainingTime,
+				duration: e.duration,
+			})),
+			lastBallHitter: this.state.lastBallHitter,
 		};
 	}
 

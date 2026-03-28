@@ -6,8 +6,8 @@
 		isLoadingHistory, loadOlderMessages, hasMore,
 	} from '$lib/stores/chat.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
-	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
+	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import { setWaiting } from '$lib/stores/matchmaking.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';

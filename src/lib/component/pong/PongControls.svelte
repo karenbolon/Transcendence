@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GameMode } from './gameEngine';
+	import type { GameMode } from '$lib/game/gameEngine';
 
 	type Props = {
 		gameMode: GameMode;

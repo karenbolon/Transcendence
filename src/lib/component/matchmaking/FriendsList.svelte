@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import type { SpeedPreset } from '$lib/game/gameEngine';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type FriendInfo = {
 		id: number;

@@ -1,5 +1,5 @@
 import type { GameStateSnapshot } from '$lib/types/game';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, BALL_RADIUS } from './gameEngine';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, BALL_RADIUS } from '$lib/game/gameEngine';
 
 /** Linear interpolation between two numbers. */
 export function lerp(a: number, b: number, t: number): number {
@@ -48,6 +48,9 @@ export function interpolateSnapshots(
 		timestamp: to.timestamp,
 		ballVX: to.ballVX,
 		ballVY: to.ballVY,
+		powerUpItem: to.powerUpItem,
+		activeEffects: to.activeEffects,
+		lastBallHitter: to.lastBallHitter,
 
 		// Interpolated fields: positions and rotation
 		paddle1Y: lerp(from.paddle1Y, to.paddle1Y, clamped),

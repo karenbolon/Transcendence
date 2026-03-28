@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { BALL_SKINS, type BallSkin } from './ballSkins';
-	import { getTheme } from './themes';
+	import { BALL_SKINS, type BallSkin } from '$lib/game/ballSkins';
+	import { getTheme } from '$lib/game/themes';
 
 	let { selectedSkinId, themeId, onSkinChange }: {
 		selectedSkinId: string;

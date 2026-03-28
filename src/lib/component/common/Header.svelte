@@ -1,7 +1,7 @@
 <script lang="ts">
 	import logo from '$lib/assets/favicon.ico';
-	import Logout from '$lib/component/Logout.svelte';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import Logout from './Logout.svelte';
+	import UserAvatar from './UserAvatar.svelte';
 	import { isConnected } from '$lib/stores/socket.svelte';
 	import { toggleChat, getTotalUnread } from '$lib/stores/chat.svelte';
 	//chat

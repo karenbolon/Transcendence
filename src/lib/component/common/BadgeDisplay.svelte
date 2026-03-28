@@ -1,9 +1,9 @@
 <script lang="ts">
-	import LevelBadge from './progression/LevelBadge.svelte';
+	import LevelBadge from '$lib/component/progression/LevelBadge.svelte';
 	import type { Achievement, Progression } from '$lib/types/progression';
-	import AchievementCard from './progression/AchievementCard.svelte';
+	import AchievementCard from '$lib/component/progression/AchievementCard.svelte';
 	import { getStreakInfo, getMilestone } from '$lib/utils/format_progression';
-	import AchievementDetailModal from './progression/AchievementDetailModal.svelte';
+	import AchievementDetailModal from '$lib/component/progression/AchievementDetailModal.svelte';
 
 	type Props = {
 		badges: Achievement[];

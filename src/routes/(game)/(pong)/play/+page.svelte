@@ -10,12 +10,12 @@
 	import Aurora from "$lib/component/effect/Aurora.svelte";
 	import Scanlines from "$lib/component/effect/Scanlines.svelte";
 	import NoiseGrain from "$lib/component/effect/NoiseGrain.svelte";
-	import FindMatch from "$lib/component/pong/FindMatch.svelte";
-	import FriendsList from "$lib/component/pong/FriendsList.svelte";
-	import QueueList from "$lib/component/pong/QueueList.svelte";
-	import QueueSearchBanner from "$lib/component/pong/QueueSearchBanner.svelte";
-	import MatchFoundModal from "$lib/component/pong/MatchFoundModal.svelte";
-	import LeaveQueueModal from "$lib/component/pong/LeaveQueueModal.svelte";
+	import FindMatch from "$lib/component/matchmaking/FindMatch.svelte";
+	import FriendsList from "$lib/component/matchmaking/FriendsList.svelte";
+	import QueueList from "$lib/component/matchmaking/QueueList.svelte";
+	import QueueSearchBanner from "$lib/component/matchmaking/QueueSearchBanner.svelte";
+	import MatchFoundModal from "$lib/component/matchmaking/MatchFoundModal.svelte";
+	import LeaveQueueModal from "$lib/component/matchmaking/LeaveQueueModal.svelte";
 	import { goto, replaceState, beforeNavigate, invalidateAll } from "$app/navigation";
 	import { getSocket, connectSocket } from "$lib/stores/socket.svelte";
 	import { setWaiting, setGameStart, setQueuedSettings } from "$lib/stores/matchmaking.svelte";
@@ -28,11 +28,11 @@
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
-	} from "$lib/component/pong/gameEngine";
-	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
-	import { getTheme } from '$lib/component/pong/themes';
-	import { getSoundEngine } from '$lib/component/pong/soundEngine';
-	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
+	} from "$lib/game/gameEngine";
+	import { mergePreferences, debouncedSavePreferences } from '$lib/game/preferences';
+	import { getTheme } from '$lib/game/themes';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/game/effectsEngine';
 
 	let layoutData = $derived($page.data);
 	let isLoggedIn = $derived(!!layoutData?.user);
@@ -440,6 +440,7 @@
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
+	let powerUps = $state(false);
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -448,6 +449,7 @@
 		maxBallSpeed: SPEED_CONFIGS[speedPreset].maxBallSpeed,
 		gameMode,
 		difficulty: 'medium',
+		powerUps,
 	});
 
 	let pongGame: PongGame;
@@ -645,6 +647,8 @@
 					onSavePreferences={savePreferences}
 					saveStatus={prefsSaveStatus}
 					onTabChange={(tab) => settingsTab = tab}
+					{powerUps}
+					onPowerUpsChange={(v) => powerUps = v}
 				/>
 			</div>
 			{#if gameMode === 'online' && settingsTab === 'game'}
@@ -1076,7 +1080,7 @@
 		color: #9ca3af;
 		font-style: italic;
 	}
-	
+
 	.xp-indicator {
 		color: #ff6b9d;
 		font-size: 0.85rem;

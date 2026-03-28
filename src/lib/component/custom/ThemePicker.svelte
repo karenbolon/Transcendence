@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getThemesByCategory } from './themes';
+	import { getThemesByCategory } from '$lib/game/themes';
 
 	let { selectedThemeId, onThemeChange }: {
 		selectedThemeId: string;

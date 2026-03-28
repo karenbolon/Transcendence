@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { getWaiting, clearWaiting } from '$lib/stores/matchmaking.svelte';
-	import WaitingRoom from '$lib/component/pong/WaitingRoom.svelte';
+	import WaitingRoom from '$lib/component/matchmaking/WaitingRoom.svelte';
 	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
 	import Aurora from '$lib/component/effect/Aurora.svelte';
 

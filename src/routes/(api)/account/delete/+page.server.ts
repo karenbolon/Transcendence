@@ -32,6 +32,9 @@ export const actions: Actions = {
 		}
 
 		// ── VERIFY PASSWORD ────────────────────────────────────────
+		if (!user.password_hash) {
+			return fail(400, { error: 'This account uses OAuth and cannot be deleted with a password' });
+		}
 		const valid = await verifyPassword(user.password_hash, password);
 		if (!valid) {
 			return fail(400, { 

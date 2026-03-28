@@ -1,10 +1,10 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.ico';
-	import Header from '$lib/component/Header.svelte';
-	import Footer from '$lib/component/Footer.svelte';
-	import InviteModal from '$lib/component/InviteModal.svelte';
-	import Toast from '$lib/component/Toast.svelte';
+	import Header from '$lib/component/common/Header.svelte';
+	import Footer from '$lib/component/common/Footer.svelte';
+	import InviteModal from '$lib/component/common/InviteModal.svelte';
+	import Toast from '$lib/component/common/Toast.svelte';
 	import ChatPanel from '$lib/component/chat/ChatPanel.svelte';
 	import { receiveMessage, onMessageSent, setTyping, clearTyping, loadUnreadCounts, resetChat, isChatOpen, getActiveFriendId, openChat, closeChat } from '$lib/stores/chat.svelte';
 	import { afterNavigate } from '$app/navigation';

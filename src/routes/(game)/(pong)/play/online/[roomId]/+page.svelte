@@ -13,10 +13,10 @@
 	import Aurora from '$lib/component/effect/Aurora.svelte';
 	import Scanlines from '$lib/component/effect/Scanlines.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
-	import { mergePreferences, debouncedSavePreferences } from '$lib/component/pong/preferences';
-	import { getTheme } from '$lib/component/pong/themes';
-	import { getSoundEngine } from '$lib/component/pong/soundEngine';
-	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/component/pong/effectsEngine';
+	import { mergePreferences, debouncedSavePreferences } from '$lib/game/preferences';
+	import { getTheme } from '$lib/game/themes';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import { DEFAULT_EFFECTS_CUSTOM } from '$lib/game/effectsEngine';
 	import { TIER_EMOJIS } from '$lib/utils/format_progression';
 
 	let { data } = $props();

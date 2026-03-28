@@ -1,10 +1,10 @@
 <script lang="ts">
-	import EditProfileModal from "$lib/component/EditProfileModal.svelte";
-	import ProfileBanner from "$lib/component/ProfileBanner.svelte";
+	import EditProfileModal from "$lib/component/common/EditProfileModal.svelte";
+	import ProfileBanner from "$lib/component/common/ProfileBanner.svelte";
 	import { formatDate, formatDuration } from "$lib/utils/format_date";
 	import { speedEmoji, formatMode } from "$lib/utils/format_game";
 	import type { PageData } from "./$types";
-	import BadgeDisplay from "$lib/component/BadgeDisplay.svelte";
+	import BadgeDisplay from "$lib/component/common/BadgeDisplay.svelte";
 	import type { ProfileEditData } from "$lib/types/utils";
 
 	let { data }: { data: PageData } = $props();

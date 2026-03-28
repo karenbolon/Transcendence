@@ -19,6 +19,20 @@ export interface GameStateSnapshot {
 	scoreFlash: 'left' | 'right' | null;
 	scoreFlashTimer: number;
 	timestamp: number;
+	// Power-ups
+	powerUpItem: {
+		type: string;
+		x: number;
+		y: number;
+		radius: number;
+	} | null;
+	activeEffects: {
+		type: string;
+		target: 'player1' | 'player2';
+		remainingTime: number;
+		duration: number;
+	}[];
+	lastBallHitter: 'player1' | 'player2' | null;
 }
 
 // Sent once when the game ends (win or forfeit).

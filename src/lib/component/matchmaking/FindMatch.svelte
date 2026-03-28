@@ -17,8 +17,8 @@
        onChallenge   — callback when challenging an online friend (not in queue)
 ═══════════════════════════════════════════════════════════════════════════ -->
 <script lang="ts">
-	import type { SpeedPreset } from '$lib/component/pong/gameEngine';
-	import MatchmakingInfo from '$lib/component/pong/MatchmakingInfo.svelte';
+	import type { SpeedPreset } from '$lib/game/gameEngine';
+	import MatchmakingInfo from '$lib/component/matchmaking/MatchmakingInfo.svelte';
 
 	let showInfo = $state(false);
 

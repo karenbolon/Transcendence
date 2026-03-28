@@ -346,7 +346,8 @@
 
 <style>
 	.page {
-		max-width: 700px;
+		width: 100%;
+		max-width: 900px;
 		margin: 0 auto;
 		padding: 2rem 1rem;
 		position: relative;
@@ -362,7 +363,7 @@
 	}
 
 	.page-title {
-		font-size: 1.8rem;
+		font-size: 2.2rem;
 		font-weight: 800;
 		margin: 0;
 		color: #f3f4f6;
@@ -381,7 +382,7 @@
 		padding: 0.6rem 1.2rem;
 		border-radius: 0.5rem;
 		font-weight: 700;
-		font-size: 0.85rem;
+		font-size: 0.95rem;
 		cursor: pointer;
 		transition: all 0.15s;
 		font-family: inherit;
@@ -421,7 +422,7 @@
 
 	.banner-name {
 		display: block;
-		font-size: 0.75rem;
+		font-size: 0.95rem;
 		color: #6b7280;
 	}
 
@@ -452,11 +453,11 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.75rem;
+		margin-bottom: 0.85rem;
 	}
 
 	.section-title {
-		font-size: 1.1rem;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: #f3f4f6;
 		margin: 0.8rem 0;
@@ -500,13 +501,13 @@
 
 	.card-name {
 		margin: 0;
-		font-size: 1rem;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: #f3f4f6;
 	}
 
 	.badge {
-		font-size: 0.55rem;
+		font-size: 0.65rem;
 		font-weight: 700;
 		padding: 0.15rem 0.5rem;
 		border-radius: 999px;
@@ -521,7 +522,7 @@
 	.card-meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.75rem;
+		gap: 1.95rem;
 		font-size: 0.75rem;
 		color: #6b7280;
 		align-items: center;
@@ -530,13 +531,13 @@
 	.meta-item {
 		display: flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: 0.5rem;
 	}
 
 	.meta-item.creator {
 		display: flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: 0.5rem;
 	}
 
 	.btn-card-action {
@@ -587,7 +588,7 @@
 		position: absolute;
 		bottom: -4px;
 		right: -6px;
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
 	}
 
@@ -604,15 +605,15 @@
 	.finished-top-line {
 		display: flex;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: 0.7rem;
 	}
 
 	.finished-top-line .card-name {
-		font-size: 0.95rem;
+		font-size: 1.19rem;
 	}
 
 	.time-ago {
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		color: #4b5563;
 		white-space: nowrap;
 	}

@@ -107,11 +107,11 @@
 	}
 
 	.result-icon.trophy {
-		font-size: 4rem;
+		font-size: 3rem;
 	}
 
 	.result-label {
-		font-size: 1.55rem;
+		font-size: 1.45rem;
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.15em;
@@ -121,7 +121,7 @@
 	.result-label.champion { color: #fbbf24; }
 
 	.result-text {
-		font-size: 1.6rem;
+		font-size: 1.65em;
 		font-weight: 800;
 		color: #f3f4f6;
 		margin: 0 0 0.25rem 0;

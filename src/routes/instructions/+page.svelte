@@ -1,94 +1,5 @@
 <script lang="ts">
-	const modes = [
-		{
-			icon: '🤝',
-			name: 'Local Match',
-			desc: 'Play with a friend on the same keyboard.',
-			players: '2 players',
-		},
-		{
-			icon: '🤖',
-			name: 'Vs AI',
-			desc: 'Practice against a computer opponent.',
-			players: '1 player',
-		},
-		{
-			icon: '🌐',
-			name: 'Online Match',
-			desc: 'Compete against other players online.',
-			players: '2 players',
-		},
-		{
-			icon: '🏟️',
-			name: 'Tournament',
-			desc: 'Bracket-style competition with multiple rounds.',
-			players: '4+ players',
-		},
-	];
-
-	const rules = [
-		{
-			title: 'Score to win:',
-			body: 'Each match is played to the target score.',
-		},
-		{
-			title: 'First to target:',
-			body: 'The first player to hit the target score wins.',
-		},
-		{
-			title: 'Ball speed:',
-			body: 'The ball gradually speeds up during rallies.',
-		},
-		{
-			title: 'Angle control:',
-			body: 'Where the ball hits your paddle changes its return angle.',
-		},
-		{
-			title: 'Online pacing:',
-			body: 'Online matches run continuously and cannot be paused.',
-		},
-	];
-
-	const speeds = [
-		{
-			emoji: '🐢',
-			name: 'Chill',
-			desc: 'Slower pace, good for learning controls.',
-		},
-		{
-			emoji: '🏓',
-			name: 'Normal',
-			desc: 'Balanced speed for standard matches.',
-		},
-		{
-			emoji: '🔥',
-			name: 'Fast',
-			desc: 'High-speed play for experienced players.',
-		},
-	];
-
-	const tips = [
-		{
-			icon: '🎯',
-			title: 'Use paddle edges',
-			body: 'Hit near paddle edges to create sharper angles.',
-		},
-		{
-			icon: '🧠',
-			title: 'Anticipate rebounds',
-			body: 'Read the opponent and move early to intercept.',
-		},
-		{
-			icon: '🏃',
-			title: 'Recover to center',
-			body: 'Reset your position between exchanges.',
-		},
-		{
-			icon: '💪',
-			title: 'Practice regularly',
-			body: 'Consistency improves timing and control.',
-		},
-	];
+	import { gameModes, gameRules, speedPresets, proTips } from '$lib/data/instructions';
 </script>
 
 <div class="instructions-page">
@@ -148,7 +59,7 @@
 			Choose a mode that fits your playstyle.
 		</p>
 		<div class="modes-grid">
-			{#each modes as mode, i}
+			{#each gameModes as mode, i}
 				<div class="mode-card" data-index={i}>
 					<div class="mode-icon">{mode.icon}</div>
 					<div class="mode-name">{mode.name}</div>
@@ -166,7 +77,7 @@
 		<h2 class="section-title"><span class="title-bar blue"></span> Core Rules</h2>
 		<p class="section-sub">Keep these fundamentals in mind while playing.</p>
 		<div class="rules-list">
-			{#each rules as rule, i}
+			{#each gameRules as rule, i}
 				<div class="rule">
 					<div class="rule-num">{i + 1}</div>
 					<div class="rule-text">
@@ -184,7 +95,7 @@
 		<h2 class="section-title"><span class="title-bar gold"></span> Ball Speed Presets</h2>
 		<p class="section-sub">Select the speed that matches your skill level.</p>
 		<div class="speed-grid">
-			{#each speeds as speed}
+			{#each speedPresets as speed}
 				<div class="speed-card">
 					<div class="speed-emoji">{speed.emoji}</div>
 					<div class="speed-name">{speed.name}</div>
@@ -201,7 +112,7 @@
 		<h2 class="section-title"><span class="title-bar green"></span> Pro Tips</h2>
 		<p class="section-sub">Small habits that make a big difference.</p>
 		<div class="tips-grid">
-			{#each tips as tip}
+			{#each proTips as tip}
 				<div class="tip">
 					<div class="tip-icon">{tip.icon}</div>
 					<div class="tip-text"><strong>{tip.title}</strong> {tip.body}</div>

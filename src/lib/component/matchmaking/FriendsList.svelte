@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { SpeedPreset } from '$lib/game/gameEngine';
-	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';;
+	import { speedEmoji } from '$lib/utils/format_game';
+	import { capitalize } from '$lib/utils/format_progression';
 
 	type FriendInfo = {
 		id: number;
@@ -31,18 +33,6 @@
 	let friendsInQueue = $derived(friends.filter(f => f.inQueue));
 	let friendsOnline = $derived(friends.filter(f => f.isOnline && !f.inQueue));
 
-	function speedEmoji(preset: string): string {
-		switch (preset) {
-			case 'chill': return '🐢';
-			case 'normal': return '🏓';
-			case 'fast': return '🔥';
-			default: return '🏓';
-		}
-	}
-
-	function capitalize(s: string): string {
-		return s.charAt(0).toUpperCase() + s.slice(1);
-	}
 </script>
 
 <div class="list-panel">

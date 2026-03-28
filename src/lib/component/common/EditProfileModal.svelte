@@ -2,6 +2,8 @@
 	import { untrack } from 'svelte';
 	import { handleFormSubmit } from '$lib/utils/format_utils';
 	import { invalidateAll } from '$app/navigation';
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 	import UserAvatar from './UserAvatar.svelte';
 	import AvatarGallery from './AvatarGallery.svelte';
 
@@ -139,119 +141,93 @@
 		});
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-			if (e.key === 'Escape') onclose();
-	}
-
-	function handleBackdropClick() {
-		if (!saving && !uploading) onclose();
-	}
-
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if open}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<Modal {open} {onclose} closeable={!saving && !uploading}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-backdrop" onclick={handleBackdropClick}>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="modal" onclick={(e) => e.stopPropagation()}>
-			<div class="modal-header">
-				<h2 class="modal-title">Edit Profile</h2>
-				<button class="modal-close" onclick={onclose} disabled={saving}>&times;</button>
+	<div class="modal" onclick={(e) => e.stopPropagation()}>
+		<div class="modal-header">
+			<h2 class="modal-title">Edit Profile</h2>
+			<button class="modal-close" onclick={onclose} disabled={saving}>&times;</button>
+		</div>
+		<div class="modal-body">
+			<!-- Avatar section -->
+			<div class="avatar-section">
+				<span class="field-label">Avatar</span>
+				<div class="avatar-preview">
+					<UserAvatar username={name} displayName={name} avatarUrl={avatarUrl} size="xl" />
+				</div>
+
+				<AvatarGallery
+					{name}
+					selectedUrl={avatarUrl}
+					uploadedAvatars={uploadedAvatarUrl}
+					defaultAvatars={defaultAvatars}
+					{uploading}
+					unlockedAvatars={[]}
+					lockableAvatars={[]}
+					onselect={(url) => { avatarUrl = url; }}
+					onupload={handleFileUpload}
+					ondelete={handleDeleteUpload}
+
+				/>
 			</div>
-			<div class="modal-body">
-				<!-- Avatar section -->
-				<div class="avatar-section">
-					<span class="field-label">Avatar</span>
-					<div class="avatar-preview">
-						<UserAvatar username={name} displayName={name} avatarUrl={avatarUrl} size="xl" />
-					</div>
 
-					<AvatarGallery
-						{name}
-						selectedUrl={avatarUrl}
-						uploadedAvatars={uploadedAvatarUrl}
-						defaultAvatars={defaultAvatars}
-						{uploading}
-						unlockedAvatars={[]}
-						lockableAvatars={[]}
-						onselect={(url) => { avatarUrl = url; }}
-						onupload={handleFileUpload}
-						ondelete={handleDeleteUpload}
-
-					/>
-				</div>
-
-				<!-- Name field -->
-				<div class="field">
-					<label class="field-label" for="edit-name">Display Name</label>
-					<input
-						id="edit-name"
-						type="text"
-						class="field-input"
-						bind:value={name}
-						maxlength={100}
-						disabled={saving}
-						placeholder="Your display name"
-					/>
-				</div>
-				<!-- Bio field -->
-				<div class="field">
-					<label class="field-label" for="edit-bio">Bio</label>
-					<textarea
-						id="edit-bio"
-						class="field-input field-textarea"
-						bind:value={bio}
-						maxlength={300}
-						disabled={saving}
-						placeholder="Tell others about yourself..."
-						rows={3}
-					></textarea>
-					<span class="char-count">{bio.length}/300</span>
-				</div>
-				{#if error}
-					<p class="modal-error">{error}</p>
-				{/if}
-			</div>
-			<div class="modal-actions">
-				<button
-					class="modal-btn modal-btn--cancel"
-					onclick={handleBackdropClick}
+			<!-- Name field -->
+			<div class="field">
+				<label class="field-label" for="edit-name">Display Name</label>
+				<input
+					id="edit-name"
+					type="text"
+					class="field-input"
+					bind:value={name}
+					maxlength={100}
 					disabled={saving}
-				>
-					Cancel
-				</button>
-				<button
-					class="modal-btn modal-btn--save"
-					onclick={handleSave}
-					disabled={saving || uploading}
-				>
-					{saving ? 'Saving...' : 'Save Changes'}
-				</button>
+					placeholder="Your display name"
+				/>
 			</div>
+			<!-- Bio field -->
+			<div class="field">
+				<label class="field-label" for="edit-bio">Bio</label>
+				<textarea
+					id="edit-bio"
+					class="field-input field-textarea"
+					bind:value={bio}
+					maxlength={300}
+					disabled={saving}
+					placeholder="Tell others about yourself..."
+					rows={3}
+				></textarea>
+				<span class="char-count">{bio.length}/300</span>
+			</div>
+			{#if error}
+				<p class="modal-error">{error}</p>
+			{/if}
+		</div>
+		<div class="modal-actions">
+			<button
+				class="modal-btn modal-btn--cancel"
+				onclick={onclose}
+				disabled={saving}
+			>
+				Cancel
+			</button>
+			<button
+				class="modal-btn modal-btn--save"
+				onclick={handleSave}
+				disabled={saving || uploading}
+			>
+				{saving ? 'Saving...' : 'Save Changes'}
+			</button>
 		</div>
 	</div>
-{/if}
+</Modal>
 
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(10, 10, 26, 0.75);
-		backdrop-filter: blur(6px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		animation: fade-in 0.15s ease-out;
-	}
-
-	@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
 	.modal {
 		width: 100%;
 		max-width: 580px;
@@ -324,93 +300,20 @@
 	/* Avatar section */
 	.avatar-section {
 		margin-bottom: 1.25rem;
+		text-align: center;
 	}
 
 	.avatar-preview {
-		width: 80px;
-		height: 80px;
+		width: 86px;
+		height: 86px;
 		border-radius: 50%;
 		margin: 0.5rem auto 0.75rem;
 		overflow: hidden;
 		border: 3px solid rgba(255, 107, 157, 0.3);
-	}
-
-	/* .avatar-gallery {
-		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-		justify-content: center;
-		margin-bottom: 0.75rem;
-	}
-
-	.avatar-option {
-		width: 44px;
-		height: 44px;
-		border-radius: 50%;
-		border: 2px solid transparent;
-		cursor: pointer;
-		padding: 0;
-		background: none;
-		overflow: hidden;
-		transition: border-color 0.15s, transform 0.15s;
-	}
-
-	.avatar-option:hover {
-		border-color: rgba(255, 255, 255, 0.3);
-		transform: scale(1.1);
-	}
-
-	.avatar-option.selected {
-		border-color: #ff6b9d;
-		box-shadow: 0 0 8px rgba(255, 107, 157, 0.4);
-	}
-
-	.avatar-option img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		display: block;
-	}
-
-	.uploaded-option {
-		border-color: rgba(96, 165, 250, 0.3);
-	}
-
-	.initials-badge {
-		width: 100%;
-		height: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: linear-gradient(135deg, #ff6b9d, #c084fc);
-		color: #fff;
-		font-size: 1.1rem;
-		font-weight: 700;
-		border-radius: 50%;
 	}
-
-	.upload-btn {
-		display: block;
-		text-align: center;
-		padding: 0.45rem 0.75rem;
-		border-radius: 0.5rem;
-		font-size: 0.8rem;
-		font-weight: 500;
-		color: #9ca3af;
-		border: 1px dashed rgba(255, 255, 255, 0.15);
-		cursor: pointer;
-		transition: border-color 0.15s, color 0.15s;
-	}
-
-	.upload-btn:hover {
-		border-color: rgba(255, 255, 255, 0.3);
-		color: #d1d5db;
-	}
-
-	.upload-btn.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	} */
 
 	/* Form fields */
 	.field {
@@ -506,13 +409,9 @@
 		background: #ff8db5;
 	}
 
-	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-
-	@keyframes scaleIn {
-		from { transform: scale(0.95); opacity: 0; }
-		to { transform: scale(1); opacity: 1; }
+	.modal-error {
+		color: #f87171;
+		font-size: 0.8rem;
+		margin: 0;
 	}
 </style>

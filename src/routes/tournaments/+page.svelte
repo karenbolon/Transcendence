@@ -5,6 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { capitalize } from '$lib/utils/format_progression';
+	import { timeAgo, ordinal } from '$lib/utils/format_date';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
@@ -95,24 +96,6 @@
 		{ value: 16, label: '16 players', sub: '4 rounds', emoji: '💥' },
 	];
 
-	function timeAgo(dateStr: string | null): string {
-		if (!dateStr) return '';
-		const diff = Date.now() - new Date(dateStr).getTime();
-		const mins = Math.floor(diff / 60000);
-		if (mins < 1) return 'just now';
-		if (mins < 60) return `${mins}m ago`;
-		const hours = Math.floor(mins / 60);
-		if (hours < 24) return `${hours}h ago`;
-		const days = Math.floor(hours / 24);
-		if (days === 1) return 'Yesterday';
-		return `${days} days ago`;
-	}
-
-	function ordinal(n: number): string {
-		const s = ['th', 'st', 'nd', 'rd'];
-		const v = n % 100;
-		return n + (s[(v - 20) % 10] || s[v] || s[0]);
-	}
 </script>
 
 <Starfield />

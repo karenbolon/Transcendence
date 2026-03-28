@@ -55,6 +55,7 @@ export class GameRoom {
 	private disconnectTimers = new Map<number, ReturnType<typeof setTimeout>>();
 	private destroyed = false;
 	private gameEnded = false;
+	private lastTickCount = 0;
 
 	constructor(options: GameRoomOptions) {
 		this.roomId = options.roomId;
@@ -101,9 +102,13 @@ export class GameRoom {
 
 		// Create fresh game state (same function used client-side)
 		this.state = createGameState();
-		this.state.powerUpsEnabled = this.settings.powerUps;
+		// ENSURE initialization of settings matches state
+		this.state.powerUpsEnabled = !!this.settings.powerUps;
 		
-		console.log(`[GameRoom] Initialized room ${this.roomId} | Power-ups: ${this.settings.powerUps} | First to: ${this.settings.winScore}`);
+		console.log(`[GameRoom] Initialized room ${this.roomId} | Power-ups from settings: ${this.settings.powerUps} | State enabled: ${this.state.powerUpsEnabled} | Win score: ${this.settings.winScore}`);
+		if (this.settings.powerUps) {
+			console.log(`[GameRoom] Power-ups are ON. Initial cooldown: ${this.state.powerUpCooldown}s`);
+		}
 	}
 
 	// ── Socket Management ─────────────────────────────────────
@@ -196,7 +201,6 @@ export class GameRoom {
 		const safeDt = Math.min(dt, 0.05);
 
 		// Merge input from both players into one InputState
-		// (the engine expects one InputState with all 4 paddle directions)
 		const mergedInput: InputState = {
 			paddle1Up: this.player1.input.paddle1Up,
 			paddle1Down: this.player1.input.paddle1Down,
@@ -208,6 +212,12 @@ export class GameRoom {
 
 		// Run the SAME physics update that runs client-side
 		update(this.state, safeDt, mergedInput, this.settings);
+
+		// Periodic diagnostic for power-ups (every 300 ticks ~5 seconds)
+		this.lastTickCount++;
+		if (this.settings.powerUps && this.lastTickCount % 300 === 0) {
+			console.log(`[GameRoom] Tick ${this.lastTickCount} | Room ${this.roomId} | PowerUpItem: ${this.state.powerUpItem ? this.state.powerUpItem.type : 'null'} | Cooldown: ${this.state.powerUpCooldown.toFixed(1)}s`);
+		}
 
 		// Handle countdown → playing transition
 		if (this.state.phase === 'countdown' && this.state.countdownTimer <= 0) {
@@ -227,7 +237,7 @@ export class GameRoom {
 	// ── State Snapshot ────────────────────────────────────────
 	/** Build a GameStateSnapshot from the full GameState */
 	private getSnapshot(): GameStateSnapshot {
-		return {
+		const snapshot: GameStateSnapshot = {
 			phase: this.state.phase,
 			paddle1Y: this.state.paddle1Y,
 			paddle2Y: this.state.paddle2Y,
@@ -258,6 +268,15 @@ export class GameRoom {
 			})),
 			lastBallHitter: this.state.lastBallHitter,
 		};
+
+		if (snapshot.powerUpItem) {
+			// One-time log when a power-up is in a snapshot to confirm it's being sent
+			if (this.lastTickCount % 60 === 0) {
+				console.log(`[GameRoom] Snapshot for room ${this.roomId} contains powerUpItem: ${snapshot.powerUpItem.type} at (${snapshot.powerUpItem.x.toFixed(0)}, ${snapshot.powerUpItem.y.toFixed(0)})`);
+			}
+		}
+
+		return snapshot;
 	}
 
 	// ── Game End Handling ─────────────────────────────────────

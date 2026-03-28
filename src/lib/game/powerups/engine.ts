@@ -47,6 +47,8 @@ export function spawnPowerUp(state: GameState): void {
 		radius: POWERUP_RADIUS,
 		active: true,
 	};
+
+	console.log(`[PowerUps] 🌀 SPAWNED item on server: ${chosenType} at (${state.powerUpItem.x.toFixed(0)}, ${state.powerUpItem.y.toFixed(0)})`);
 }
 
 /** Main power-up update loop. Call from updatePlaying() when powerUps is enabled. */

@@ -120,6 +120,12 @@
 					'| activeEffects ok:', Array.isArray(state.activeEffects),
 					'| powerUpItem:', state.powerUpItem);
 			}
+
+			// Trace power-up appearance in snapshot
+			if (state.powerUpItem && (!prevSnapshot || !prevSnapshot.state.powerUpItem)) {
+				console.log(`[OnlineGame] 🎁 POWER-UP ITEM DETECTED: ${state.powerUpItem.type} at (${state.powerUpItem.x.toFixed(0)}, ${state.powerUpItem.y.toFixed(0)})`);
+			}
+
 			prevSnapshot = currSnapshot;
 			currSnapshot = { state, receivedAt: performance.now() };
 		});

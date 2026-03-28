@@ -286,6 +286,11 @@ function updatePlaying(
 	// Track total play time
 	state.playTime += dt;
 
+	// Diagnostic: log every 10 seconds of play time on the server
+	if (typeof window === 'undefined' && Math.floor(state.playTime) % 10 === 0 && Math.floor(state.playTime) !== Math.floor(state.playTime - dt)) {
+		console.log(`[gameEngine] updatePlaying | Room check: settings.powerUps=${settings.powerUps} | item=${state.powerUpItem?.type ?? 'none'}`);
+	}
+
 	// Move paddles FIRST — players should always be able to move
 	movePaddles(state, dt, input);
 

@@ -217,7 +217,7 @@
 
 			<!-- Tournament Name -->
 			<div class="form-section">
-				<label class="form-label">TOURNAMENT NAME</label>
+				<span class="form-label">TOURNAMENT NAME</span>
 				<input
 					class="form-input"
 					bind:value={newName}
@@ -228,7 +228,7 @@
 
 			<!-- Players -->
 			<div class="form-section">
-				<label class="form-label">PLAYERS</label>
+				<span class="form-label">PLAYERS</span>
 				<div class="option-grid cols-3">
 					{#each playerOptions as opt}
 						<button
@@ -246,7 +246,7 @@
 
 			<!-- Ball Speed -->
 			<div class="form-section">
-				<label class="form-label">BALL SPEED</label>
+				<span class="form-label">BALL SPEED</span>
 				<div class="option-grid cols-3">
 					{#each speedOptions as opt}
 						<button
@@ -263,7 +263,7 @@
 
 			<!-- First To -->
 			<div class="form-section">
-				<label class="form-label">FIRST TO</label>
+				<span class="form-label">FIRST TO</span>
 				<div class="option-grid cols-4">
 					{#each scoreOptions as opt}
 						<button

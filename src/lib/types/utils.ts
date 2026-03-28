@@ -3,3 +3,5 @@ export type ProfileEditData = {
 	bio: string | null;
 	avatarUrl: string | null;
 };
+
+export type Pair<T> = readonly [T, T];

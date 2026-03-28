@@ -1139,9 +1139,24 @@ async function saveOnlineMatch(result) {
 			}
 		}
 
+		// 5b. Accumulate tournament XP for both players
+		if (isTournament && tournamentId != null) {
+			for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]]) {
+				if (progression.xpEarned > 0) {
+					await sql`
+						UPDATE tournament_participants
+						SET xp_earned = xp_earned + ${progression.xpEarned}
+						WHERE tournament_id = ${tournamentId} AND user_id = ${uid}
+					`;
+				}
+			}
+		}
+
 		// 6. Check if this was a tournament match
 		if (isTournament && tournamentId != null && tournamentRound != null && tournamentMatchIndex != null) {
-			await advanceTournamentWinner(tournamentId, tournamentRound, tournamentMatchIndex, result.winnerId, result.loserId);
+			const tWinnerScore = result.winnerId === result.player1.userId ? result.player1.score : result.player2.score;
+			const tLoserScore = result.winnerId === result.player1.userId ? result.player2.score : result.player1.score;
+			await advanceTournamentWinner(tournamentId, tournamentRound, tournamentMatchIndex, result.winnerId, result.loserId, tWinnerScore, tLoserScore);
 		}
 
 		// 7. System message in chat
@@ -1454,7 +1469,7 @@ async function startTournamentRoundMatches(tournamentId, round) {
 	emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
 }
 
-async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId) {
+async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) return;
 
@@ -1462,7 +1477,19 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 	if (!roundData) return;
 
 	const match = roundData.matches[matchIndex];
-	if (match) { match.winnerId = winnerId; match.status = 'finished'; }
+	if (match) {
+		match.winnerId = winnerId;
+		match.status = 'finished';
+		if (winnerScore !== undefined) {
+			if (match.player1Id === winnerId) {
+				match.player1Score = winnerScore;
+				match.player2Score = loserScore;
+			} else {
+				match.player1Score = loserScore;
+				match.player2Score = winnerScore;
+			}
+		}
+	}
 
 	// Eliminate loser — calculate placement based on round + matchIndex for unique ranks
 	const totalRounds = tourney.bracket.length;

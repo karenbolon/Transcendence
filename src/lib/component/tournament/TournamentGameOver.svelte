@@ -12,8 +12,10 @@
 		myScore: number;
 		opponentScore: number;
 		opponentUsername: string;
+		opponentDisplayName?: string | null;
 		opponentAvatarUrl: string | null;
 		myUsername: string;
+		myDisplayName?: string | null;
 		myAvatarUrl: string | null;
 		durationSeconds: number;
 		speedPreset: string;
@@ -32,7 +34,7 @@
 		tournamentLosses?: number;
 		tournamentContinues?: { player1Username: string; player2Username: string; roundName: string } | null;
 		// Champion / Runner-up
-		podium?: { username: string; avatarUrl: string | null; placement: number }[];
+		podium?: { username: string; displayName?: string | null; avatarUrl: string | null; placement: number }[];
 		championWins?: number;
 		championTotalTime?: number;
 		championXpEarned?: number;
@@ -47,8 +49,8 @@
 
 	let {
 		outcome,
-		myScore, opponentScore, opponentUsername, opponentAvatarUrl,
-		myUsername, myAvatarUrl, durationSeconds, speedPreset,
+		myScore, opponentScore, opponentUsername, opponentDisplayName = null, opponentAvatarUrl,
+		myUsername, myDisplayName = null, myAvatarUrl, durationSeconds, speedPreset,
 		tournamentName, round, totalRounds, roundName,
 		nextRoundName, nextOpponent, xpEarned = 0,
 		placement, tournamentWins = 0, tournamentLosses = 1,
@@ -95,7 +97,7 @@
 		<div class="vs-layout">
 			<div class="player-card">
 				<div class="avatar-wrap winner-ring">
-					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} size="xl" />
+					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} displayName={myDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{myUsername}</span>
 				<span class="player-score winner">{myScore}</span>
@@ -104,7 +106,7 @@
 			<span class="vs-text">VS</span>
 			<div class="player-card">
 				<div class="avatar-wrap">
-					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} size="xl" />
+					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} displayName={opponentDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{opponentUsername}</span>
 				<span class="player-score loser">{opponentScore}</span>
@@ -180,7 +182,7 @@
 		<div class="vs-layout">
 			<div class="player-card">
 				<div class="avatar-wrap">
-					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} size="xl" />
+					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} displayName={myDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{myUsername}</span>
 				<span class="player-score loser">{myScore}</span>
@@ -188,7 +190,7 @@
 			<span class="vs-text">VS</span>
 			<div class="player-card">
 				<div class="avatar-wrap winner-ring">
-					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} size="xl" />
+					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} displayName={opponentDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{opponentUsername}</span>
 				<span class="player-score winner">{opponentScore}</span>
@@ -254,7 +256,7 @@
 		<div class="champion-avatar">
 			<span class="crown">👑</span>
 			<div class="avatar-wrap champion-ring">
-				<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} size="xxl" />
+				<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} displayName={myDisplayName} size="xxl" />
 			</div>
 			<span class="champion-name">{myUsername}</span>
 			<span class="champion-place">1st Place</span>
@@ -265,7 +267,7 @@
 				{#each podium.filter(p => p.placement > 1).sort((a, b) => a.placement - b.placement) as p}
 					<div class="podium-entry">
 						<div class="avatar-wrap podium-ring-{p.placement}">
-							<UserAvatar avatarUrl={p.avatarUrl} username={p.username} size="lg" />
+							<UserAvatar avatarUrl={p.avatarUrl} username={p.username} displayName={p.displayName} size="lg" />
 						</div>
 						<span class="podium-name">{p.username}</span>
 						<span class="podium-place">
@@ -321,16 +323,22 @@
 		<div class="vs-layout">
 			<div class="player-card">
 				<div class="avatar-wrap">
-					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} size="xl" />
+					<!-- TODO -->
+					<!-- pass name to all avatar components -->
+					<UserAvatar avatarUrl={myAvatarUrl} username={myUsername} displayName={myDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{myUsername}</span>
 				<span class="player-score loser">{myScore}</span>
 			</div>
-			<span class="vs-text">VS</span>
+			<div class="vs-divider">
+				<div class="vs-line"></div>
+				<span class="vs-text">VS</span>
+				<div class="vs-line"></div>
+			</div>
 			<div class="player-card">
 				<span class="crown-small">👑</span>
 				<div class="avatar-wrap champion-ring">
-					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} size="xl" />
+					<UserAvatar avatarUrl={opponentAvatarUrl} username={opponentUsername} displayName={opponentDisplayName} size="xl" />
 				</div>
 				<span class="player-name">{opponentUsername}</span>
 				<span class="player-score winner">{opponentScore}</span>
@@ -368,7 +376,7 @@
 		{#if newBadges.length > 0}
 			<div class="badges">
 				{#each newBadges as badge, i}
-					<div class="badge" style="animation-delay: {i * 0.15}s">
+					<div class="badge" style="animation-delay: {0.8 + i * 0.1}s">
 						<span class="badge-emoji">{badge.emoji}</span>
 						<span class="badge-name">{badge.name}</span>
 					</div>
@@ -455,11 +463,12 @@
 	}
 
 	.avatar-wrap {
-		width: 72px;
-		height: 72px;
 		border-radius: 50%;
 		overflow: hidden;
 		border: 3px solid rgba(255, 255, 255, 0.1);
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.avatar-wrap.winner-ring {
@@ -743,10 +752,7 @@
 		z-index: 1;
 	}
 
-	.champion-avatar .avatar-wrap {
-		width: 96px;
-		height: 96px;
-	}
+	/* champion-avatar size is controlled by UserAvatar size="xxl" (110px) */
 
 	.champion-name {
 		font-size: 1.1rem;
@@ -773,10 +779,7 @@
 		gap: 0.25rem;
 	}
 
-	.podium-entry .avatar-wrap {
-		width: 56px;
-		height: 56px;
-	}
+	/* podium-entry avatar size is controlled by UserAvatar size="lg" (56px) */
 
 	.podium-name {
 		font-size: 0.8rem;
@@ -933,8 +936,6 @@
 
 	@media (max-width: 500px) {
 		.vs-layout { gap: 1rem; }
-		.avatar-wrap { width: 56px; height: 56px; }
-		.champion-avatar .avatar-wrap { width: 72px; height: 72px; }
 		.player-score { font-size: 1.8rem; }
 		.stats-row { gap: 1rem; padding: 0.75rem 1rem; }
 		.run-stats { gap: 1rem; }

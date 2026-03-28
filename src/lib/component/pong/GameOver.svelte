@@ -119,7 +119,7 @@
 	{#if gameOverData.newBadges.length > 0}
 		<div class="badges">
 			{#each gameOverData.newBadges as badge, i}
-				<div class="badge" style="animation-delay: {i * 0.15}s">
+				<div class="badge" style="animation-delay: {0.8 + i * 0.1}s">
 					<span class="badge-emoji">{badge.emoji}</span>
 					<span class="badge-name">{badge.name}</span>
 				</div>

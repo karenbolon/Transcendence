@@ -74,11 +74,12 @@ export function updatePowerUps(state: GameState, dt: number, settings: GameSetti
 	}
 
 	// 3. Tick down active effects
-	for (let i = state.activeEffects.length - 1; i >= 0; i--) {
-		state.activeEffects[i].remainingTime -= dt;
-		if (state.activeEffects[i].remainingTime <= 0) {
-			onEffectExpired(state, state.activeEffects[i], settings);
-			state.activeEffects.splice(i, 1);
+	const effects = state.activeEffects ?? [];
+	for (let i = effects.length - 1; i >= 0; i--) {
+		effects[i].remainingTime -= dt;
+		if (effects[i].remainingTime <= 0) {
+			onEffectExpired(state, effects[i], settings);
+			effects.splice(i, 1);
 		}
 	}
 
@@ -166,7 +167,7 @@ function onEffectExpired(state: GameState, effect: ActiveEffect, _settings: Game
  */
 export function getEffectivePaddleHeight(state: GameState, player: 'player1' | 'player2'): number {
 	let height = PADDLE_HEIGHT;
-	for (const effect of state.activeEffects) {
+	for (const effect of (state.activeEffects ?? [])) {
 		if (effect.target !== player) continue;
 		if (effect.type === 'bigPaddle') height *= 2;
 		if (effect.type === 'smallPaddle') height *= 0.5;
@@ -231,7 +232,7 @@ function applyContinuousEffects(state: GameState, dt: number): void {
  * Used in movePaddles() in gameEngine.ts.
  */
 export function isReversed(state: GameState, player: 'player1' | 'player2'): boolean {
-	return state.activeEffects.some(e => e.type === 'reverseControls' && e.target === player);
+	return (state.activeEffects ?? []).some(e => e.type === 'reverseControls' && e.target === player);
 }
 
 /**
@@ -239,7 +240,7 @@ export function isReversed(state: GameState, player: 'player1' | 'player2'): boo
  * Used in movePaddles() in gameEngine.ts.
  */
 export function isFrozen(state: GameState, player: 'player1' | 'player2'): boolean {
-	return state.activeEffects.some(e => e.type === 'freeze' && e.target === player);
+	return (state.activeEffects ?? []).some(e => e.type === 'freeze' && e.target === player);
 }
 
 /**
@@ -247,5 +248,5 @@ export function isFrozen(state: GameState, player: 'player1' | 'player2'): boole
  * Used in rendering only — the ball still exists in physics.
  */
 export function isInvisibleBallActive(state: GameState): boolean {
-	return state.activeEffects.some(e => e.type === 'invisibleBall');
+	return (state.activeEffects ?? []).some(e => e.type === 'invisibleBall');
 }

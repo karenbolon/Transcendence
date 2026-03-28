@@ -44,7 +44,9 @@ function broadcastState(roomId: string, state: GameStateSnapshot): void {
 	const room = getRoom(roomId);
 	if (!room) return;
 
-	//const snapshot = state;
+	// Uncomment the line below to trace state broadcasts (verbose — 60/s!)
+	// console.log(`[broadcastState] room=${roomId} phase=${state.phase} p1_sockets=${room.player1.socketIds.size} p2_sockets=${room.player2.socketIds.size}`);
+
 	for (const sid of room.player1.socketIds) {
 		io.to(sid).emit('game:state', state);
 	}
@@ -166,7 +168,7 @@ export function registerGameHandlers(socket: Socket) {
 		// usersInGame.add(invite.fromUserId);
 		// usersInGame.add(userId);
 		// CREATE THE GAME ROOM — this is where GameRoom gets instantiated
-		createRoom(
+		const room = createRoom(
 			roomId,
 			{ userId: invite.fromUserId, username: invite.fromUsername },
 			{ userId, username },
@@ -174,6 +176,8 @@ export function registerGameHandlers(socket: Socket) {
 			broadcastState,
 			broadcastEvent,
 		);
+		console.log(`[game:invite-accept] Room created: ${roomId} | P1=${invite.fromUsername}(${invite.fromUserId}) P2=${username}(${userId}) | settings=${JSON.stringify(invite.settings)}`);
+		console.log(`[game:invite-accept] Challenger sockets: ${userSockets.get(invite.fromUserId)?.size ?? 0}, Accepter sockets: ${userSockets.get(userId)?.size ?? 0}`);
 
 		const gameData = {
 			roomId,
@@ -188,6 +192,7 @@ export function registerGameHandlers(socket: Socket) {
 
 		// Notify challenger
 		const challengerSockets = userSockets.get(invite.fromUserId);
+		console.log(`[game:invite-accept] Notifying challenger ${invite.fromUsername} on ${challengerSockets?.size ?? 0} socket(s)`);
 		if (challengerSockets) {
 			for (const sid of challengerSockets) {
 				io.to(sid).emit('game:start', gameData);
@@ -196,6 +201,7 @@ export function registerGameHandlers(socket: Socket) {
 
 		// Notify accepter
 		const accepterSockets = userSockets.get(userId);
+		console.log(`[game:invite-accept] Notifying accepter ${username} on ${accepterSockets?.size ?? 0} socket(s)`);
 		if (accepterSockets) {
 			for (const sid of accepterSockets) {
 				io.to(sid).emit('game:start', gameData);
@@ -206,13 +212,19 @@ export function registerGameHandlers(socket: Socket) {
 	// ── Join a game room (called when player navigates to game page) ─
 	socket.on('game:join-room', (data: { roomId: string }) => {
 		const room = getRoom(data.roomId);
+
+		console.log(`[game:join-room] userId=${userId} (${username}) attempting to join roomId=${data.roomId} | room exists=${!!room} | isPlayer=${room?.hasPlayer(userId)}`);
+
 		if (!room || !room.hasPlayer(userId)) {
 			socket.emit('game:error', { message: 'Game room not found' });
+			console.warn(`[game:join-room] REJECTED: room not found or user not a player. roomId=${data.roomId}, userId=${userId}`);
 			return;
 		}
 
 		// Register this socket in the room
 		room.addSocket(userId, socket.id);
+
+		console.log(`[game:join-room] After addSocket: P1(${room.player1.username}) sockets=${room.player1.socketIds.size}, P2(${room.player2.username}) sockets=${room.player2.socketIds.size}`);
 
 		// Tell the client which side they play (left paddle or right paddle)
 		const side = userId === room.player1.userId ? 'left' : 'right';
@@ -223,9 +235,17 @@ export function registerGameHandlers(socket: Socket) {
 			player2: { userId: room.player2.userId, username: room.player2.username },
 		});
 
+		// Send initial state immediately so the player sees the court before game starts
+		socket.emit('game:state', room.getState());
+
 		// If both players now have at least one socket connected, start the game
-		if (room.player1.socketIds.size > 0 && room.player2.socketIds.size > 0) {
+		const p1Ready = room.player1.socketIds.size > 0;
+		const p2Ready = room.player2.socketIds.size > 0;
+		if (p1Ready && p2Ready) {
+			console.log(`[game:join-room] ✅ Both players present. Starting room ${data.roomId}...`);
 			room.start();
+		} else {
+			console.log(`[game:join-room] ⏳ Waiting: P1 ready=${p1Ready}, P2 ready=${p2Ready}`);
 		}
 	});
 

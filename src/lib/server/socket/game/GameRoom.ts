@@ -130,8 +130,8 @@ export class GameRoom {
 		// If player has NO sockets left and game is active → start forfeit timer
 		if (player.socketIds.size === 0 &&
 			(this.state.phase === 'playing' || this.state.phase === 'countdown')) {
-				this.broadcastEvent(this.roomId, 'game:player-disconnected', {
-					userId, timeout: RECONNECT_TIMEOUT
+			this.broadcastEvent(this.roomId, 'game:player-disconnected', {
+				userId, timeout: RECONNECT_TIMEOUT
 			});
 
 			const timer = setTimeout(() => {

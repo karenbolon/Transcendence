@@ -52,6 +52,7 @@
 	let prevSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let currSnapshot: { state: GameStateSnapshot; receivedAt: number } | null = null;
 	let disconnectedPlayer: number | null = $state(null);
+	let firstStateReceived = false;  // diagnostic flag
 
 	// ── Keyboard Input ──────────────────────────────────────────
 	// Track individual keys to handle simultaneous presses correctly.
@@ -113,6 +114,12 @@
 
 		// Listen for state updates from the server (60 per second)
 		socket.on('game:state', (state: GameStateSnapshot) => {
+			if (!firstStateReceived) {
+				firstStateReceived = true;
+				console.log('[OnlineGame] First game:state received. Phase:', state.phase,
+					'| activeEffects ok:', Array.isArray(state.activeEffects),
+					'| powerUpItem:', state.powerUpItem);
+			}
 			prevSnapshot = currSnapshot;
 			currSnapshot = { state, receivedAt: performance.now() };
 		});
@@ -177,33 +184,37 @@
 			}
 
 			if (latestState) {
-				// Effects updates
-				effects.update(dt);
-				if (latestState.phase === 'playing' || latestState.phase === 'countdown') {
-					effects.addTrailPoint(latestState.ballX, latestState.ballY);
-					effects.maybeSpawnSpeedLine(latestState.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
-				}
+				try {
+					// Effects updates
+					effects.update(dt);
+					if (latestState.phase === 'playing' || latestState.phase === 'countdown') {
+						effects.addTrailPoint(latestState.ballX, latestState.ballY);
+						effects.maybeSpawnSpeedLine(latestState.ballVX, CANVAS_WIDTH, CANVAS_HEIGHT);
+					}
 
-				// Detect paddle hit
-				if (latestState.phase === 'playing' && Math.sign(latestState.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
-					const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
-					const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
-					effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
-					getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
-				}
+					// Detect paddle hit
+					if (latestState.phase === 'playing' && Math.sign(latestState.ballVX) !== Math.sign(prevBallVX) && prevBallVX !== 0) {
+						const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
+						const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+						effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
+						getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
+					}
 
-				// Detect score change
-				if (latestState.score1 !== prevScore1 || latestState.score2 !== prevScore2) {
-					const scoredLeft = latestState.score1 !== prevScore1;
-					const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
-					effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
-					getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
-					prevScore1 = latestState.score1;
-					prevScore2 = latestState.score2;
-				}
+					// Detect score change
+					if (latestState.score1 !== prevScore1 || latestState.score2 !== prevScore2) {
+						const scoredLeft = latestState.score1 !== prevScore1;
+						const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
+						effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
+						getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
+						prevScore1 = latestState.score1;
+						prevScore2 = latestState.score2;
+					}
 
-				prevBallVX = latestState.ballVX;
-				draw(ctx!, latestState);
+					prevBallVX = latestState.ballVX;
+					draw(ctx!, latestState);
+				} catch (err) {
+					console.error('[OnlineGame] Render error:', err, '\nState snapshot:', JSON.stringify({ phase: latestState.phase, activeEffects: latestState.activeEffects }));
+				}
 			}
 			animFrame = requestAnimationFrame(renderLoop);
 		}

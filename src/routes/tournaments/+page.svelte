@@ -476,7 +476,7 @@
 		font-size: 1.1rem;
 		font-weight: 700;
 		color: #f3f4f6;
-		margin: 0;
+		margin: 0.8rem 0;
 	}
 
 	.section-count {

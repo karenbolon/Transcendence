@@ -1266,6 +1266,14 @@ async function startTournamentRoundMatches(tournamentId, round) {
 	emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
 }
 
+function getRoundName(round, totalRounds) {
+	const fromFinal = totalRounds - round;
+	if (fromFinal === 0) return 'Final';
+	if (fromFinal === 1) return 'Semifinals';
+	if (fromFinal === 2) return 'Quarterfinals';
+	return `Round ${round}`;
+}
+
 async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) return;
@@ -1293,10 +1301,40 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 	const placement = Math.pow(2, totalRounds - round) + 1 + matchIndex;
 	await sql`UPDATE tournament_participants SET status = 'eliminated', placement = ${placement} WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}`;
 
-	// Place winner in next round
+	// Count loser's tournament wins (for eliminated screen stats)
+	const loserWins = tourney.bracket.reduce((count, r) => {
+		return count + r.matches.filter(m => m.winnerId === loserId).length;
+	}, 0);
+
+	// Find next match happening in the tournament (for "Tournament continues..." card)
 	const nextRound = tourney.bracket.find(r => r.round === round + 1);
+	let tournamentContinues = null;
 	if (nextRound) {
-		emitToTournamentUser(loserId, 'tournament:eliminated', { tournamentId, round, placement });
+		const nextMatchForViewer = nextRound.matches.find(m => m.player1Id && m.player2Id && m.status === 'pending')
+			?? nextRound.matches.find(m => m.player1Id || m.player2Id);
+		if (nextMatchForViewer && nextMatchForViewer.player1Username && nextMatchForViewer.player2Username) {
+			tournamentContinues = {
+				player1Username: nextMatchForViewer.player1Username,
+				player2Username: nextMatchForViewer.player2Username,
+				roundName: getRoundName(round + 1, totalRounds),
+			};
+		}
+	}
+
+	if (nextRound) {
+		// Emit tournament:eliminated (non-final rounds only)
+		emitToTournamentUser(loserId, 'tournament:eliminated', {
+			tournamentId,
+			round,
+			placement,
+			totalRounds,
+			tournamentName: tourney.name,
+			roundName: getRoundName(round, totalRounds),
+			tournamentWins: loserWins,
+			tournamentLosses: 1,
+			tournamentContinues,
+		});
+
 		const nextMatchIndex = Math.floor(matchIndex / 2);
 		const nextMatch = nextRound.matches[nextMatchIndex];
 		if (nextMatch) {
@@ -1304,22 +1342,80 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 			if (matchIndex % 2 === 0) { nextMatch.player1Id = winnerId; nextMatch.player1Username = winnerUsername; }
 			else { nextMatch.player2Id = winnerId; nextMatch.player2Username = winnerUsername; }
 
-			emitToTournamentUser(winnerId, 'tournament:advanced', { tournamentId, nextRound: round + 1, nextMatchIndex });
+			// Look up next opponent info
+			const nextOpponentId = matchIndex % 2 === 0 ? nextMatch.player2Id : nextMatch.player1Id;
+			let nextOpponentInfo = null;
+			if (nextOpponentId) {
+				const [opponentUser] = await sql`SELECT wins FROM users WHERE id = ${nextOpponentId}`;
+				const [opponentParticipant] = await sql`SELECT seed FROM tournament_participants WHERE tournament_id = ${tournamentId} AND user_id = ${nextOpponentId}`;
+				nextOpponentInfo = {
+					username: tourney.playerMap.get(nextOpponentId) ?? 'Player',
+					wins: opponentUser?.wins ?? 0,
+					seed: opponentParticipant?.seed ?? 0,
+				};
+			}
+
+			// Count winner's tournament wins so far
+			const winnerTournamentWins = tourney.bracket.reduce((count, r) => {
+				return count + r.matches.filter(m => m.winnerId === winnerId).length;
+			}, 0);
+
+			emitToTournamentUser(winnerId, 'tournament:advanced', {
+				tournamentId,
+				round,
+				nextRound: round + 1,
+				nextMatchIndex,
+				totalRounds,
+				tournamentName: tourney.name,
+				roundName: getRoundName(round, totalRounds),
+				nextRoundName: getRoundName(round + 1, totalRounds),
+				nextOpponent: nextOpponentInfo,
+				tournamentWins: winnerTournamentWins,
+			});
 
 			if (nextMatch.player1Id && nextMatch.player2Id) {
 				await startTournamentRoundMatches(tournamentId, round + 1);
 			}
 		}
 	} else {
-		// Tournament is over
+		// No next round — tournament is over!
 		await sql`UPDATE tournaments SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW(), bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
 		await sql`UPDATE tournament_participants SET status = 'champion', placement = 1 WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}`;
-
-		// Determine 2nd place from the final match loser
 		await sql`UPDATE tournament_participants SET placement = 2 WHERE tournament_id = ${tournamentId} AND user_id = ${loserId} AND (placement IS NULL OR placement > 2)`;
 
+		// Build podium (top 3)
+		const podiumRows = await sql`
+			SELECT tp.user_id, tp.placement, u.username, u.avatar_url
+			FROM tournament_participants tp
+			JOIN users u ON u.id = tp.user_id
+			WHERE tp.tournament_id = ${tournamentId}
+			ORDER BY tp.placement
+		`;
+		const podium = podiumRows
+			.filter(p => p.placement !== null && p.placement <= 3)
+			.map(p => ({ userId: p.user_id, username: p.username, avatarUrl: p.avatar_url, placement: p.placement }));
+
+		// Count champion's and runner-up's wins
+		const championWins = tourney.bracket.reduce((count, r) => {
+			return count + r.matches.filter(m => m.winnerId === winnerId).length;
+		}, 0);
+		const runnerUpWins = tourney.bracket.reduce((count, r) => {
+			return count + r.matches.filter(m => m.winnerId === loserId).length;
+		}, 0);
+
 		emitToTournamentParticipants(tournamentId, 'tournament:finished', {
-			tournamentId, winnerId, winnerUsername: tourney.playerMap.get(winnerId), bracket: tourney.bracket,
+			tournamentId,
+			winnerId,
+			loserId,
+			winnerUsername: tourney.playerMap.get(winnerId),
+			tournamentName: tourney.name,
+			round,
+			totalRounds,
+			roundName: getRoundName(round, totalRounds),
+			podium,
+			championWins,
+			runnerUpWins,
+			bracket: tourney.bracket,
 		});
 		activeTournaments.delete(tournamentId);
 		io.emit('tournament:list-updated');

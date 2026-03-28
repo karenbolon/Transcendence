@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════
+   Shared Modal Styles — imported by Modal.svelte
+   Used across all modal components in the project.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Animations ── */
+
+@keyframes modal-fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes modal-scale-in {
+	from { opacity: 0; transform: scale(0.92); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modal-slide-up {
+	from { opacity: 0; transform: translateY(12px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Base modal panel ──
+   Common card style used by most modals.
+   Apply to the inner content div inside <Modal>. */
+
+.modal-panel-base {
+	width: 100%;
+	background: linear-gradient(145deg, #181840, #12122e);
+	border: 1px solid rgba(255, 107, 157, 0.12);
+	border-radius: 1.1rem;
+	box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5),
+	            0 0 40px rgba(255, 107, 157, 0.05);
+	animation: modal-scale-in 0.2s ease-out;
+}
+
+/* ── Common modal elements ── */
+
+.modal-title-base {
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: var(--color-primary, #ff6b9d);
+	margin: 0;
+}
+
+.modal-desc-base {
+	color: var(--color-text-muted, #9ca3af);
+	font-size: 0.88rem;
+	line-height: 1.5;
+}
+
+/* ── Button pair layout ── */
+
+.modal-actions-base {
+	display: flex;
+	gap: 0.75rem;
+}
+
+.modal-btn-base {
+	flex: 1;
+	padding: 0.6rem 1rem;
+	border-radius: var(--radius-sm, 0.5rem);
+	font-size: 0.85rem;
+	font-weight: 600;
+	font-family: inherit;
+	cursor: pointer;
+	border: none;
+	transition: background 0.15s, opacity 0.15s;
+}
+
+.modal-btn-base:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Primary action (pink) */
+.modal-btn-primary {
+	background: var(--color-primary, #ff6b9d);
+	color: #fff;
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+	background: var(--color-primary-hover, #ff8db5);
+}
+
+/* Secondary/cancel action */
+.modal-btn-secondary {
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--color-text-muted, #d1d5db);
+}
+
+.modal-btn-secondary:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+/* Danger action (red) */
+.modal-btn-danger {
+	background: #dc2626;
+	color: #fff;
+}
+
+.modal-btn-danger:hover:not(:disabled) {
+	background: #b91c1c;
+}

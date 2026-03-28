@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { formatJoinDate } from "$lib/utils/format_date";
 	import { XP_REWARDS, TIER_COLORS, RARITY_PERCENT, capitalize } from '$lib/utils/format_progression';
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 	import type { Achievement } from '$lib/types/progression';
 
 	type Props = {
@@ -19,134 +21,106 @@
 	);
 	let tierLabel = $derived(achievement ? capitalize(achievement.tier) : '');
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if achievement}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<Modal open={!!achievement} {onclose} blur="8px">
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-backdrop" onclick={onclose}>
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-		<div class="modal-panel" onclick={(e) => e.stopPropagation()}>
-			<!-- Top section -->
-			<div class="modal-top">
-				<div
-					class="tier-bg"
-					style="background: linear-gradient(90deg, transparent, {tierColor}, transparent)"
-				></div>
-				<span
-					class="modal-icon"
-					class:locked={!earned}
+	<div class="modal-panel" onclick={(e) => e.stopPropagation()}>
+		<!-- Top section -->
+		<div class="modal-top">
+			<div
+				class="tier-bg"
+				style="background: linear-gradient(90deg, transparent, {tierColor}, transparent)"
+			></div>
+			<span
+				class="modal-icon"
+				class:locked={!earned}
+			>
+				{achievement?.icon}
+			</span>
+			<div class="modal-name" class:locked-name={!earned}>
+				{achievement?.name}
+			</div>
+			<div class="modal-desc">{achievement?.description}</div>
+		</div>
+
+		<!-- Body -->
+		<div class="modal-body">
+			<!-- Tier -->
+			<div class="modal-row">
+				<span class="row-label">Tier</span>
+				<span class="row-value tier-badge {achievement?.tier}"
+					>{tierLabel}</span
 				>
-					{achievement.icon}
-				</span>
-				<div class="modal-name" class:locked-name={!earned}>
-					{achievement.name}
-				</div>
-				<div class="modal-desc">{achievement.description}</div>
 			</div>
 
-			<!-- Body -->
-			<div class="modal-body">
-				<!-- Tier -->
+			<!-- XP -->
+			<div class="modal-row">
+				<span class="row-label"
+					>{earned ? 'XP Earned' : 'XP Reward'}</span
+				>
+				<span class="row-value xp">+{xp} XP</span>
+			</div>
+
+			<!-- Rarity -->
+			<div class="modal-row">
+				<span class="row-label">Players Earned</span>
+				<div class="rarity">
+					<div
+						class="rarity-dot"
+						style="background: {tierColor}"
+					></div>
+					<span class="rarity-text">{rarity} of players</span>
+				</div>
+			</div>
+
+			<!-- Unlock date (earned only) -->
+			{#if earned && achievement?.unlockedAt}
 				<div class="modal-row">
-					<span class="row-label">Tier</span>
-					<span class="row-value tier-badge {achievement.tier}"
-						>{tierLabel}</span
+					<span class="row-label">Unlocked</span>
+					<span class="row-value date"
+						>{formatJoinDate(achievement.unlockedAt)}</span
 					>
 				</div>
+			{/if}
 
-				<!-- XP -->
-				<div class="modal-row">
-					<span class="row-label"
-						>{earned ? 'XP Earned' : 'XP Reward'}</span
-					>
-					<span class="row-value xp">+{xp} XP</span>
-				</div>
-
-				<!-- Rarity -->
-				<div class="modal-row">
-					<span class="row-label">Players Earned</span>
-					<div class="rarity">
-						<div
-							class="rarity-dot"
-							style="background: {tierColor}"
-						></div>
-						<span class="rarity-text">{rarity} of players</span>
-					</div>
-				</div>
-
-				<!-- Unlock date (earned only) -->
-				{#if earned && achievement.unlockedAt}
-					<div class="modal-row">
-						<span class="row-label">Unlocked</span>
-						<span class="row-value date"
-							>{formatJoinDate(achievement.unlockedAt)}</span
+			<!-- Progress bar (locked with progress) -->
+			{#if achievement?.progress}
+				{@const [current, target] = achievement.progress}
+				{@const pct = Math.round((current / target) * 100)}
+				<div class="progress-section">
+					<div class="progress-header">
+						<span class="progress-label">Progress</span>
+						<span class="progress-nums"
+							>{current} / {target}</span
 						>
 					</div>
-				{/if}
-
-				<!-- Progress bar (locked with progress) -->
-				{#if achievement.progress}
-					{@const [current, target] = achievement.progress}
-					{@const pct = Math.round((current / target) * 100)}
-					<div class="progress-section">
-						<div class="progress-header">
-							<span class="progress-label">Progress</span>
-							<span class="progress-nums"
-								>{current} / {target}</span
-							>
-						</div>
-						<div class="progress-track">
-							<div
-								class="progress-fill"
-								style="width: {pct}%; background: linear-gradient(90deg, {tierColor}, {tierColor}88)"
-							></div>
-						</div>
-						{#if achievement.hint}
-							<div class="progress-hint">{achievement.hint}</div>
-						{/if}
+					<div class="progress-track">
+						<div
+							class="progress-fill"
+							style="width: {pct}%; background: linear-gradient(90deg, {tierColor}, {tierColor}88)"
+						></div>
 					</div>
-				{:else if !earned && achievement.hint}
-					<div class="progress-section">
+					{#if achievement.hint}
 						<div class="progress-hint">{achievement.hint}</div>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Close -->
-			<button class="modal-close" onclick={onclose}>Close</button>
+					{/if}
+				</div>
+			{:else if !earned && achievement?.hint}
+				<div class="progress-section">
+					<div class="progress-hint">{achievement.hint}</div>
+				</div>
+			{/if}
 		</div>
+
+		<!-- Close -->
+		<button class="modal-close" onclick={onclose}>Close</button>
 	</div>
-{/if}
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 100;
-		background: rgba(10, 10, 26, 0.8);
-		backdrop-filter: blur(8px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1.5rem;
-		animation: fade-in 0.15s ease-out;
-	}
-
-	@keyframes fade-in {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
 	.modal-panel {
 		width: 100%;
 		max-width: 380px;

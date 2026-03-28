@@ -150,7 +150,7 @@
 	   RESULT PAGE
 	   ═════════════════════════════════════════════════ */
 	.result-page {
-		max-width: 600px;
+		max-width: 700px;
 		margin: 0 auto;
 		padding: 9rem 3.5rem;
 		display: flex;

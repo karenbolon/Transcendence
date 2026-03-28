@@ -1,15 +1,9 @@
-	<script lang="ts">
-	import { fly } from 'svelte/transition';
-	import { onMount, onDestroy } from 'svelte';
+<script lang="ts">
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 	import { speedEmoji, speedLabel } from '$lib/utils/format_game';
 	import UserAvatar from './UserAvatar.svelte';
 
-	// interface Props {
-	// 	inviteId: string;
-	// 	fromUsername: string;
-	// 	onAccept: () => void;
-	// 	onDecline: () => void;
-	// }
 	type Props = {
 		challenger: {
 			username: string;
@@ -26,9 +20,7 @@
 	};
 
 	let { challenger, settings, timeoutSecs = 30, onAccept, onDecline }: Props = $props();
-	// const initialTimeout = timeoutSecs;
 	let remaining = $state(30);
-	let exiting = $state(false);
 
 	// SVG circle math
 	const RADIUS = 21;
@@ -51,7 +43,7 @@
 
 </script>
 
-<div class="modal-overlay">
+<Modal open={true} onclose={onDecline} zIndex={9999} blur="4px">
 	<div class="modal">
 		<!-- Glow effect -->
 		<div class="glow"></div>
@@ -66,7 +58,6 @@
 				<UserAvatar avatarUrl={challenger.avatarUrl} username={challenger.username} displayName={challenger.displayName} size="lg" />
 			</div>
 			<div class="challenger-text">
-				<!-- <span class="challenger-name">{challenger.username}</span> -->
 				<span class="challenger-name">{challenger.displayName ?? challenger.username}</span>
 				<span class="card-handle">@{challenger.username.toLowerCase()}</span>
 			</div>
@@ -110,28 +101,9 @@
 			<button class="btn-decline" onclick={onDecline}>❌ Decline</button>
 		</div>
 	</div>
-</div>
+</Modal>
 
-	<style>
-	/* ═════════════════════════════════════════════════
-	   OVERLAY
-	   ═════════════════════════════════════════════════ */
-	.modal-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(5, 5, 15, 0.75);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 9999;
-		animation: overlay-in 0.3s ease;
-		backdrop-filter: blur(4px);
-	}
-
-	/* .overlay.exit {
-		animation: overlay-out 0.3s ease forwards;
-	} */
-
+<style>
 	/* ═════════════════════════════════════════════════
 	   MODAL
 	   ═════════════════════════════════════════════════ */
@@ -143,17 +115,13 @@
 		max-width: 380px;
 		width: 100%;
 		text-align: center;
-		animation: modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+		animation: modal-scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 		box-shadow:
 			0 20px 60px rgba(0, 0, 0, 0.5),
 			0 0 80px rgba(255, 107, 157, 0.05);
 		position: relative;
 		overflow: hidden;
 	}
-
-	/* .modal.exit {
-		animation: modal-out 0.3s ease forwards;
-	} */
 
 	/* ═════════════════════════════════════════════════
 	   GLOW + ICON
@@ -195,18 +163,6 @@
 		margin-bottom: 1rem;
 	}
 
-	/* .avatar {
-		width: 56px;
-		height: 56px;
-		border-radius: 50%;
-		background: linear-gradient(135deg, #ff6b9d, #c084fc);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		overflow: hidden;
-	} */
-
 	.challenger-text {
 		text-align: left;
 	}
@@ -231,7 +187,6 @@
 		padding-bottom: 0.5rem;
 		font-size: 0.88rem;
 		color: #d1d5db;
-		/* margin-top: 0.1rem; */
 	}
 
 	/* ═════════════════════════════════════════════════
@@ -366,26 +321,6 @@
 	/* ═════════════════════════════════════════════════
 	   ANIMATIONS
 	   ═════════════════════════════════════════════════ */
-	@keyframes overlay-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-
-	@keyframes overlay-out {
-		from { opacity: 1; }
-		to { opacity: 0; }
-	}
-
-	@keyframes modal-in {
-		from { opacity: 0; transform: scale(0.85); }
-		to { opacity: 1; transform: scale(1); }
-	}
-
-	@keyframes modal-out {
-		from { opacity: 1; transform: scale(1); }
-		to { opacity: 0; transform: scale(0.85); }
-	}
-
 	@keyframes icon-bounce {
 		0% { transform: scale(0); }
 		60% { transform: scale(1.2); }

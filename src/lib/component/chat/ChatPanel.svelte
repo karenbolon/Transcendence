@@ -8,8 +8,7 @@
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import UserAvatar from '$lib/component/UserAvatar.svelte';
 	import ChallengePicker from '$lib/component/ChallengePicker.svelte';
-	import { setWaiting } from '$lib/stores/matchmaking.svelte';
-	import { goto } from '$app/navigation';
+	import { sendChallenge as sendChallengeUtil } from '$lib/utils/challenge';
 	import { page } from '$app/stores';
 
 	type Props = {
@@ -110,21 +109,16 @@
 		challengeTarget = { id: friend.id, username: friend.username, name: friend.name, avatar_url: friend.avatar_url };
 	}
 
-	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
+	function onChallengeSend(settings: { speedPreset: string; winScore: number }) {
 		if (!challengeTarget) return;
-		const socket = getSocket();
-		if (!socket?.connected) return;
-		socket.emit('game:invite', { friendId: challengeTarget.id, settings });
-
-		setWaiting({
-			you: { username: user.username, avatarUrl: user.avatar_url, displayName: user.name },
-			opponent: { username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
-			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
-			totalTime: 30,
-		});
+		sendChallengeUtil(
+			challengeTarget.id,
+			{ username: user.username, avatarUrl: user.avatar_url, displayName: user.name },
+			{ username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
+			settings,
+		);
 		challengeTarget = null;
 		closeChat();
-		goto('/play/online/waiting');
 	}
 
 	// Navigate to friend's profile
@@ -276,7 +270,7 @@
 {#if challengeTarget}
 	<ChallengePicker
 		targetName={{ username: challengeTarget.username, displayName: challengeTarget.name, avatarUrl: challengeTarget.avatar_url }}
-		onSend={sendChallenge}
+		onSend={onChallengeSend}
 		onCancel={() => challengeTarget = null}
 	/>
 {/if}

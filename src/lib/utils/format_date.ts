@@ -15,6 +15,27 @@ export function formatDate(date: Date | string): string {
 	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+/** Format a date as casual relative time ("2m ago", "Yesterday", "3 days ago") */
+export function timeAgo(date: string | Date | null): string {
+	if (!date) return '';
+	const diff = Date.now() - new Date(date).getTime();
+	const mins = Math.floor(diff / 60000);
+	if (mins < 1) return 'just now';
+	if (mins < 60) return `${mins}m ago`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	if (days === 1) return 'Yesterday';
+	return `${days} days ago`;
+}
+
+/** Convert a number to its ordinal form (1st, 2nd, 3rd, etc.) */
+export function ordinal(n: number): string {
+	const s = ['th', 'st', 'nd', 'rd'];
+	const v = n % 100;
+	return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 /** Format seconds as "Xm Ys" */
 export function formatDuration(seconds: number | null): string {
 	if (!seconds) return '—';

@@ -64,6 +64,13 @@
       "when": 1775107200000,
       "tag": "0008_add_tournament_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774675018987,
+      "tag": "0009_lowly_dark_beast",
+      "breakpoints": true
     }
   ]
 }

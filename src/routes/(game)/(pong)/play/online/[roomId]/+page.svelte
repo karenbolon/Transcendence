@@ -353,8 +353,10 @@
 				myScore={myResult.score}
 				opponentScore={theirResult.score}
 				myUsername={myPlayer.username}
+				myDisplayName={myPlayer.displayName}
 				myAvatarUrl={myPlayer.avatarUrl}
 				opponentUsername={theirPlayer.username}
+				opponentDisplayName={theirPlayer.displayName}
 				opponentAvatarUrl={theirPlayer.avatarUrl}
 				durationSeconds={gameOverResult.durationSeconds}
 				speedPreset={gameOverResult.settings.speedPreset}

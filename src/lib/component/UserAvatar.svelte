@@ -30,13 +30,32 @@
 		}
 		return parts[0]?.charAt(0).toUpperCase() ?? '?';
 	});
+
+	const AVATAR_COLORS = [
+		['#ff6b9d', '#c084fc'],  // pink-purple (original)
+		['#4ade80', '#2dd4bf'],  // green-teal
+		['#60a5fa', '#818cf8'],  // blue-indigo
+		['#facc15', '#f97316'],  // yellow-orange
+		['#c084fc', '#6366f1'],  // purple-indigo
+		['#f97316', '#ef4444'],  // orange-red
+		['#2dd4bf', '#06b6d4'],  // teal-cyan
+		['#f472b6', '#e879f9'],  // rose-fuchsia
+	];
+
+	let colorPair = $derived.by(() => {
+		let hash = 0;
+		for (let i = 0; i < username.length; i++) {
+			hash = username.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+	});
 </script>
 
-<div class="avatar-wrap" style="width:{px}px;height:{px}px">
+<div class="avatar-wrap" class:has-status={!!status} style="width:{px}px;height:{px}px">
 	{#if avatarUrl}
 		<img src={avatarUrl} alt="{username}'s avatar" class="avatar-img" />
 	{:else}
-		<span class="avatar-initial" class:text-xs={size === 'xs'} class:text-sm={size === 'sm'} class:text-md={size === 'md'} class:text-lg={size === 'lg'} class:text-xl={size === 'xl'} class:text-xxl={size === 'xxl'}>
+		<span class="avatar-initial" style="--avatar-gradient: linear-gradient(135deg, {colorPair[0]}, {colorPair[1]})" class:text-xs={size === 'xs'} class:text-sm={size === 'sm'} class:text-md={size === 'md'} class:text-lg={size === 'lg'} class:text-xl={size === 'xl'} class:text-xxl={size === 'xxl'}>
 			{initials}
 		</span>
 	{/if}
@@ -58,6 +77,10 @@
 		position: relative;
 		flex-shrink: 0;
 		border-radius: 50%;
+		overflow: hidden;
+	}
+
+	.avatar-wrap.has-status {
 		overflow: visible;
 	}
 
@@ -76,7 +99,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: linear-gradient(135deg, #ff6b9d, #c084fc);
+		background: var(--avatar-gradient);
 		color: #fff;
 		font-weight: 700;
 		line-height: 1;

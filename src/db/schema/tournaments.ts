@@ -36,6 +36,7 @@ export const tournamentParticipants = pgTable('tournament_participants', {
 	seed: integer('seed'),
 	placement: integer('placement'),
 	status: varchar('status', { length: 20 }).notNull().default('registered'), // registered, eliminated, winner
+	xp_earned: integer('xp_earned').notNull().default(0),
 	joined_at: timestamp('joined_at').notNull().defaultNow(),
 }, (t) => ({
 	// Prevent duplicate registrations

@@ -130,6 +130,25 @@
 		return 'Finished';
 	}
 
+	function timeAgo(dateStr: string | null): string {
+		if (!dateStr) return '';
+		const diff = Date.now() - new Date(dateStr).getTime();
+		const mins = Math.floor(diff / 60000);
+		if (mins < 1) return 'just now';
+		if (mins < 60) return `${mins}m ago`;
+		const hours = Math.floor(mins / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		if (days === 1) return 'Yesterday';
+		return `${days} days ago`;
+	}
+
+	function speedEmoji(speed: string): string {
+		if (speed === 'chill') return '🐢';
+		if (speed === 'fast') return '🔥';
+		return '🏓';
+	}
+
 	let winnerUsername = $derived.by(() => {
 		if (!tournament.winnerId) return null;
 		const winner = participants.find((p: any) => p.userId === tournament.winnerId);
@@ -143,22 +162,68 @@
 			.filter((p: any) => p.placement !== null && p.placement <= 3)
 			.sort((a: any, b: any) => a.placement - b.placement);
 	});
+
+	// Current user's participant data
+	let myParticipant = $derived(
+		participants.find((p: any) => p.userId === data.userId) ?? null
+	);
+
+	// Derive W/L from bracket data
+	let myRecord = $derived.by(() => {
+		if (!bracket || !myParticipant) return { wins: 0, losses: 0 };
+		let wins = 0, losses = 0;
+		for (const round of bracket) {
+			for (const match of round.matches) {
+				if (match.status !== 'finished' || !match.winnerId) continue;
+				if (match.player1Id === data.userId || match.player2Id === data.userId) {
+					if (match.winnerId === data.userId) wins++;
+					else losses++;
+				}
+			}
+		}
+		return { wins, losses };
+	});
+
+	function playerRecord(userId: number): { wins: number; losses: number } {
+		if (!bracket) return { wins: 0, losses: 0 };
+		let wins = 0, losses = 0;
+		for (const round of bracket) {
+			for (const match of round.matches) {
+				if (match.status !== 'finished' || !match.winnerId) continue;
+				if (match.player1Id === userId || match.player2Id === userId) {
+					if (match.winnerId === userId) wins++;
+					else losses++;
+				}
+			}
+		}
+		return { wins, losses };
+	}
 </script>
 
 <Starfield />
 <!-- <NoiseGrain /> -->
 
 <div class="page">
-	<div class="back-row">
-		<a href="/tournaments" class="back-link">← Tournaments</a>
-	</div>
-
+	<a href="/tournaments" class="back-link">← Tournaments</a>
 	<div class="header">
-		<div>
+		<div class="title-row">
 			<h1 class="title">{tournament.name}</h1>
 			<span class="status status-{tournament.status}">{statusLabel(tournament.status)}</span>
 		</div>
 	</div>
+
+	{#if tournament.speedPreset}
+		<div class="info-bar">
+			<span class="info-item">{speedEmoji(tournament.speedPreset)} <strong>{tournament.speedPreset}</strong></span>
+			<span class="info-item">🎯 First to <strong>{tournament.winScore}</strong></span>
+			<span class="info-item">👥 <strong>{participants.length}</strong> players</span>
+			{#if tournament.finishedAt}
+				<span class="info-item">📅 <strong>{timeAgo(tournament.finishedAt)}</strong></span>
+			{:else if tournament.startedAt}
+				<span class="info-item">📅 Started <strong>{timeAgo(tournament.startedAt)}</strong></span>
+			{/if}
+		</div>
+	{/if}
 
 	{#if tournament.status === 'finished' && podium.length > 0}
 		{@const first = podium.find((p: any) => p.placement === 1)}
@@ -170,7 +235,7 @@
 				{#if second}
 					<div class="podium-entry second">
 						<div class="podium-avatar silver-ring">
-							<UserAvatar username={second.username} avatarUrl={second.avatarUrl} size="lg" />
+							<UserAvatar username={second.username} displayName={second.name} avatarUrl={second.avatarUrl} size="lg" />
 						</div>
 						<span class="podium-name">{second.name ?? second.username}</span>
 						<span class="podium-place silver">2nd Place 🥈</span>
@@ -183,7 +248,7 @@
 					<div class="podium-entry first">
 						<span class="crown">👑</span>
 						<div class="podium-avatar gold-ring">
-							<UserAvatar username={first.username} avatarUrl={first.avatarUrl} size="xl" />
+							<UserAvatar username={first.username} displayName={first.name} avatarUrl={first.avatarUrl} size="xl" />
 						</div>
 						<span class="podium-name">{first.name ?? first.username}</span>
 						<span class="podium-place gold">1st Place</span>
@@ -198,7 +263,7 @@
 							{#each thirds as p3}
 								<div class="podium-avatar-stacked">
 									<div class="podium-avatar bronze-ring">
-										<UserAvatar username={p3.username} avatarUrl={p3.avatarUrl} size={thirds.length > 1 ? 'md' : 'lg'} />
+										<UserAvatar username={p3.username} displayName={p3.name} avatarUrl={p3.avatarUrl} size={thirds.length > 1 ? 'md' : 'lg'} />
 									</div>
 									<span class="podium-name">{p3.name ?? p3.username}</span>
 								</div>
@@ -206,6 +271,38 @@
 						</div>
 						<span class="podium-place bronze">3rd Place 🥉</span>
 						<div class="podium-block bronze-block">3</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	{#if tournament.status === 'finished' && myParticipant && myParticipant.placement}
+		<div class="your-run">
+			<div class="your-run-title">Your tournament run</div>
+			<div class="your-run-stats">
+				<div>
+					<span class="yr-value">{ordinal(myParticipant.placement)}</span>
+					<span class="yr-label">Place</span>
+				</div>
+				<div>
+					<span class="yr-value green">{myRecord.wins}</span>
+					<span class="yr-label">Wins</span>
+				</div>
+				<div>
+					<span class="yr-value red">{myRecord.losses}</span>
+					<span class="yr-label">Losses</span>
+				</div>
+				{#if myParticipant.xpEarned > 0}
+					<div>
+						<span class="yr-value green">+{myParticipant.xpEarned}</span>
+						<span class="yr-label">XP Earned</span>
+					</div>
+				{/if}
+				{#if myParticipant.seed}
+					<div>
+						<span class="yr-value">#{myParticipant.seed}</span>
+						<span class="yr-label">Seed</span>
 					</div>
 				{/if}
 			</div>
@@ -239,16 +336,28 @@
 	{#if tournament.status !== 'scheduled' && participants.length > 0}
 		<div class="participants-section">
 			<h2 class="section-title">Participants</h2>
-			<div class="participants-grid">
+			<div class="participants-list">
 				{#each [...participants].sort((a, b) => (a.placement ?? 999) - (b.placement ?? 999)) as p}
-					<div class="participant" class:eliminated={p.status === 'eliminated'} class:champion={p.status === 'champion'}>
-						<span class="p-name">{p.name ?? p.username}</span>
+					{@const record = playerRecord(p.userId)}
+					<a href={p.userId === data.userId ? undefined : `/friends/${p.userId}`} class="participant-row" class:is-you={p.userId === data.userId} class:clickable={p.userId !== data.userId}>
+						<span class="p-rank" class:gold={p.placement === 1} class:silver={p.placement === 2} class:bronze={p.placement === 3}>
+							{p.placement ? `#${p.placement}` : '-'}
+						</span>
+						<UserAvatar username={p.username} displayName={p.name} avatarUrl={p.avatarUrl} size="xs" />
+						<span class="p-name">
+							{p.name ?? p.username}
+							{#if p.userId === data.userId}<span class="you-tag">(you)</span>{/if}
+						</span>
+						<span class="p-record">
+							<span class="rec-wins">{record.wins}W</span>
+							<span class="rec-losses">{record.losses}L</span>
+						</span>
 						{#if p.status === 'champion'}
-							<span class="p-badge champion-badge">🏆 1st Place</span>
+							<span class="p-badge champion-badge">1st Place</span>
 						{:else if p.placement === 2}
-							<span class="p-badge silver-badge">🥈 2nd Place</span>
+							<span class="p-badge silver-badge">2nd Place</span>
 						{:else if p.placement === 3}
-							<span class="p-badge bronze-badge">🥉 3rd Place</span>
+							<span class="p-badge bronze-badge">3rd Place</span>
 						{:else if p.status === 'eliminated' && p.placement}
 							<span class="p-badge elim-badge">{ordinal(p.placement)} Place</span>
 						{:else if p.status === 'eliminated'}
@@ -256,7 +365,7 @@
 						{:else if p.status === 'active'}
 							<span class="p-badge active-badge">Active</span>
 						{/if}
-					</div>
+					</a>
 				{/each}
 			</div>
 		</div>
@@ -271,23 +380,30 @@
 		position: relative;
 		z-index: 1;
 	}
-	.back-row {
-		margin-bottom: 16px;
-	}
 	.back-link {
-		color: #888;
+		display: block;
+		color: #6b7280;
 		text-decoration: none;
-		font-size: 0.85rem;
-		transition: color 0.2s;
+		font-size: 0.8rem;
+		transition: color 0.15s;
+		margin-bottom: 8px;
 	}
-	.back-link:hover { color: var(--accent); }
+	.back-link:hover { color: #f3f4f6; }
 
 	.header {
 		margin-bottom: 24px;
 	}
+
+	.title-row {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+
 	.title {
-		font-size: 1.8rem;
-		margin: 0 0 8px;
+		font-size: 1.6rem;
+		font-weight: 800;
+		margin: 0;
 	}
 	.status {
 		font-size: 0.7rem;
@@ -300,6 +416,76 @@
 	.status-scheduled { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
 	.status-in_progress { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
 	.status-finished { background: rgba(255, 255, 255, 0.1); color: #888; }
+
+	/* ── Info Bar ───────────────────────── */
+	.info-bar {
+		display: flex;
+		justify-content: center;
+		gap: 1.5rem;
+		padding: 0.75rem 1.25rem;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 0.65rem;
+		margin-bottom: 24px;
+	}
+
+	.info-item {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.8rem;
+		color: #9ca3af;
+	}
+
+	.info-item strong {
+		color: #d1d5db;
+		font-weight: 600;
+		text-transform: capitalize;
+	}
+
+	/* ── Your Run Card ──────────────────── */
+	.your-run {
+		max-width: 420px;
+		margin: 0 auto 32px;
+		padding: 1rem 1.5rem;
+		background: rgba(255, 107, 157, 0.04);
+		border: 1px solid rgba(255, 107, 157, 0.15);
+		border-radius: 0.75rem;
+	}
+
+	.your-run-title {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #ff6b9d;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 0.75rem;
+	}
+
+	.your-run-stats {
+		display: flex;
+		justify-content: space-around;
+		text-align: center;
+	}
+
+	.yr-value {
+		display: block;
+		font-size: 1.1rem;
+		font-weight: 800;
+		color: #f3f4f6;
+	}
+
+	.yr-value.green { color: #4ade80; }
+	.yr-value.red { color: #f87171; }
+
+	.yr-label {
+		display: block;
+		font-size: 0.6rem;
+		color: #6b7280;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-top: 0.1rem;
+	}
 
 	/* ── Podium ──────────────────────────── */
 	.podium-section {
@@ -434,34 +620,85 @@
 		color: #ccc;
 	}
 
-	.participants-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-		gap: 8px;
+	.participants-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
 	}
-	.participant {
+
+	.participant-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 8px 12px;
-		background: rgba(255, 255, 255, 0.04);
-		border-radius: 8px;
+		gap: 0.75rem;
+		padding: 0.6rem 1rem;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 0.6rem;
 		font-size: 0.85rem;
+		text-decoration: none;
+		color: inherit;
 	}
-	.participant.eliminated { opacity: 0.5; }
-	.participant.champion { border: 1px solid rgba(251, 191, 36, 0.3); }
+
+	.participant-row.clickable {
+		cursor: pointer;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.participant-row.clickable:hover {
+		border-color: rgba(255, 255, 255, 0.12);
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.participant-row.is-you {
+		border-color: rgba(255, 107, 157, 0.2);
+		background: rgba(255, 107, 157, 0.04);
+		cursor: default;
+	}
+
+	.p-rank {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: #4b5563;
+		min-width: 28px;
+		text-align: center;
+	}
+
+	.p-rank.gold { color: #fbbf24; }
+	.p-rank.silver { color: #94a3b8; }
+	.p-rank.bronze { color: #d97706; }
 
 	.p-name {
+		flex: 1;
+		font-weight: 600;
+		color: #d1d5db;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+
+	.you-tag {
+		font-size: 0.65rem;
+		color: #ff6b9d;
+		font-weight: 500;
+		margin-left: 0.3rem;
+	}
+
+	.p-record {
+		display: flex;
+		gap: 0.5rem;
+		font-size: 0.7rem;
+		color: #6b7280;
+	}
+
+	.rec-wins { color: #4ade80; }
+	.rec-losses { color: #f87171; }
+
 	.p-badge {
 		font-size: 0.7rem;
 		font-weight: 600;
-		padding: 2px 6px;
+		padding: 2px 8px;
 		border-radius: 4px;
-		margin-left: 8px;
+		margin-left: auto;
 		white-space: nowrap;
 	}
 	.champion-badge { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }

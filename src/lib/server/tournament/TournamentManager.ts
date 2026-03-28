@@ -11,6 +11,7 @@ import { createRoom, getRoom, destroyRoom } from '../socket/game/RoomManager';
 import { getIO, userSockets } from '../socket/index';
 import type { GameStateSnapshot } from '$lib/types/game';
 import { tournamentLogger } from '$lib/server/logger';
+import type { Pair } from '$lib/types/utils';
 
 // ── Active Tournament Storage ────────────────────────────
 // tournamentId → tournament state
@@ -401,6 +402,9 @@ async function startRoundMatches(
 
 				const absentId = p1Joined ? capturedP2Id : capturedP1Id;
 				const presentId = p1Joined ? capturedP1Id : capturedP2Id;
+				if (p1Joined !== p2Joined) {
+					const winner = p1Joined || p2Joined;
+				}
 				destroyRoom(roomId);
 				await advanceWinner(
 					tournamentId,
@@ -408,7 +412,7 @@ async function startRoundMatches(
 					match.matchIndex,
 					presentId,
 					absentId,
-					0,
+					1,
 					0,
 				);
 			} catch (err) {
@@ -427,6 +431,61 @@ async function startRoundMatches(
 	});
 }
 
+/**
+ * Records the result of a finished tournament match, eliminates the loser,
+ * and either advances the winner to the next round or concludes the tournament.
+ * bs
+ * **What this function does, in order:**
+ * 1. Marks the match as `'finished'` in the in-memory bracket and records scores.
+ * 2. Computes the loser's placement (`totalPlayers - alreadyEliminated`) so that
+ *    players eliminated later receive a better rank.
+ * 3. Persists the loser's `status = 'eliminated'` and `placement` to the DB.
+ * 4. If a next round exists:
+ *    - Emits `tournament:eliminated` to the loser with stats and bracket context.
+ *    - Places the winner in the correct slot of the next-round match
+ *      (`matchIndex % 2 === 0` → player1 slot, otherwise → player2 slot).
+ *    - Emits `tournament:advanced` to the winner with next-opponent info.
+ *    - If both players of the next match are now set, schedules
+ *      {@link startRoundMatches} after a 10-second delay (result-screen grace period).
+ * 5. If no next round exists (final match):
+ *    - Sets tournament `status = 'finished'` and records `winner_id` in the DB.
+ *    - Marks the winner as `status = 'champion'`, `placement = 1`.
+ *    - Builds the podium (top-3 participants by placement).
+ *    - Emits `tournament:finished` to all participants with podium and bracket.
+ *    - Removes the tournament from `activeTournaments`.
+ * 6. Persists the full bracket JSON to the DB and broadcasts
+ *    `tournament:bracket-update` to all remaining participants.
+ *
+ * ---
+ *
+ * **Placement algorithm:**
+ * `placement = totalPlayers - eliminatedCount` at the time of elimination.
+ * This guarantees unique, descending placements: the last player eliminated
+ * before the final gets placement 2 (runner-up), and so on.
+ *
+ * ---
+ *
+ * **Called from two sites:**
+ * - `GameRoom.handleGameOver()` — normal match completion via gameplay.
+ * - The 60-second join timeout in {@link startRoundMatches} — forfeit when a
+ *   player fails to connect. See {@link https://github.com/karenbolon/Transcendence/issues/91 Issue #91}.
+ *
+ * @param tournamentId - ID of the active tournament (must exist in `activeTournaments`).
+ * @param round        - 1-based round number of the completed match.
+ * @param matchIndex   - 0-based index of the match within that round.
+ * @param winnerId     - User ID of the match winner.
+ * @param loserId      - User ID of the match loser.
+ * @param winnerScore  - Goals scored by the winner (default `0` for forfeits).
+ * @param loserScore   - Goals scored by the loser (default `0` for forfeits).
+ *
+ * @returns `Promise<void>` — resolves after all DB writes and socket emissions complete.
+ *
+ * @see {@link startRoundMatches} - Starts matches for a round; schedules the next
+ *   round via a 10-second timeout once both players are placed.
+ * @see {@link GameRoom.handleGameOver} - Normal completion path that calls this function.
+ * @see {@link https://github.com/karenbolon/Transcendence/issues/91 Issue #91} - Bug fix:
+ *   tournament stuck in progress when a player fails to join a match.
+ */
 export async function advanceWinner(
 	tournamentId: number,
 	round: number,

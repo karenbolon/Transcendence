@@ -23,6 +23,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		seed: tournamentParticipants.seed,
 		status: tournamentParticipants.status,
 		placement: tournamentParticipants.placement,
+		xpEarned: tournamentParticipants.xp_earned,
 	})
 		.from(tournamentParticipants)
 		.innerJoin(users, eq(users.id, tournamentParticipants.user_id))
@@ -41,7 +42,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			name: tournament.name,
 			status: tournament.status,
 			maxPlayers: tournament.max_players,
-			speedPreset: tournament.speed_preset,
+			speedPreset: tournament.speed_preset as string,
 			winScore: tournament.win_score,
 			currentRound: tournament.current_round,
 			createdBy: tournament.created_by,

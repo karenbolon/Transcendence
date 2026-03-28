@@ -1,8 +1,8 @@
 import { GameRoom } from './GameRoom';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
 import { db } from '$lib/server/db';
-import { games, users, messages } from '$lib/server/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { games, users, messages, tournamentParticipants } from '$lib/server/db/schema';
+import { eq, sql, and } from 'drizzle-orm';
 import { processMatchProgression } from '$lib/server/progression';
 import { advanceWinner } from '$lib/server/tournament/TournamentManager';
 import { getIO, userSockets } from '../index';
@@ -184,6 +184,18 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				const tournamentId = Number(parts[1]);
 				const round = Number(parts[2].replace('r', ''));
 				const matchIndex = Number(parts[3].replace('m', ''));
+
+				// Accumulate XP earned in this tournament for both players
+				for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]] as const) {
+					if (progression.xpEarned > 0) {
+						await tx.update(tournamentParticipants).set({
+							xp_earned: sql`${tournamentParticipants.xp_earned} + ${progression.xpEarned}`,
+						}).where(and(
+							eq(tournamentParticipants.tournament_id, tournamentId),
+							eq(tournamentParticipants.user_id, uid),
+						));
+					}
+				}
 
 				const winnerScore = result.player1.userId === result.winnerId
 				? result.player1.score : result.player2.score;

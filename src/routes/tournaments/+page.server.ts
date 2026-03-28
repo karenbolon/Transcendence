@@ -21,11 +21,28 @@ export const load: PageServerLoad = async ({ locals }) => {
 			creatorUsername: users.username,
 			winnerId: tournaments.winner_id,
 			startedAt: tournaments.started_at,
+			finishedAt: tournaments.finished_at,
 			createdAt: tournaments.created_at,
 			participantCount: sql<number>`(
 				SELECT count(*) FROM tournament_participants
 				WHERE tournament_id = ${tournaments.id}
 			)::int`,
+			winnerUsername: sql<string | null>`(
+				SELECT username FROM users
+				WHERE id = ${tournaments.winner_id}
+			)`,
+			winnerAvatarUrl: sql<string | null>`(
+				SELECT avatar_url FROM users
+				WHERE id = ${tournaments.winner_id}
+			)`,
+			myPlacement: sql<number | null>`(
+				SELECT placement FROM tournament_participants
+				WHERE tournament_id = ${tournaments.id} AND user_id = ${userId}
+			)`,
+			myXpEarned: sql<number | null>`(
+				SELECT xp_earned FROM tournament_participants
+				WHERE tournament_id = ${tournaments.id} AND user_id = ${userId}
+			)`,
 		})
 		.from(tournaments)
 		.innerJoin(users, eq(users.id, tournaments.created_by))

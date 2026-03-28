@@ -94,6 +94,25 @@
 		{ value: 8, label: '8 players', sub: '3 rounds', emoji: '🔥' },
 		{ value: 16, label: '16 players', sub: '4 rounds', emoji: '💥' },
 	];
+
+	function timeAgo(dateStr: string | null): string {
+		if (!dateStr) return '';
+		const diff = Date.now() - new Date(dateStr).getTime();
+		const mins = Math.floor(diff / 60000);
+		if (mins < 1) return 'just now';
+		if (mins < 60) return `${mins}m ago`;
+		const hours = Math.floor(mins / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		if (days === 1) return 'Yesterday';
+		return `${days} days ago`;
+	}
+
+	function ordinal(n: number): string {
+		const s = ['th', 'st', 'nd', 'rd'];
+		const v = n % 100;
+		return n + (s[(v - 20) % 10] || s[v] || s[0]);
+	}
 </script>
 
 <Starfield />
@@ -139,6 +158,7 @@
 					<a href="/tournaments/{t.id}" class="tournament-card">
 						<div class="card-top">
 							<h3 class="card-name">{t.name}</h3>
+							<!-- should be add current round like semifinals or like QUARTERFINALS  -->
 							<span class="badge {statusBadge(t.status).class}">{statusBadge(t.status).label}</span>
 						</div>
 						<div class="card-meta">
@@ -172,13 +192,37 @@
 			<div class="tournament-list">
 				{#each finishedTournaments.slice(0, 5) as t}
 					<a href="/tournaments/{t.id}" class="tournament-card finished-card">
-						<div class="card-top">
-							<h3 class="card-name">{t.name}</h3>
-							<span class="badge badge-finished">FINISHED</span>
-						</div>
-						<div class="card-meta">
-							<span class="meta-item">👥 {t.participantCount} players</span>
-							<span class="meta-item">by {t.creatorUsername}</span>
+						<div class="finished-row">
+							<div class="finished-avatar-wrap">
+								{#if t.winnerUsername}
+									<UserAvatar username={t.winnerUsername} avatarUrl={t.winnerAvatarUrl} size="sm" />
+									<span class="trophy-overlay">🏆</span>
+								{:else}
+									<span class="trophy-solo">🏆</span>
+								{/if}
+							</div>
+							<div class="finished-info">
+								<div class="finished-top-line">
+									<h3 class="card-name">{t.name}</h3>
+									{#if t.finishedAt}
+										<span class="time-ago">{timeAgo(t.finishedAt)}</span>
+									{/if}
+								</div>
+								<div class="finished-meta">
+									<span>Won by {t.winnerUsername ?? 'unknown'}</span>
+									<span class="meta-dot">&middot;</span>
+									<span>{t.participantCount} players</span>
+									<span class="meta-dot">&middot;</span>
+									{#if t.myPlacement != null}
+										<span>You: <strong>{ordinal(t.myPlacement)}</strong></span>
+									{:else}
+										<span class="didnt-participate">Didn't participate</span>
+									{/if}
+								</div>
+							</div>
+							{#if t.myXpEarned && t.myXpEarned > 0}
+								<span class="xp-badge">+{t.myXpEarned} XP</span>
+							{/if}
 						</div>
 					</a>
 				{/each}
@@ -277,6 +321,31 @@
 					{/each}
 				</div>
 			</div>
+
+			<!-- Visibility private or public -->
+			<!-- <div class="form-section">
+				<span class="form-label">VISIBILITY</span>
+				<div class="option-grid cols-2">
+					<button
+						class="option-card"
+						class:selected={newVisibility === 'public'}
+						onclick={() => newVisibility = 'public'}
+					>
+						<span class="option-emoji">🌐</span>
+						<span class="option-main" class:highlight={newVisibility === 'public'}>Public</span>
+						<span class="opt-sub">Anyone can join</span>
+					</button>
+					<button
+						class="option-card"
+						class:selected={newVisibility === 'private'}
+						onclick={() => newVisibility = 'private'}
+					>
+						<span class="option-emoji">🔒</span>
+						<span class="option-main" class:highlight={newVisibility === 'private'}>Friends only</span>
+						<span class="opt-sub">Invite required</span>
+					</button>
+				</div>
+			</div> -->
 
 			<!-- Create Button -->
 			<button
@@ -514,8 +583,87 @@
 		background: rgba(255, 255, 255, 0.05);
 	}
 
-	.finished-card { opacity: 0.7; }
-	.finished-card:hover { opacity: 1; }
+	.finished-card {
+		flex-direction: row !important;
+		padding: 0.85rem 1.25rem;
+	}
+
+	.finished-row {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+		width: 100%;
+	}
+
+	.finished-avatar-wrap {
+		position: relative;
+		flex-shrink: 0;
+	}
+
+	.trophy-overlay {
+		position: absolute;
+		bottom: -4px;
+		right: -6px;
+		font-size: 0.7rem;
+		filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+	}
+
+	.trophy-solo {
+		font-size: 1.4rem;
+		opacity: 0.5;
+	}
+
+	.finished-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.finished-top-line {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.finished-top-line .card-name {
+		font-size: 0.95rem;
+	}
+
+	.time-ago {
+		font-size: 0.7rem;
+		color: #4b5563;
+		white-space: nowrap;
+	}
+
+	.finished-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.75rem;
+		color: #6b7280;
+		margin-top: 0.15rem;
+	}
+
+	.finished-meta strong {
+		color: #f3f4f6;
+	}
+
+	.meta-dot {
+		color: #374151;
+	}
+
+	.didnt-participate {
+		font-style: italic;
+		color: #4b5563;
+	}
+
+	.xp-badge {
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: #4ade80;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
 
 	/* ── Empty State ─────────────────────── */
 	.empty-state {

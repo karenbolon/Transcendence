@@ -201,9 +201,11 @@
 
 <!-- ═══ CREATE TOURNAMENT MODAL ═══ -->
 {#if showCreate}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="modal-overlay" onclick={() => showCreate = false}>
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions a11y_no_noninteractive_element_interactions -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div class="modal" onclick={(e) => e.stopPropagation()}>
 			<button class="modal-close" onclick={() => showCreate = false}>&times;</button>
 

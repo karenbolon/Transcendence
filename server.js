@@ -1261,15 +1261,15 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 	const match = roundData.matches[matchIndex];
 	if (match) { match.winnerId = winnerId; match.status = 'finished'; }
 
-	// Eliminate loser — calculate placement based on round
+	// Eliminate loser — calculate placement based on round + matchIndex for unique ranks
 	const totalRounds = tourney.bracket.length;
-	const placement = Math.pow(2, totalRounds - round) + 1;
+	const placement = Math.pow(2, totalRounds - round) + 1 + matchIndex;
 	await sql`UPDATE tournament_participants SET status = 'eliminated', placement = ${placement} WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}`;
-	emitToTournamentUser(loserId, 'tournament:eliminated', { tournamentId, round, placement });
 
 	// Place winner in next round
 	const nextRound = tourney.bracket.find(r => r.round === round + 1);
 	if (nextRound) {
+		emitToTournamentUser(loserId, 'tournament:eliminated', { tournamentId, round, placement });
 		const nextMatchIndex = Math.floor(matchIndex / 2);
 		const nextMatch = nextRound.matches[nextMatchIndex];
 		if (nextMatch) {

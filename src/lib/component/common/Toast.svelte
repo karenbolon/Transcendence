@@ -13,8 +13,8 @@
 				style="--toast-color: {TOAST_CONFIG[t.type].color};"
 				transition:fly={{ x: 300, duration: 300 }}
 				onclick={() => { if (t.onclick) { t.onclick(); toast.dismiss(t.id); } }}
-				role={t.onclick ? 'presentation' : undefined}
-				tabindex={-1}
+				role={t.onclick ? 'button' : undefined}
+				tabindex={t.onclick ? 0 : undefined}
 			>
 				<span class="toast-icon">{t.icon}</span>
 				<div class="toast-body">

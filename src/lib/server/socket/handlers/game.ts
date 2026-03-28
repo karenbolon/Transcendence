@@ -31,7 +31,7 @@ const activeInvites = new Map<string, {
 	fromUserId: number;
 	fromUsername: string;
 	toUserId: number;
-	settings: { speedPreset: string; winScore: number };
+	settings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	timeout: ReturnType<typeof setTimeout>;
 }>();
 
@@ -72,7 +72,7 @@ export function registerGameHandlers(socket: Socket) {
 	const username: string = socket.data.username;
 
 	// Send a game invite to a friend
-	socket.on('game:invite', async (data: { friendId: number; settings?: { speedPreset: string; winScore: number } }) => {
+	socket.on('game:invite', async (data: { friendId: number; settings?: { speedPreset: string; winScore: number; powerUps?: boolean } }) => {
 		const { friendId, settings } = data;
 
 		// Validate: can't invite yourself
@@ -117,7 +117,11 @@ export function registerGameHandlers(socket: Socket) {
 			}
 		}, 30000);
 
-		const resolvedSettings = settings ?? { speedPreset: 'normal', winScore: 5 };
+		const resolvedSettings = {
+			speedPreset: data?.settings?.speedPreset || 'normal',
+			winScore: Number(data?.settings?.winScore || 5),
+			powerUps: data?.settings?.powerUps ?? true,
+		};
 
 		activeInvites.set(inviteId, {
 			fromUserId: userId,

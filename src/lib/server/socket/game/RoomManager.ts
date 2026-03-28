@@ -35,7 +35,7 @@ export function createRoom(
 	roomId: string,
 	player1: { userId: number; username: string },
 	player2: { userId: number; username: string },
-	settings: { speedPreset: string; winScore: number },
+	settings: { speedPreset: string; winScore: number; powerUps?: boolean },
 	broadcastState: (roomId: string, state: GameStateSnapshot) => void,
 	broadcastEvent: (roomId: string, event: string, data: any) => void,
 	): GameRoom {

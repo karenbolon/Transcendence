@@ -25,7 +25,7 @@ export interface GameRoomOptions {
 	roomId: string;
 	player1: { userId: number; username: string };
 	player2: { userId: number; username: string };
-	settings: { speedPreset: string; winScore: number };
+	settings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	// Callbacks — the room doesn't know about Socket.IO directly,
 	// it just calls these when it needs to send data
 	onGameEnd: (result: GameResult) => void;
@@ -76,7 +76,7 @@ export class GameRoom {
 			// The server controls both paddles via socket input.
 			gameMode: 'local',
 			difficulty: 'medium',
-			powerUps: false,
+			powerUps: options.settings.powerUps ?? true,
 		};
 
 		// Initialize both players with empty input

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { RegisterFormResult } from '$lib/types/form'
-	import PasswordInput from '$lib/component/PasswordInput.svelte';
-	import PasswordStrength from '$lib/component/PasswordS.svelte';
+	import PasswordInput from '$lib/component/common/PasswordInput.svelte';
+	import PasswordStrength from '$lib/component/common/PasswordS.svelte';
 	import {
 		validateUsername,
 		validateEmail,

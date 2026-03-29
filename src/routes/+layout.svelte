@@ -1,10 +1,10 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.ico';
-	import Header from '$lib/component/Header.svelte';
-	import Footer from '$lib/component/Footer.svelte';
-	import InviteModal from '$lib/component/InviteModal.svelte';
-	import Toast from '$lib/component/Toast.svelte';
+	import Header from '$lib/component/common/Header.svelte';
+	import Footer from '$lib/component/common/Footer.svelte';
+	import InviteModal from '$lib/component/common/InviteModal.svelte';
+	import Toast from '$lib/component/common/Toast.svelte';
 	import ChatPanel from '$lib/component/chat/ChatPanel.svelte';
 	import { receiveMessage, onMessageSent, setTyping, clearTyping, loadUnreadCounts, resetChat, isChatOpen, getActiveFriendId, openChat, closeChat } from '$lib/stores/chat.svelte';
 	import { afterNavigate } from '$app/navigation';
@@ -55,6 +55,11 @@
 		socket.off('chat:stop-typing');
 		socket.off('chat:read-receipt');
 		socket.off('chat:error');
+		//tournament
+		socket.off('tournament:match-ready');
+		socket.off('tournament:started');
+		socket.off('tournament:eliminated');
+		socket.off('tournament:finished');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
 			toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
@@ -149,6 +154,21 @@
 		// Chat: error
 		socket.on('chat:error', (data: { message: string }) => {
 			toast.error(data.message);
+		});
+
+		socket.on('tournament:match-ready', (evtData: any) => {
+			const myId = Number(data?.user?.id);
+			const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
+			toast.game('Tournament Match', `Your match is ready! vs ${opponent}`);
+			// game:start is also emitted, so player navigates automatically
+		});
+
+		socket.on('tournament:eliminated', (data: any) => {
+			toast.info('Tournament', 'You have been eliminated');
+		});
+
+		socket.on('tournament:finished', (data: any) => {
+			toast.game('Tournament Over', `${data.winnerUsername} is the champion!`);
 		});
 	}
 

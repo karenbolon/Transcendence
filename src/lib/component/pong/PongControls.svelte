@@ -1,11 +1,13 @@
 <script lang="ts">
-	import type { GameMode } from './gameEngine';
+	import type { GameMode } from '$lib/game/gameEngine';
 
 	type Props = {
 		gameMode: GameMode;
+		/** Shown when gameMode is computer (e.g. Homer / Bart / Lisa). */
+		computerOpponentName?: string;
 	};
 
-	let { gameMode }: Props = $props();
+	let { gameMode, computerOpponentName = 'Computer' }: Props = $props();
 </script>
 
 <div class="controls-hint">
@@ -26,7 +28,7 @@
 		</div>
 	{:else}
 		<div class="control-group">
-			<span class="control-label computer-label">🤖 Computer</span>
+			<span class="control-label computer-label">🤖 {computerOpponentName}</span>
 		</div>
 	{/if}
 </div>

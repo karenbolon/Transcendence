@@ -47,6 +47,10 @@ username
 });
 		}
 
+		if (!user.password_hash) {
+			return fail(400, { error: 'This account uses OAuth — please sign in with your provider' });
+		}
+
 		const validPassword = await verifyPassword(
 user.password_hash,
 password

@@ -196,30 +196,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 		})
 		.slice(0, 5);
 	// ═══════════════════════════════════════════════════════
-	//  OPEN TOURNAMENTS
+	//  RECENT TOURNAMENTS (mixed: your active, open, finished)
 	// ═══════════════════════════════════════════════════════
 		let openTournaments: Tournament[] = [];
 
 	try {
+		// Fetch recent tournaments across all statuses
 		const tournRows = await db
 			.select()
 			.from(tournaments)
-			.where(
-				or(
-					eq(tournaments.status, 'open'),
-					eq(tournaments.status, 'scheduled')
-				)
-			)
-			.orderBy(tournaments.started_at)
-			.limit(3);
+			.orderBy(desc(tournaments.created_at))
+			.limit(20);
 
+		const allTournaments: Tournament[] = [];
 		for (const t of tournRows) {
 			const [result] = await db
 				.select({ value: count() })
 				.from(tournamentParticipants)
 				.where(eq(tournamentParticipants.tournament_id, t.id));
 
-			openTournaments.push({
+			allTournaments.push({
 				id: t.id,
 				name: t.name,
 				playerCount: Number(result.value),
@@ -229,6 +225,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 				status: t.status,
 			});
 		}
+
+		// Priority: 1) your in_progress, 2) open/scheduled, 3) recently finished
+		const myActive = allTournaments.filter(t => t.status === 'in_progress');
+		const open = allTournaments.filter(t => t.status === 'scheduled');
+		const finished = allTournaments.filter(t => t.status === 'finished');
+
+		// Build mixed list up to 4
+		const mixed: Tournament[] = [];
+		for (const t of myActive) { if (mixed.length < 4) mixed.push(t); }
+		for (const t of open) { if (mixed.length < 4) mixed.push(t); }
+		for (const t of finished) { if (mixed.length < 4) mixed.push(t); }
+		openTournaments = mixed;
 	} catch {
 		// tournaments table might not be populated yet
 	}

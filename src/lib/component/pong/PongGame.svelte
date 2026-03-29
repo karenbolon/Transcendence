@@ -18,14 +18,16 @@
 		PADDLE_HEIGHT,
 		PADDLE_OFFSET,
 		BALL_RADIUS,
-	} from './gameEngine';
-	import { getTheme } from './themes';
-	import { getBallSkin } from './ballSkins';
-	import { drawThemeBackground, drawCourtLine, drawPaddles } from './themeRenderer';
-	import { drawBall, drawBallTrail } from './ballSkinRenderer';
-	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from './effectsEngine';
-	import { getSoundEngine } from './soundEngine';
-	import MuteButton from './MuteButton.svelte';
+	} from '$lib/game/gameEngine';
+	import { getTheme } from '$lib/game/themes';
+	import { getBallSkin } from '$lib/game/ballSkins';
+	import { drawThemeBackground, drawCourtLine, drawPaddles } from '$lib/game/themeRenderer';
+	import { drawBall, drawBallTrail } from '$lib/game/ballSkinRenderer';
+	import { EffectsEngine, DEFAULT_EFFECTS_CUSTOM, type EffectsConfig } from '$lib/game/effectsEngine';
+	import { getSoundEngine } from '$lib/game/soundEngine';
+	import MuteButton from '$lib/component/custom/MuteButton.svelte';
+	import { drawPowerUpItem, drawEffectsHUD, drawWallBarriers, getPaddleEffectTint, getBallAlpha } from '$lib/game/powerups/renderer';
+	import { getEffectivePaddleHeight, isInvisibleBallActive } from '$lib/game/powerups/engine';
 
 	type Props = {
 		settings: GameSettings;
@@ -78,6 +80,13 @@
 	let pausedFrom = $state<'playing' | 'countdown'>('playing');
 	let escPaused = $state(false);
 
+	export function startGame() {
+		if (game.phase === 'menu' && canStart) {
+			getSoundEngine().init();
+			startCountdown(game, settings);
+		}
+	}
+
 	export function pause() {
 		if (game.phase === 'playing' || game.phase === 'countdown') {
 			pausedFrom = game.phase as 'playing' | 'countdown';
@@ -108,7 +117,7 @@
 
 		// In computer mode, override paddle 2 with AI logic
 		if (settings.gameMode === 'computer') {
-			const aiInput = computeComputerInput(game);
+			const aiInput = computeComputerInput(game, settings);
 			humanInput.paddle2Up = aiInput.paddle2Up;
 			humanInput.paddle2Down = aiInput.paddle2Down;
 		}
@@ -152,7 +161,7 @@
 			e.preventDefault();
 			getSoundEngine().init();
 			if (game.phase === 'menu' && canStart) {
-				startCountdown(game, settings);
+				startGame();
 			} else if (game.phase === 'playing' || game.phase === 'countdown') {
 				pausedFrom = game.phase as 'playing' | 'countdown';
 				escPaused = false;
@@ -253,6 +262,7 @@
 
 		requestAnimationFrame((t) => gameLoop(ctx, t));
 	}
+
 	function draw(ctx: CanvasRenderingContext2D) {
 		const fontSize = 24;
 
@@ -296,11 +306,26 @@
 		const glowIntensity = settings.maxBallSpeed > settings.ballSpeed
 			? (game.currentBallSpeed - settings.ballSpeed) / (settings.maxBallSpeed - settings.ballSpeed)
 			: 0;
-		drawPaddles(ctx, theme, game.paddle1Y, game.paddle2Y, glowIntensity, effects.paddleFlashLeft, effects.paddleFlashRight);
+		const p1Height = getEffectivePaddleHeight(game, 'player1');
+		const p2Height = getEffectivePaddleHeight(game, 'player2');
+		const p1Tint = getPaddleEffectTint(game.activeEffects ?? [], 'player1');
+		const p2Tint = getPaddleEffectTint(game.activeEffects ?? [], 'player2');
+		drawPaddles(ctx, theme, game.paddle1Y, game.paddle2Y, glowIntensity, effects.paddleFlashLeft, effects.paddleFlashRight, p1Height, p2Height, p1Tint, p2Tint);
 
-		// Ball (skinned)
+		if (game.activeEffects) {
+			drawWallBarriers(ctx, game.activeEffects, gameTime);
+		}
+
+		// Ball (skinned, with invisible ball check)
 		if (game.phase !== 'menu') {
+			const ballAlpha = getBallAlpha(game.ballX, isInvisibleBallActive(game));
+			ctx.globalAlpha = ballAlpha;
 			drawBall(ctx, ballSkin, theme, game.ballX, game.ballY, gameTime, game.ballSpin, game.ballRotation);
+			ctx.globalAlpha = 1;
+		}
+
+		if (game.powerUpItem) {
+			drawPowerUpItem(ctx, game.powerUpItem, gameTime);
 		}
 
 		// Score text
@@ -359,6 +384,10 @@
 				ctx.fillText('SPACE to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 25);
 				ctx.fillText('ESC to quit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
 			}
+		}
+		
+		if (game.activeEffects) {
+			drawEffectsHUD(ctx, game.activeEffects);
 		}
 	}
 
@@ -461,4 +490,5 @@
 		max-width: 100%;
 		height: auto;
 	}
+
 </style>

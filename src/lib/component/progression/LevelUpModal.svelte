@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 	import XpBar from "./XpBar.svelte";
 	import { TIER_EMOJIS, getMilestone } from '$lib/utils/format_progression';
 	import type { XpBonus, NewAchievement } from '$lib/types/progression';
@@ -42,20 +44,11 @@
 		isVisible = false;
 		setTimeout(onClose, 200);
 	}
-
-	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === "Escape" || e.key === " ") {
-			e.preventDefault();
-			handleClose();
-		}
-	}
 </script>
-
-<svelte:window onkeydown={handleKeyDown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" class:visible={isVisible} onclick={handleClose}>
+<Modal open={isVisible} onclose={handleClose}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
@@ -122,32 +115,16 @@
 
 		<button class="close-btn" onclick={handleClose}>Continue</button>
 	</div>
-</div>
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		transition: background 0.2s ease;
-	}
-
-	.modal-backdrop.visible {
-		background: rgba(0, 0, 0, 0.75);
-		backdrop-filter: blur(4px);
-	}
-
 	.modal {
 		background: #1a1a2e;
 		border: 1px solid rgba(255, 107, 157, 0.2);
 		border-radius: 1.25rem;
 		padding: 2rem;
-		max-width: 380px;
-		width: 90%;
+		max-width: 420px;
+		width: 100%;
 		transform: scale(0.9);
 		opacity: 0;
 		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

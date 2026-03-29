@@ -1,11 +1,11 @@
 
 <script lang="ts">
-	import type { SpeedPreset, GameMode } from './gameEngine';
-	import ThemePicker from './ThemePicker.svelte';
-	import BallSkinPicker from './BallSkinPicker.svelte';
-	import EffectsSettings from './EffectsSettings.svelte';
-	import SoundSettings from './SoundSettings.svelte';
-	import { DEFAULT_EFFECTS_CUSTOM, type EffectsPreset, type EffectsCustom } from './effectsEngine';
+	import type { SpeedPreset, GameMode, AiDifficulty } from '$lib/game/gameEngine';
+	import ThemePicker from '$lib/component/custom/ThemePicker.svelte';
+	import BallSkinPicker from '$lib/component/custom/BallSkinPicker.svelte';
+	import EffectsSettings from '$lib/component/custom/EffectsSettings.svelte';
+	import SoundSettings from '$lib/component/custom/SoundSettings.svelte';
+	import { DEFAULT_EFFECTS_CUSTOM, type EffectsPreset, type EffectsCustom } from '$lib/game/effectsEngine';
 
 	type Props = {
 		gameMode: GameMode;
@@ -13,6 +13,7 @@
 		speedPreset: SpeedPreset;
 		player2Name: string;
 		isLoggedIn?: boolean;
+		aiDifficulty: AiDifficulty;
 		onGameModeChange: (mode: GameMode) => void;
 		onWinScoreChange: (score: number) => void;
 		onSpeedChange: (preset: SpeedPreset) => void;
@@ -32,6 +33,10 @@
 		onSavePreferences?: () => void;
 		saveStatus?: 'idle' | 'saving' | 'saved';
 		onTabChange?: (tab: 'game' | 'customize') => void;
+		powerUps?: boolean;
+		onPowerUpsChange?: (enabled: boolean) => void;
+		onStart?: () => void;
+		onAiDifficultyChange: (d: AiDifficulty) => void;
 	};
 
 	let {
@@ -40,6 +45,7 @@
 		speedPreset,
 		player2Name,
 		isLoggedIn = false,
+		aiDifficulty,
 		onGameModeChange,
 		onWinScoreChange,
 		onSpeedChange,
@@ -59,6 +65,10 @@
 		onSavePreferences = undefined,
 		saveStatus = 'idle',
 		onTabChange = undefined,
+		powerUps = false,
+		onPowerUpsChange = undefined,
+		onStart = undefined,
+		onAiDifficultyChange,
 	}: Props = $props();
 
 	let activeTab = $state<'game' | 'customize'>('game');
@@ -74,6 +84,11 @@
 		{ key: 'chill' as const,  label: '🐢 Chill' },
 		{ key: 'normal' as const, label: '🏓 Normal' },
 		{ key: 'fast' as const,   label: '🔥 Fast' },
+	];
+	const difficultyOptions = [
+		{ key: 'homer' as const, label: 'Homer' },
+		{ key: 'bart' as const, label: 'Bart' },
+		{ key: 'lisa' as const, label: 'Lisa' },
 	];
 </script>
 
@@ -148,6 +163,39 @@
 					{/each}
 				</div>
 			</div>
+
+			{#if gameMode === 'computer'}
+				<div class="setting-row">
+					<span class="setting-label">Difficulty</span>
+					<div class="setting-options">
+						{#each difficultyOptions as d}
+							<button
+								class="setting-btn"
+								class:active={aiDifficulty === d.key}
+								onclick={() => onAiDifficultyChange(d.key)}
+							>
+								{d.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+		{/if}
+		<div class="setting-row">
+			<span class="setting-label">Power-Ups</span>
+			<button
+				class="toggle-btn"
+				class:active={powerUps}
+				onclick={() => onPowerUpsChange?.(!powerUps)}
+			>
+				{powerUps ? 'ON' : 'OFF'}
+			</button>
+		</div>
+		{#if gameMode !== 'online' && onStart}
+			<button class="start-btn" onclick={onStart}>
+				▶ Start Game
+			</button>
 		{/if}
 	{:else}
 		{#if isLoggedIn}
@@ -332,7 +380,7 @@
 		border: 1px solid rgba(255,255,255,0.06);
 		background: transparent;
 		color: #6b7280;
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		font-family: inherit;
 		cursor: pointer;
 		transition: all 0.15s;
@@ -384,5 +432,51 @@
 		background: rgba(74,222,128,0.15);
 		border-color: rgba(74,222,128,0.4);
 		color: #4ade80;
+	}
+
+	.toggle-btn {
+		padding: 0.35rem 0.9rem;
+		border-radius: 0.5rem;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.03);
+		color: #6b7280;
+		font-size: 0.8rem;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s;
+		min-width: 52px;
+	}
+
+	.toggle-btn:hover {
+		border-color: rgba(255, 107, 157, 0.3);
+		color: #d1d5db;
+	}
+
+	.toggle-btn.active {
+		background: rgba(255, 107, 157, 0.15);
+		border-color: rgba(255, 107, 157, 0.4);
+		color: #ff6b9d;
+		font-weight: 600;
+	}
+
+	.start-btn {
+		width: 100%;
+		padding: 0.65rem;
+		border: none;
+		border-radius: 0.5rem;
+		background: #ff6b9d;
+		color: #fff;
+		font-size: 0.95rem;
+		font-weight: 700;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s;
+		margin-top: 0.5rem;
+	}
+
+	.start-btn:hover {
+		background: #ff85b1;
+		transform: scale(1.02);
 	}
 </style>

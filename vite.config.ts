@@ -28,6 +28,7 @@ function socketIODevPlugin() {
 						const { registerGameHandlers, startGameFromMatch, notifyExpiredPlayers } = await server.ssrLoadModule('$lib/server/socket/handlers/game.ts');
 						const { scanForMatches, removeExpired } = await server.ssrLoadModule('$lib/server/socket/game/MatchmakingQueue.ts');
 						const { registerChatHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/chat.ts');
+						const { registerTournamentHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/tournament.ts');
 
 						const io = initSocketIO(server.httpServer!);
 						io.use(socketAuthMiddleware);
@@ -38,6 +39,7 @@ function socketIODevPlugin() {
 							registerFriendHandlers(socket);
 							registerGameHandlers(socket);
 							registerChatHandlers(socket);
+							registerTournamentHandlers(socket);
 
 							socket.on('disconnect', () => {
 								socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User disconnected');

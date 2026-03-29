@@ -20,8 +20,8 @@ describe('speedEmoji', () => {
 		expect(speedEmoji('fast')).toBe('🔥');
 	});
 
-	it('should return empty string for unknown preset', () => {
-		expect(speedEmoji('turbo')).toBe('');
+	it('should return default emoji for unknown preset', () => {
+		expect(speedEmoji('turbo')).toBe('🏓');
 	});
 });
 

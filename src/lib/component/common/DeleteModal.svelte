@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Modal from '$lib/component/Modal.svelte';
+	import '$lib/styles/modal.css';
 
 	type Props = {
 		open: boolean;
@@ -48,7 +50,7 @@
 		}
 	}
 
-	function handleBackdropClick() {
+	function handleClose() {
 		if (!isDeleting) {
 			deletePassword = '';
 			deleteError = '';
@@ -57,68 +59,56 @@
 	}
 </script>
 
-{#if open}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<Modal {open} onclose={handleClose} closeable={!isDeleting}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-backdrop" onclick={handleBackdropClick}>
-		<div class="modal" onclick={(e) => e.stopPropagation()}>
-			<h2 class="modal-title">Delete Account</h2>
-			<p class="modal-desc">This action is <strong>permanent</strong>. Your account,profile, and stats will be removed. Your match history will be preserved for other players.
-			</p>
+	<div class="modal" onclick={(e) => e.stopPropagation()}>
+		<h2 class="modal-title">Delete Account</h2>
+		<p class="modal-desc">This action is <strong>permanent</strong>. Your account,profile, and stats will be removed. Your match history will be preserved for other players.
+		</p>
 
-			<form onsubmit={handleSubmit}>
-				<label class="modal-label" for="delete-password">Confirm password
-				</label>
-				<input
-					id="delete-password"
-					type="password"
-					name="password"
-					class="modal-input"
-					placeholder="Your password"
-					bind:value={deletePassword}
+		<form onsubmit={handleSubmit}>
+			<label class="modal-label" for="delete-password">Confirm password
+			</label>
+			<input
+				id="delete-password"
+				type="password"
+				name="password"
+				class="modal-input"
+				placeholder="Your password"
+				bind:value={deletePassword}
+				disabled={isDeleting}
+				autocomplete="current-password"
+			/>
+
+			{#if deleteError}
+				<p class="modal-error">{deleteError}</p>
+			{/if}
+
+			<div class="modal-actions">
+				<button
+					type="button"
+					class="modal-btn modal-btn--cancel"
+					onclick={handleClose}
 					disabled={isDeleting}
-					autocomplete="current-password"
-				/>
-
-				{#if deleteError}
-					<p class="modal-error">{deleteError}</p>
-				{/if}
-
-				<div class="modal-actions">
-					<button
-						type="button"
-						class="modal-btn modal-btn--cancel"
-						onclick={handleBackdropClick}
-						disabled={isDeleting}
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="modal-btn modal-btn--delete"
-						disabled={isDeleting}
-					>
-						{isDeleting ? 'Saving...': 'Delete Account'}
-					</button>
-				</div>
-			</form>
-		</div>
+				>
+					Cancel
+				</button>
+				<button
+					type="submit"
+					class="modal-btn modal-btn--delete"
+					disabled={isDeleting}
+				>
+					{isDeleting ? 'Saving...': 'Delete Account'}
+				</button>
+			</div>
+		</form>
 	</div>
-{/if}
+</Modal>
 
 <style>
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		animation: fadeIn 0.15s ease;
-	}
-
 	.modal {
 		background: #1f2937;
 		border: 1px solid rgba(248, 113, 113, 0.2);
@@ -126,7 +116,7 @@
 		padding: 2rem;
 		max-width: 420px;
 		width: 90%;
-		animation: scaleIn 0.15s ease;
+		animation: modal-scale-in 0.15s ease;
 	}
 
 	.modal-title {
@@ -216,15 +206,5 @@
 
 	.modal-btn--delete:hover:not(:disabled) {
 		background: #b91c1c;
-	}
-
-	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-
-	@keyframes scaleIn {
-		from { transform: scale(0.95); opacity: 0; }
-		to { transform: scale(1); opacity: 1; }
 	}
 </style>

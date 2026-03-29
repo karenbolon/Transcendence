@@ -80,6 +80,13 @@
 	let pausedFrom = $state<'playing' | 'countdown'>('playing');
 	let escPaused = $state(false);
 
+	export function startGame() {
+		if (game.phase === 'menu' && canStart) {
+			getSoundEngine().init();
+			startCountdown(game, settings);
+		}
+	}
+
 	export function pause() {
 		if (game.phase === 'playing' || game.phase === 'countdown') {
 			pausedFrom = game.phase as 'playing' | 'countdown';
@@ -154,7 +161,7 @@
 			e.preventDefault();
 			getSoundEngine().init();
 			if (game.phase === 'menu' && canStart) {
-				startCountdown(game, settings);
+				startGame();
 			} else if (game.phase === 'playing' || game.phase === 'countdown') {
 				pausedFrom = game.phase as 'playing' | 'countdown';
 				escPaused = false;
@@ -483,4 +490,5 @@
 		max-width: 100%;
 		height: auto;
 	}
+
 </style>

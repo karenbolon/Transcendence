@@ -6,10 +6,7 @@
 	import type { FriendshipStatus } from '$lib/types/progression';
 	import type { PageData } from './$types';
 	import HeadtoHead from '$lib/component/common/HeadtoHead.svelte';
-	import { goto } from '$app/navigation';
-	import { getSocket } from '$lib/stores/socket.svelte';
-	import { toast } from '$lib/stores/toast.svelte';
-	import { setWaiting } from '$lib/stores/matchmaking.svelte';
+	import { sendChallenge } from '$lib/utils/challenge';
 	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
@@ -37,25 +34,14 @@
 		showChallengePicker = true;
 	}
 
-	function sendChallenge(settings: { speedPreset: string; winScore: number }) {
-		const socket = getSocket();
-		if (!socket?.connected) {
-			toast.error('Not connected to server');
-			return;
-		}
-		socket.emit('game:invite', {
-			friendId: data.friend.id,
+	function onChallengeSend(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
+		sendChallenge(
+			data.friend.id,
+			{ username: data.user.username, avatarUrl: data.user.avatarUrl, displayName: data.user.name },
+			{ username: data.friend.username, avatarUrl: data.friend.avatarUrl, displayName: data.friend.name },
 			settings,
-		});
-
-		setWaiting({
-			you: { username: data.user.username, avatarUrl: data.user.avatarUrl, displayName: data.user.name },
-			opponent: { username: data.friend.username, avatarUrl: data.friend.avatarUrl, displayName: data.friend.name },
-			settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
-			totalTime: 30,
-		});
+		);
 		showChallengePicker = false;
-		goto('/play/online/waiting');
 	}
 
 	async function handleUnfriend() {
@@ -221,7 +207,7 @@
 {#if showChallengePicker}
 	<ChallengePicker
 		targetName={{ username: data.friend.username, displayName: data.friend.name, avatarUrl: data.friend.avatarUrl }}
-		onSend={sendChallenge}
+		onSend={onChallengeSend}
 		onCancel={() => showChallengePicker = false}
 	/>
 {/if}

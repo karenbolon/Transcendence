@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import {
-	CANVAS_WIDTH,
-	CANVAS_HEIGHT,
-	PADDLE_WIDTH,
-	PADDLE_HEIGHT,
-	PADDLE_OFFSET,
-	BALL_RADIUS,
+		CANVAS_WIDTH,
+		CANVAS_HEIGHT,
+		PADDLE_WIDTH,
+		PADDLE_HEIGHT,
+		PADDLE_OFFSET,
+		BALL_RADIUS,
 	} from '$lib/game/gameEngine';
 	import type { GameStateSnapshot } from '$lib/types/game';
 	import { getTheme } from '$lib/game/themes';
@@ -415,4 +415,3 @@
 	height: auto;
 	}
 </style>
- 

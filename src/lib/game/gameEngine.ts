@@ -524,7 +524,9 @@ let aiTargetY: number = CANVAS_HEIGHT / 2;
 let aiFrameCounter: number = 0;
 
 function resetComputerAiState(): void {
-	aiFrameCounter = 0;
+	// Set to a large value so the next computeComputerInput call immediately recalculates
+	// the intercept target rather than waiting reactionFrames frames with a stale center aim.
+	aiFrameCounter = 9999;
 	aiTargetY = CANVAS_HEIGHT / 2;
 }
 

@@ -116,6 +116,9 @@
 		socket.on('chat:message', (msg: any) => {
 			receiveMessage(msg);
 
+			// System messages (game/match notifications) show inline in the chat panel — no toast
+			if (msg.type === 'system') return;
+
 			// During online games, skip toast for the opponent (in-game chat shows it)
 			// Still show toasts for other friends messaging you
 			const onGamePage = $page.url.pathname.startsWith('/play/online/') && $page.url.pathname !== '/play/online/waiting';

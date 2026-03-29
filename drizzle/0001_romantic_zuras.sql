@@ -1,4 +1,4 @@
-CREATE TABLE "achievement_definitions" (
+CREATE TABLE IF NOT EXISTS "achievement_definitions" (
 	"id" varchar(50) PRIMARY KEY NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"description" text NOT NULL,
@@ -7,14 +7,14 @@ CREATE TABLE "achievement_definitions" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "achievements" (
+CREATE TABLE IF NOT EXISTS "achievements" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer,
 	"achievement_id" varchar(50) NOT NULL,
 	"unlocked_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "player-progression" (
+CREATE TABLE IF NOT EXISTS "player-progression" (
 	"user_id" integer,
 	"current_level" integer DEFAULT 0,
 	"current_xp" integer DEFAULT 0,
@@ -29,6 +29,15 @@ CREATE TABLE "player-progression" (
 	"consecutive_days_played" integer DEFAULT 0
 );
 --> statement-breakpoint
-ALTER TABLE "achievements" ADD CONSTRAINT "achievements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "achievements" ADD CONSTRAINT "achievements_achievement_id_achievement_definitions_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievement_definitions"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "player-progression" ADD CONSTRAINT "player-progression_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+DO $$ BEGIN
+	ALTER TABLE "achievements" ADD CONSTRAINT "achievements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "achievements" ADD CONSTRAINT "achievements_achievement_id_achievement_definitions_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievement_definitions"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "player-progression" ADD CONSTRAINT "player-progression_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

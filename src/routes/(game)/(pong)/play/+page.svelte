@@ -651,6 +651,7 @@
 					onTabChange={(tab) => settingsTab = tab}
 					{powerUps}
 					onPowerUpsChange={(v) => { powerUps = v; prefs.powerUps = v; debouncedSavePreferences(prefs); }}
+					onStart={() => pongGame?.startGame()}
 				/>
 			</div>
 			{#if gameMode === 'online' && settingsTab === 'game'}

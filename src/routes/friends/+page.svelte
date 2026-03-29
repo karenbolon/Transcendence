@@ -19,7 +19,7 @@
 		challengeTarget = { id: friendId, username, name, avatar_url: avatarUrl };
 	}
 
-	function onChallengeSend(settings: { speedPreset: string; winScore: number }) {
+	function onChallengeSend(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		if (!challengeTarget || !data.user) return;
 		sendChallenge(
 			challengeTarget.id,

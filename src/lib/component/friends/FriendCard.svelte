@@ -1,5 +1,5 @@
 <script lang="ts">
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type Action = {
 		label: string;

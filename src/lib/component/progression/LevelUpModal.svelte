@@ -123,8 +123,8 @@
 		border: 1px solid rgba(255, 107, 157, 0.2);
 		border-radius: 1.25rem;
 		padding: 2rem;
-		max-width: 380px;
-		width: 90%;
+		max-width: 420px;
+		width: 100%;
 		transform: scale(0.9);
 		opacity: 0;
 		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

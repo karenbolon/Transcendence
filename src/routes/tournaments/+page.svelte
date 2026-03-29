@@ -6,7 +6,7 @@
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { capitalize } from '$lib/utils/format_progression';
 	import { timeAgo, ordinal } from '$lib/utils/format_date';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 

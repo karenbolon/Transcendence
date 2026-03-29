@@ -34,7 +34,7 @@
 		showChallengePicker = true;
 	}
 
-	function onChallengeSend(settings: { speedPreset: string; winScore: number }) {
+	function onChallengeSend(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
 		sendChallenge(
 			data.friend.id,
 			{ username: data.user.username, avatarUrl: data.user.avatarUrl, displayName: data.user.name },

@@ -34,6 +34,7 @@
 		onTabChange?: (tab: 'game' | 'customize') => void;
 		powerUps?: boolean;
 		onPowerUpsChange?: (enabled: boolean) => void;
+		onStart?: () => void;
 	};
 
 	let {
@@ -63,6 +64,7 @@
 		onTabChange = undefined,
 		powerUps = false,
 		onPowerUpsChange = undefined,
+		onStart = undefined,
 	}: Props = $props();
 
 	let activeTab = $state<'game' | 'customize'>('game');
@@ -164,6 +166,11 @@
 				{powerUps ? 'ON' : 'OFF'}
 			</button>
 		</div>
+		{#if gameMode !== 'online' && onStart}
+			<button class="start-btn" onclick={onStart}>
+				▶ Start Game
+			</button>
+		{/if}
 	{:else}
 		{#if isLoggedIn}
 			<!-- Sub-tabs for Customize -->
@@ -425,5 +432,25 @@
 		border-color: rgba(255, 107, 157, 0.4);
 		color: #ff6b9d;
 		font-weight: 600;
+	}
+
+	.start-btn {
+		width: 100%;
+		padding: 0.65rem;
+		border: none;
+		border-radius: 0.5rem;
+		background: #ff6b9d;
+		color: #fff;
+		font-size: 0.95rem;
+		font-weight: 700;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.15s;
+		margin-top: 0.5rem;
+	}
+
+	.start-btn:hover {
+		background: #ff85b1;
+		transform: scale(1.02);
 	}
 </style>

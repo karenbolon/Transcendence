@@ -41,7 +41,7 @@
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div onclick={(e) => e.stopPropagation()}>
+		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
 			{@render children()}
 		</div>
 	</div>
@@ -56,5 +56,12 @@
 		align-items: center;
 		justify-content: center;
 		animation: modal-fade-in var(--transition-fast, 0.15s ease);
+	}
+
+	.modal-content {
+		width: calc(100% - 2rem);
+		max-width: 100%;
+		display: flex;
+		justify-content: center;
 	}
 </style>

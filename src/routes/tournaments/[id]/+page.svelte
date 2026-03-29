@@ -5,7 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import Bracket from '$lib/component/tournament/Bracket.svelte';
 	import TournamentLobby from '$lib/component/tournament/TournamentLobby.svelte';
-	import UserAvatar from '$lib/component/UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { timeAgo, ordinal } from '$lib/utils/format_date';
 	import Starfield from '$lib/component/effect/Starfield.svelte';

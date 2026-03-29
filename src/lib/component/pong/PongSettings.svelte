@@ -1,19 +1,32 @@
 
 <script lang="ts">
-	import type { SpeedPreset, GameMode } from './gameEngine';
+	import type { SpeedPreset, GameMode, AiDifficulty } from './gameEngine';
 
 	type Props = {
 		gameMode: GameMode;
 		winScore: number;
 		speedPreset: SpeedPreset;
 		player2Name: string;
+		aiDifficulty: AiDifficulty;
 		onGameModeChange: (mode: GameMode) => void;
 		onWinScoreChange: (score: number) => void;
 		onSpeedChange: (preset: SpeedPreset) => void;
 		onPlayer2NameChange: (name: string) => void;
+		onAiDifficultyChange: (d: AiDifficulty) => void;
 	};
 
-	let { gameMode, winScore, speedPreset, player2Name, onGameModeChange, onWinScoreChange, onSpeedChange, onPlayer2NameChange }: Props = $props();
+	let {
+		gameMode,
+		winScore,
+		speedPreset,
+		player2Name,
+		aiDifficulty,
+		onGameModeChange,
+		onWinScoreChange,
+		onSpeedChange,
+		onPlayer2NameChange,
+		onAiDifficultyChange,
+	}: Props = $props();
 
 	const modeOptions = [
 		{ key: 'local' as const,    label: '👥 Local PvP'},
@@ -25,6 +38,11 @@
 		{ key: 'chill' as const,  label: '🐢 Chill' },
 		{ key: 'normal' as const, label: '🏓 Normal' },
 		{ key: 'fast' as const,   label: '🔥 Fast' },
+	];
+	const difficultyOptions = [
+		{ key: 'homer' as const, label: 'Homer' },
+		{ key: 'bart' as const, label: 'Bart' },
+		{ key: 'lisa' as const, label: 'Lisa' },
 	];
 </script>
 
@@ -90,6 +108,23 @@
 			{/each}
 		</div>
 	</div>
+
+	{#if gameMode === 'computer'}
+		<div class="setting-row">
+			<span class="setting-label">Difficulty</span>
+			<div class="setting-options">
+				{#each difficultyOptions as d}
+					<button
+						class="setting-btn"
+						class:active={aiDifficulty === d.key}
+						onclick={() => onAiDifficultyChange(d.key)}
+					>
+						{d.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>

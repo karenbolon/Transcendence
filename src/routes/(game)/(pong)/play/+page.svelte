@@ -13,6 +13,8 @@
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
+		type AiDifficulty,
+		aiOpponentDisplayName,
 	} from "$lib/component/pong/gameEngine";
 
 	let layoutData = $derived($page.data);
@@ -21,6 +23,7 @@
 	let winScore = $state(5);
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
+	let aiDifficulty = $state<AiDifficulty>("bart");
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -28,6 +31,7 @@
 		ballSpeed: SPEED_CONFIGS[speedPreset].ballSpeed,
 		maxBallSpeed: SPEED_CONFIGS[speedPreset].maxBallSpeed,
 		gameMode,
+		aiDifficulty,
 	});
 
 	let pongGame: PongGame;
@@ -60,7 +64,7 @@
 		// Determine Player 2's display name
 		const p2DisplayName =
 			gameMode === "computer"
-				? "Computer"
+				? aiOpponentDisplayName(settings)
 				: player2Name.trim() || "Guest";
 
 		try {
@@ -104,7 +108,11 @@
 		layoutData?.user?.username ?? "Player 1"
 	);
 	let player2DisplayName = $derived(
-		gameMode === 'local' ? player2Name.trim() || "Guest" : "Computer"
+		gameMode === "local"
+			? player2Name.trim() || "Guest"
+			: gameMode === "computer"
+				? aiOpponentDisplayName(settings)
+				: "Computer"
 	);
 
 	// Player 2 avatar emoji
@@ -137,10 +145,12 @@
 					{winScore}
 					{speedPreset}
 					{player2Name}
+					{aiDifficulty}
 					onGameModeChange={(v) => (gameMode = v)}
 					onWinScoreChange={(v) => (winScore = v)}
 					onSpeedChange={(v) => (speedPreset = v)}
 					onPlayer2NameChange={(v) => (player2Name = v)}
+					onAiDifficultyChange={(v) => (aiDifficulty = v)}
 				/>
 			</div>
 		</div>
@@ -180,7 +190,7 @@
 		{:else if gamePhase === "countdown"}
 			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
-			<PongControls {gameMode} />
+			<PongControls {gameMode} computerOpponentName={aiOpponentDisplayName(settings)} />
 		{:else if gamePhase === "gameover"}
 			<div class="gameover-status">
 				<span class="status-text">Press SPACE to play again</span>

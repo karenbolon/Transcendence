@@ -253,55 +253,6 @@
 			</div>
 		{/if}
 	{/if}
-
-	<!-- Points to win -->
-	<div class="setting-row">
-		<span class="setting-label">Points to win</span>
-		<div class="setting-options">
-			{#each pointOptions as points}
-				<button
-					class="setting-btn"
-					class:active={winScore === points}
-					onclick={() => onWinScoreChange(points)}
-				>
-					{points}
-				</button>
-			{/each}
-		</div>
-	</div>
-
-	<!-- Ball speed -->
-	<div class="setting-row">
-		<span class="setting-label">Ball speed</span>
-		<div class="setting-options">
-			{#each speedOptions as preset}
-				<button
-					class="setting-btn"
-					class:active={speedPreset === preset.key}
-					onclick={() => onSpeedChange(preset.key)}
-				>
-					{preset.label}
-				</button>
-			{/each}
-		</div>
-	</div>
-
-	{#if gameMode === 'computer'}
-		<div class="setting-row">
-			<span class="setting-label">Difficulty</span>
-			<div class="setting-options">
-				{#each difficultyOptions as d}
-					<button
-						class="setting-btn"
-						class:active={aiDifficulty === d.key}
-						onclick={() => onAiDifficultyChange(d.key)}
-					>
-						{d.label}
-					</button>
-				{/each}
-			</div>
-		</div>
-	{/if}
 </div>
 
 <style>

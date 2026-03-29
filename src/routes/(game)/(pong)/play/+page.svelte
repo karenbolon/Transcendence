@@ -28,6 +28,8 @@
 		type SpeedPreset,
 		type GameMode,
 		type GameSettings,
+		type AiDifficulty,
+		aiOpponentDisplayName,
 	} from "$lib/game/gameEngine";
 	import { mergePreferences, debouncedSavePreferences } from '$lib/game/preferences';
 	import { getTheme } from '$lib/game/themes';
@@ -443,6 +445,7 @@
 	let speedPreset = $state<SpeedPreset>("normal");
 	let player2Name = $state("");
 	let powerUps = $state(prefs.powerUps ?? false);
+	let aiDifficulty = $state<AiDifficulty>("bart");
 
 	// Build the settings object that PongGame needs
 	let settings = $derived<GameSettings>({
@@ -452,6 +455,7 @@
 		gameMode,
 		difficulty: 'medium',
 		powerUps,
+		aiDifficulty,
 	});
 
 	let pongGame: PongGame;
@@ -503,7 +507,7 @@
 		// Determine Player 2's display name
 		const p2DisplayName =
 			gameMode === "computer"
-				? "Computer"
+				? aiOpponentDisplayName(settings)
 				: player2Name.trim() || "Guest";
 
 		try {
@@ -557,7 +561,11 @@
 		layoutData?.user?.username ?? "Player 1"
 	);
 	let player2DisplayName = $derived(
-		gameMode === 'local' ? player2Name.trim() || "Guest" : "Computer"
+		gameMode === "local"
+			? player2Name.trim() || "Guest"
+			: gameMode === "computer"
+				? aiOpponentDisplayName(settings)
+				: "Computer"
 	);
 
 	// Player 2 avatar emoji
@@ -623,6 +631,7 @@
 					{speedPreset}
 					{player2Name}
 					{isLoggedIn}
+					{aiDifficulty}
 					onGameModeChange={(v) => (gameMode = v)}
 					onWinScoreChange={(v) => (winScore = v)}
 					onSpeedChange={(v) => (speedPreset = v)}
@@ -652,6 +661,7 @@
 					{powerUps}
 					onPowerUpsChange={(v) => { powerUps = v; prefs.powerUps = v; debouncedSavePreferences(prefs); }}
 					onStart={() => pongGame?.startGame()}
+					onAiDifficultyChange={(v) => (aiDifficulty = v)}
 				/>
 			</div>
 			{#if gameMode === 'online' && settingsTab === 'game'}
@@ -769,7 +779,7 @@
 		{:else if gamePhase === "countdown"}
 			<span class="status-text">Get ready...</span>
 		{:else if gamePhase === "playing"}
-			<PongControls {gameMode} />
+			<PongControls {gameMode} computerOpponentName={aiOpponentDisplayName(settings)} />
 		{:else if gamePhase === "paused"}
 			<span class="status-text">Game paused — press SPACE to resume or ESC to quit</span>
 		{:else if gamePhase === "gameover"}

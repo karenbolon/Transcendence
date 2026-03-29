@@ -117,7 +117,7 @@
 
 		// In computer mode, override paddle 2 with AI logic
 		if (settings.gameMode === 'computer') {
-			const aiInput = computeComputerInput(game);
+			const aiInput = computeComputerInput(game, settings);
 			humanInput.paddle2Up = aiInput.paddle2Up;
 			humanInput.paddle2Down = aiInput.paddle2Down;
 		}

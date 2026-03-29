@@ -1,6 +1,6 @@
 
 <script lang="ts">
-	import type { SpeedPreset, GameMode } from '$lib/game/gameEngine';
+	import type { SpeedPreset, GameMode, AiDifficulty } from '$lib/game/gameEngine';
 	import ThemePicker from '$lib/component/custom/ThemePicker.svelte';
 	import BallSkinPicker from '$lib/component/custom/BallSkinPicker.svelte';
 	import EffectsSettings from '$lib/component/custom/EffectsSettings.svelte';
@@ -13,6 +13,7 @@
 		speedPreset: SpeedPreset;
 		player2Name: string;
 		isLoggedIn?: boolean;
+		aiDifficulty: AiDifficulty;
 		onGameModeChange: (mode: GameMode) => void;
 		onWinScoreChange: (score: number) => void;
 		onSpeedChange: (preset: SpeedPreset) => void;
@@ -35,6 +36,7 @@
 		powerUps?: boolean;
 		onPowerUpsChange?: (enabled: boolean) => void;
 		onStart?: () => void;
+		onAiDifficultyChange: (d: AiDifficulty) => void;
 	};
 
 	let {
@@ -43,6 +45,7 @@
 		speedPreset,
 		player2Name,
 		isLoggedIn = false,
+		aiDifficulty,
 		onGameModeChange,
 		onWinScoreChange,
 		onSpeedChange,
@@ -65,6 +68,7 @@
 		powerUps = false,
 		onPowerUpsChange = undefined,
 		onStart = undefined,
+		onAiDifficultyChange,
 	}: Props = $props();
 
 	let activeTab = $state<'game' | 'customize'>('game');
@@ -80,6 +84,11 @@
 		{ key: 'chill' as const,  label: '🐢 Chill' },
 		{ key: 'normal' as const, label: '🏓 Normal' },
 		{ key: 'fast' as const,   label: '🔥 Fast' },
+	];
+	const difficultyOptions = [
+		{ key: 'homer' as const, label: 'Homer' },
+		{ key: 'bart' as const, label: 'Bart' },
+		{ key: 'lisa' as const, label: 'Lisa' },
 	];
 </script>
 
@@ -155,6 +164,23 @@
 				</div>
 			</div>
 
+			{#if gameMode === 'computer'}
+				<div class="setting-row">
+					<span class="setting-label">Difficulty</span>
+					<div class="setting-options">
+						{#each difficultyOptions as d}
+							<button
+								class="setting-btn"
+								class:active={aiDifficulty === d.key}
+								onclick={() => onAiDifficultyChange(d.key)}
+							>
+								{d.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
 		{/if}
 		<div class="setting-row">
 			<span class="setting-label">Power-Ups</span>
@@ -226,6 +252,55 @@
 				<p>Log in to unlock customization</p>
 			</div>
 		{/if}
+	{/if}
+
+	<!-- Points to win -->
+	<div class="setting-row">
+		<span class="setting-label">Points to win</span>
+		<div class="setting-options">
+			{#each pointOptions as points}
+				<button
+					class="setting-btn"
+					class:active={winScore === points}
+					onclick={() => onWinScoreChange(points)}
+				>
+					{points}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Ball speed -->
+	<div class="setting-row">
+		<span class="setting-label">Ball speed</span>
+		<div class="setting-options">
+			{#each speedOptions as preset}
+				<button
+					class="setting-btn"
+					class:active={speedPreset === preset.key}
+					onclick={() => onSpeedChange(preset.key)}
+				>
+					{preset.label}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	{#if gameMode === 'computer'}
+		<div class="setting-row">
+			<span class="setting-label">Difficulty</span>
+			<div class="setting-options">
+				{#each difficultyOptions as d}
+					<button
+						class="setting-btn"
+						class:active={aiDifficulty === d.key}
+						onclick={() => onAiDifficultyChange(d.key)}
+					>
+						{d.label}
+					</button>
+				{/each}
+			</div>
+		</div>
 	{/if}
 </div>
 

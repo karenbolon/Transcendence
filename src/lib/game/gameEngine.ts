@@ -71,6 +71,8 @@ export interface InputState {
 	paddle2Down: boolean;
 }
 
+export type AiDifficulty = 'homer' | 'bart' | 'lisa';
+
 export interface GameSettings {
 	winScore: number;
 	ballSpeed: number;
@@ -78,7 +80,34 @@ export interface GameSettings {
 	gameMode: GameMode;
 	difficulty: Difficulty;
 	powerUps: boolean;
+	/** Used when `gameMode === 'computer'`. Defaults to `bart`. */
+	aiDifficulty?: AiDifficulty;
 }
+
+/** In-game label for the right paddle when `gameMode === 'computer'` (Homer / Bart / Lisa). */
+export function aiOpponentDisplayName(settings: GameSettings): string {
+	if (settings.gameMode !== 'computer') return 'Computer';
+	const d = settings.aiDifficulty ?? 'bart';
+	return d[0]!.toUpperCase() + d.slice(1);
+}
+
+/** Tunables for `computeComputerInput` — higher error / reaction / deadZone = weaker AI */
+const AI_DIFFICULTY_CONFIG: Record<
+	AiDifficulty,
+	{
+		errorRange: number;
+		reactionFrames: number;
+		deadZone: number;
+		spinTrust: number;
+		/** 1 = snap to new aim each retarget; lower = eased aim (less paddle fidget from noisy targets) */
+		retargetBlend: number;
+	}
+> = {
+	// Homer: frequent retargets + live-ball chase; huge error + no spin (bad aim), small dead zone = keeps moving
+	homer: { errorRange: 150, reactionFrames: 5, deadZone: 32, spinTrust: 0, retargetBlend: 1 },
+	bart: { errorRange: 58, reactionFrames: 10, deadZone: 50, spinTrust: 0.9, retargetBlend: 0.48 },
+	lisa: { errorRange: 37, reactionFrames: 8, deadZone: 36, spinTrust: 1, retargetBlend: 0.55 },
+};
 
 export const SPEED_CONFIGS: Record<SpeedPreset, { ballSpeed: number; maxBallSpeed: number }> = {
 	chill:  { ballSpeed: 300, maxBallSpeed: 400 },
@@ -148,6 +177,7 @@ export function startCountdown(state: GameState, settings: GameSettings): void {
 	state.currentBallSpeed = settings.ballSpeed;
 	state.playTime = 0;
 	resetPositions(state);
+	resetComputerAiState();
 }
 
 /** COUNTDOWN → PLAYING */
@@ -156,6 +186,7 @@ export function startPlaying(state: GameState, settings: GameSettings): void {
 	const direction = Math.random() > 0.5 ? 1 : -1;
 	state.ballVX = settings.ballSpeed * direction;
 	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
+	resetComputerAiState();
 }
 
 /** PLAYING → GAMEOVER */
@@ -184,6 +215,7 @@ export function returnToMenu(state: GameState): void {
 	state.powerUpCooldown = 5;
 	state.lastBallHitter = null;
 	resetPositions(state);
+	resetComputerAiState();
 }
 
 /** PLAYING/COUNTDOWN → PAUSED */
@@ -458,7 +490,7 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 			state.reachedDeuce = true;
 		}
 
-		const scorer = settings.gameMode === 'computer' ? 'Computer' : 'Player 2';
+		const scorer = settings.gameMode === 'computer' ? aiOpponentDisplayName(settings) : 'Player 2';
 		if (state.score2 >= settings.winScore) {
 			endGame(state, scorer);
 		} else {
@@ -487,6 +519,15 @@ function checkScoring(state: GameState, settings: GameSettings): void {
 	}
 }
 
+// Persistent AI state between frames
+let aiTargetY: number = CANVAS_HEIGHT / 2;
+let aiFrameCounter: number = 0;
+
+function resetComputerAiState(): void {
+	aiFrameCounter = 0;
+	aiTargetY = CANVAS_HEIGHT / 2;
+}
+
 /**
  * Fuzzy Logic AI Controller for Computer Paddle
  *
@@ -495,58 +536,116 @@ function checkScoring(state: GameState, settings: GameSettings): void {
  * 2. Inference: Determine target position based on ball approach state
  * 3. Defuzzification: Apply dead zone tolerance for smooth movement
  */
-export function computeComputerInput(state: GameState): InputState {
+export function computeComputerInput(state: GameState, settings: GameSettings): InputState {
+	const cfg = AI_DIFFICULTY_CONFIG[settings.aiDifficulty ?? 'bart'];
 	const paddleCenter = state.paddle2Y + PADDLE_HEIGHT / 2;
-	const deadZone = 30; // Fuzzy tolerance zone (±30px = "close enough")
+	const deadZone = cfg.deadZone;
 
-	let targetY: number;
+	// Paddles are not simulated in menu/gameover — still advance AI state here and it desyncs
+	// with the next match. Skip and keep a clean intercept target for the next rally.
+	if (state.phase === 'menu' || state.phase === 'gameover') {
+		resetComputerAiState();
+		return {
+			paddle1Up: false,
+			paddle1Down: false,
+			paddle2Up: false,
+			paddle2Down: false,
+		};
+	}
 
-	// Rule 1: Ball approaching → Use predictive tracking
-	if (state.ballVX > 0) {
-		const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
-		const distanceToPaddle = paddleX - state.ballX;
-		const timeToReach = distanceToPaddle / state.ballVX;
+	// Only recalculate target every N frames (simulates reaction delay)
+	aiFrameCounter++;
+	if (aiFrameCounter >= cfg.reactionFrames) {
+		aiFrameCounter = 0;
 
-		// Predict future ball position (account for spin curving the trajectory)
-		// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
-		// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
-		let predictedY = state.ballY
-			+ (state.ballVY * timeToReach)
-			+ (0.5 * state.ballSpin * SPIN_ACCELERATION * timeToReach * timeToReach);
+		let targetY: number;
 
-		// Simulate wall bounces with safety limit (prevent infinite loops)
-		let bounces = 0;
-		const maxBounces = 10; // Safety limit
+		// Rule 1: Ball approaching → Use predictive tracking
+		if (state.ballVX > 0) {
+			const paddleX = CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+			const distanceToPaddle = paddleX - state.ballX;
+			const timeToReach = distanceToPaddle / state.ballVX;
 
-		while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
-			if (predictedY < 0) {
-				predictedY = Math.abs(predictedY);
-			} else if (predictedY > CANVAS_HEIGHT) {
-				predictedY = 2 * CANVAS_HEIGHT - predictedY;
+			// Predict future ball position (account for spin curving the trajectory)
+			// Spin adds acceleration over time: y = y0 + vy*t + 0.5*spin*SPIN_ACCELERATION*t²
+			// THIS IS A BIT HACKY BUT THE PHYSICS IS OVER MY HEAD
+			let predictedY =
+				state.ballY +
+				state.ballVY * timeToReach +
+				0.5 *
+					state.ballSpin *
+					SPIN_ACCELERATION *
+					timeToReach *
+					timeToReach *
+					cfg.spinTrust;
+
+			// Simulate wall bounces with safety limit (prevent infinite loops)
+			let bounces = 0;
+			const maxBounces = 10; // Safety limit
+
+			while ((predictedY < 0 || predictedY > CANVAS_HEIGHT) && bounces < maxBounces) {
+				if (predictedY < 0) {
+					predictedY = Math.abs(predictedY);
+				} else if (predictedY > CANVAS_HEIGHT) {
+					predictedY = 2 * CANVAS_HEIGHT - predictedY;
+				}
+				bounces++;
 			}
-			bounces++;
+
+			// Clamp if still out of bounds (safety fallback)
+			predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+
+			// Homer: bias toward the ball's *current* height so the paddle clearly follows vertical
+			// motion, while straight-line+bounce math and massive error still miss (especially on spin).
+			if (settings.aiDifficulty === 'homer') {
+				const homerLiveBallBlend = 0.42;
+				predictedY =
+					predictedY * (1 - homerLiveBallBlend) + state.ballY * homerLiveBallBlend;
+				predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+			}
+
+			// Add random error so the AI doesn't aim perfectly every time
+			const error = (Math.random() * 2 - 1) * cfg.errorRange;
+			targetY = predictedY + error;
+		}
+		// Rule 2: Ball moving away → Return to center (defensive positioning)
+		else {
+			targetY = CANVAS_HEIGHT / 2;
 		}
 
-		// Clamp if still out of bounds (safety fallback)
-		predictedY = Math.max(0, Math.min(CANVAS_HEIGHT, predictedY));
+		// Defuzzification: Constrain target to valid paddle bounds
+		// Extend range by deadZone so the paddle can fully reach the top/bottom edges
+		const rawTargetY = Math.max(
+			PADDLE_HEIGHT / 2 - deadZone,
+			Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
+		);
+		const b = cfg.retargetBlend;
+		aiTargetY = rawTargetY * b + aiTargetY * (1 - b);
 
-		targetY = predictedY;
-	}
-	// Rule 2: Ball moving away → Return to center (defensive positioning)
-	else {
-		targetY = CANVAS_HEIGHT / 2;
+		// Eased aim can sit inside the movement dead zone while the true intercept is still
+		// outside — both move flags false and the paddle appears "dead". Snap to raw when stuck.
+		if (
+			Math.abs(paddleCenter - aiTargetY) <= deadZone &&
+			Math.abs(paddleCenter - rawTargetY) > deadZone
+		) {
+			aiTargetY = rawTargetY;
+		}
 	}
 
-	// Defuzzification: Constrain target to valid paddle bounds
-	// Extend range by deadZone so the paddle can fully reach the top/bottom edges
-	targetY = Math.max(
-		PADDLE_HEIGHT / 2 - deadZone,
-		Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2 + deadZone, targetY)
-	);
+	// Homer: each frame, ease aim toward where the ball is *now* so the paddle visibly follows the ball
+	// between retargets; giant ±error on retarget still makes final intercepts unreliable (esp. spin).
+	if (settings.aiDifficulty === 'homer' && state.ballVX > 0) {
+		const homerFrameChase = 0.16;
+		aiTargetY = aiTargetY * (1 - homerFrameChase) + state.ballY * homerFrameChase;
+		aiTargetY = Math.max(
+			PADDLE_HEIGHT / 2,
+			Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT / 2, aiTargetY)
+		);
+	}
 
 	// Fuzzy decision: Only move if outside dead zone (prevents oscillation)
-	const moveUp = targetY < paddleCenter - deadZone;
-	const moveDown = targetY > paddleCenter + deadZone;
+	const moveUp = aiTargetY < paddleCenter - deadZone;
+	const moveDown = aiTargetY > paddleCenter + deadZone;
 
 	return {
 		paddle1Up: false,

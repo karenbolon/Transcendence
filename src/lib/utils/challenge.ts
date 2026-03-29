@@ -17,7 +17,7 @@ export function sendChallenge(
 	friendId: number,
 	you: ChallengePlayer,
 	opponent: ChallengePlayer,
-	settings: { speedPreset: string; winScore: number },
+	settings: { speedPreset: string; winScore: number; powerUps?: boolean },
 ): boolean {
 	const socket = getSocket();
 	if (!socket?.connected) {
@@ -29,7 +29,7 @@ export function sendChallenge(
 	setWaiting({
 		you,
 		opponent,
-		settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, mode: 'online' },
+		settings: { speedPreset: settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: settings.winScore, powerUps: settings.powerUps ?? false, mode: 'online' },
 		totalTime: 30,
 	});
 	goto('/play/online/waiting');

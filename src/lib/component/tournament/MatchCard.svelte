@@ -1,5 +1,5 @@
 <script lang="ts">
-	import UserAvatar from '../UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	let { match, currentUserId }: {
 		match: {

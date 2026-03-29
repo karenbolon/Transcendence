@@ -2,7 +2,7 @@
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { capitalize } from '$lib/utils/format_progression';
 	import { formatDuration } from '$lib/utils/format_date';
-	import UserAvatar from '../UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type Props = {
 		myScore: number;

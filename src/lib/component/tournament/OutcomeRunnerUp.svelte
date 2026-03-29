@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ordinal, formatDuration } from '$lib/utils/format_date';
 	import { speedEmoji } from '$lib/utils/format_game';
-	import UserAvatar from '../UserAvatar.svelte';
+	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
 	type Props = {
 		myScore: number;

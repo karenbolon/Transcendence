@@ -1,1 +1,1 @@
-ALTER TABLE "tournaments" ADD COLUMN "bracket_data" jsonb;
+ALTER TABLE "tournaments" ADD COLUMN IF NOT EXISTS "bracket_data" jsonb;

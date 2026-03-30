@@ -61,6 +61,7 @@
 		socket.off('chat:read-receipt');
 		socket.off('chat:error');
 		//tournament
+		socket.off('tournament:cancelled');
 		socket.off('tournament:match-ready');
 		socket.off('tournament:started');
 		socket.off('tournament:eliminated');
@@ -171,6 +172,18 @@
 		// Chat: error
 		socket.on('chat:error', (data: { message: string }) => {
 			toast.error(data.message);
+		});
+
+		socket.on('tournament:cancelled', (evtData: { tournamentId: number; tournamentName: string }) => {
+			// If we're on this tournament's detail page, redirect to list
+			const path = $page.url.pathname;
+			if (path === `/tournaments/${evtData.tournamentId}`) {
+				toast.info(`"${evtData.tournamentName}" was cancelled`);
+				goto('/tournaments');
+			} else {
+				// On any other page, just show a toast
+				toast.info(`Tournament "${evtData.tournamentName}" was cancelled`);
+			}
 		});
 
 		socket.on('tournament:match-ready', (evtData: any) => {

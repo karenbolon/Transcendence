@@ -195,20 +195,31 @@ export async function leaveTournament(
 export async function cancelTournament(
 	tournamentId: number,
 	requestedBy: number,
-): Promise<boolean> {
+): Promise<{ success: false } | { success: true; tournamentName: string; participantUserIds: number[] }> {
 	const [tournament] = await db
 		.select()
 		.from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
-	if (!tournament || tournament.created_by !== requestedBy) return false;
-	if (tournament.status !== 'scheduled') return false;
+	if (!tournament || tournament.created_by !== requestedBy) return { success: false };
+	if (tournament.status !== 'scheduled') return { success: false };
+
+	// Fetch participant IDs before deleting so we can notify them
+	const participants = await db
+		.select({ userId: tournamentParticipants.user_id })
+		.from(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 
 	// Delete participants first (foreign key), then tournament
 	await db
 		.delete(tournamentParticipants)
 		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 	await db.delete(tournaments).where(eq(tournaments.id, tournamentId));
-	return true;
+
+	return {
+		success: true,
+		tournamentName: tournament.name,
+		participantUserIds: participants.map(p => p.userId),
+	};
 }
 
 export async function startTournament(

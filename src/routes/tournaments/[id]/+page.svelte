@@ -85,12 +85,7 @@
 		socket.on('tournament:player-left', (d: any) => {
 			if (d.tournamentId === tournament.id) invalidateAll();
 		});
-		socket.on('tournament:cancelled', (d: any) => {
-			if (d.tournamentId === tournament.id) {
-				toast.info('Tournament was cancelled');
-				goto('/tournaments');
-			}
-		});
+		// tournament:cancelled is handled globally in +layout.svelte
 		socket.on('tournament:started', (d: any) => {
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
@@ -112,7 +107,6 @@
 	onDestroy(() => {
 		const socket = getSocket();
 		if (!socket) return;
-		socket.off('tournament:cancelled');
 		socket.off('tournament:player-joined');
 		socket.off('tournament:player-left');
 		socket.off('tournament:started');

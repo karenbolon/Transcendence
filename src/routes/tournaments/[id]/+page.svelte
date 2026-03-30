@@ -91,12 +91,6 @@
 				goto('/tournaments');
 			}
 		});
-		socket.on('tournament:abandoned', (d: any) => {
-			if (d.tournamentId === tournament.id) {
-				socketOverrides = { ...socketOverrides, status: 'cancelled' };
-				toast.warning('Tournament Cancelled', `${d.reason}`);
-			}
-		});
 		socket.on('tournament:started', (d: any) => {
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };

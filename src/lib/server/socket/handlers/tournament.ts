@@ -120,4 +120,47 @@ export function registerTournamentHandlers(socket: Socket) {
 			bracket: tourney.bracket,
 		});
 	});
+
+	// Handle creator/participant disconnect — graceful cleanup
+	socket.on('disconnect', async () => {
+		try {
+			// Check if this user was a tournament creator
+			const [usersTournament] = await db
+				.select({ tournamentId: tournaments.id, status: tournaments.status })
+				.from(tournaments)
+				.where(eq(tournaments.created_by, userId))
+				.limit(1);
+
+			if (usersTournament && usersTournament.status === 'scheduled') {
+				// Creator disconnected before tournament started
+				// Mark tournament as cancelled (don't delete — allows others to leave gracefully)
+				await db
+					.update(tournaments)
+					.set({ status: 'cancelled' })
+					.where(eq(tournaments.id, usersTournament.tournamentId));
+
+				const io = getIO();
+				io.emit('tournament:abandoned', {
+					tournamentId: usersTournament.tournamentId,
+					reason: 'Creator left - tournament cancelled',
+				});
+			} else if (usersTournament && usersTournament.status === 'in_progress') {
+				// Creator disconnected while tournament was active
+				// Mark tournament as cancelled and notify all participants
+				await db
+					.update(tournaments)
+					.set({ status: 'cancelled' })
+					.where(eq(tournaments.id, usersTournament.tournamentId));
+
+				const io = getIO();
+				io.emit('tournament:abandoned', {
+					tournamentId: usersTournament.tournamentId,
+					reason: 'Creator disconnected',
+				});
+			}
+		} catch (err) {
+			// Silently fail on disconnect cleanup
+			console.error('[Tournament] Disconnect cleanup failed:', err);
+		}
+	});
 }

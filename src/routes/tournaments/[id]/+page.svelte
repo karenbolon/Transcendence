@@ -50,34 +50,48 @@
 	function handleLeave() {
 		const socket = getSocket();
 		if (!socket?.connected) return;
+		console.log('[DEBUG] handleLeave called for tournament:', tournament.id);
 		socket.emit('tournament:leave', { tournamentId: tournament.id });
 		socket.once('tournament:left', () => {
+			console.log('[DEBUG] tournament:left received');
 			socketOverrides.isParticipant = false;
 			socketOverrides = { ...socketOverrides };
 			toast.info('Left tournament');
 			invalidateAll();
 		});
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on leave:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	function handleStart() {
 		const socket = getSocket();
 		if (!socket?.connected) return;
+		console.log('[DEBUG] handleStart called for tournament:', tournament.id);
 		socket.emit('tournament:start', { tournamentId: tournament.id });
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on start:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	function handleCancel() {
 		const socket = getSocket();
 		if (!socket?.connected) { toast.error('Not connected'); return; }
+		console.log('[DEBUG] handleCancel called for tournament:', tournament.id);
 		socket.emit('tournament:cancel', { tournamentId: tournament.id });
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on cancel:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	// Listen for real-time updates
 	onMount(() => {
 		const socket = getSocket();
 		if (!socket) return;
+		console.log('[DEBUG] tournament detail mounted, tournament id:', tournament.id);
 
 		socket.on('tournament:player-joined', (d: any) => {
 			if (d.tournamentId === tournament.id) invalidateAll();
@@ -91,8 +105,16 @@
 				goto('/tournaments');
 			}
 		});
+		socket.on('tournament:abandoned', (d: any) => {
+			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:abandoned received:', d);
+				socketOverrides = { ...socketOverrides, status: 'cancelled' };
+				toast.warning('Tournament Cancelled', `${d.reason}`);
+			}
+		});
 		socket.on('tournament:started', (d: any) => {
 			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:started received', d);
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
 			}
 		});

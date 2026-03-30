@@ -181,8 +181,8 @@ export async function leaveTournament(
 		.where(eq(tournaments.id, tournamentId));
 	if (!tournament) return false;
 
-	// If scheduled (not started), just remove them
-	if (tournament.status === 'scheduled') {
+	// If scheduled or cancelled (not started), just remove them
+	if (tournament.status === 'scheduled' || tournament.status === 'cancelled') {
 		await db
 			.delete(tournamentParticipants)
 			.where(

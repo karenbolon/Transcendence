@@ -192,6 +192,19 @@
 		}
 	}
 
+	function handleCanvasTap() {
+		getSoundEngine().init();
+		if (game.phase === 'menu' && canStart) {
+			startGame();
+		} else if (game.phase === 'gameover') {
+			returnToMenu(game);
+			effects.reset();
+		} else if (game.phase === 'paused') {
+			game.phase = pausedFrom;
+			escPaused = false;
+		}
+	}
+
 	function handleKeyUp(e: KeyboardEvent) {
 		const tag = (e.target as HTMLElement)?.tagName;
 		if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -489,9 +502,17 @@
 
 <!-- Canvas -->
 <div class="canvas-wrapper" style="position:relative;">
-	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT}></canvas>
+	<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} onclick={handleCanvasTap}></canvas>
 	<MuteButton bind:muted={localMuted} onToggle={(m) => onMuteChange?.(m)} />
 </div>
+
+{#if game.phase === 'gameover' || game.phase === 'paused'}
+	<div class="game-action-bar">
+		<button class="game-action-btn" onclick={handleCanvasTap}>
+			{game.phase === 'gameover' ? 'Back to Menu' : 'Resume'}
+		</button>
+	</div>
+{/if}
 
 <!-- Mobile touch controls -->
 <div class="touch-controls">
@@ -591,6 +612,29 @@
 		display: block;
 		max-width: 100%;
 		height: auto;
+	}
+
+	.game-action-bar {
+		display: flex;
+		justify-content: center;
+		margin-top: 0.75rem;
+	}
+
+	.game-action-btn {
+		padding: 0.6rem 1.5rem;
+		border-radius: 0.5rem;
+		border: 1px solid rgba(255, 107, 157, 0.4);
+		background: rgba(255, 107, 157, 0.15);
+		color: #ff6b9d;
+		font-family: 'Press Start 2P', monospace;
+		font-size: 0.75rem;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s;
+	}
+
+	.game-action-btn:hover {
+		background: rgba(255, 107, 157, 0.3);
+		border-color: #ff6b9d;
 	}
 
 	.touch-controls {

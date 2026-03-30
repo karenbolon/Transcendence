@@ -26,6 +26,32 @@ import {
 } from '../game/MatchmakingQueue';
 
 
+/** Emit a system message into both parties' chat panels in real-time */
+function pushSystemMessage(senderId: number, recipientId: number, content: string, msgId: number, gameId: number | null = null) {
+	const io = getIO();
+	const payload = {
+		id: msgId,
+		senderId,
+		senderUsername: '',
+		senderAvatar: null,
+		recipientId,
+		content,
+		createdAt: new Date().toISOString(),
+		gameId,
+		type: 'system',
+	};
+	// Recipient keyed by senderId in receiveMessage
+	const recipientSockets = userSockets.get(recipientId);
+	if (recipientSockets) {
+		for (const sid of recipientSockets) io.to(sid).emit('chat:message', payload);
+	}
+	// Sender keyed by recipientId in onMessageSent
+	const senderSockets = userSockets.get(senderId);
+	if (senderSockets) {
+		for (const sid of senderSockets) io.to(sid).emit('chat:sent', payload);
+	}
+}
+
 // Track active game invites: inviteId → invite data
 const activeInvites = new Map<string, {
 	fromUserId: number;
@@ -146,19 +172,21 @@ export function registerGameHandlers(socket: Socket) {
 				});
 			}
 		}
-		// Save system message to chat history
+		// Save system message and push into both chat panels
 		const speed = resolvedSettings.speedPreset.charAt(0).toUpperCase() + resolvedSettings.speedPreset.slice(1);
 		const pwr = resolvedSettings.powerUps ? 'Power-ups: On' : 'Power-ups: Off';
-		await db.insert(messages).values({
+		const content = `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore}, ${pwr})`;
+		const [saved] = await db.insert(messages).values({
 			sender_id: userId,
 			recipient_id: friendId,
 			type: 'system',
-			content: `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore}, ${pwr})`,
-		});
+			content,
+		}).returning({ id: messages.id });
+		pushSystemMessage(userId, friendId, content, saved.id);
 	});
 
 	// Accept an invite
-	socket.on('game:invite-accept', (data: { inviteId: string }) => {
+	socket.on('game:invite-accept', async (data: { inviteId: string }) => {
 		const invite = activeInvites.get(data.inviteId);
 		if (!invite || invite.toUserId !== userId) return;
 
@@ -212,6 +240,15 @@ export function registerGameHandlers(socket: Socket) {
 				io.to(sid).emit('game:start', gameData);
 			}
 		}
+
+		// System message: challenge accepted
+		const [acceptSaved] = await db.insert(messages).values({
+			sender_id: invite.fromUserId,
+			recipient_id: userId,
+			type: 'system',
+			content: '✅ Challenge accepted — match starting!',
+		}).returning({ id: messages.id });
+		pushSystemMessage(invite.fromUserId, userId, '✅ Challenge accepted — match starting!', acceptSaved.id);
 	});
 
 	// ── Join a game room (called when player navigates to game page) ─
@@ -262,7 +299,7 @@ export function registerGameHandlers(socket: Socket) {
 	});
 
 	// Decline an invite
-	socket.on('game:invite-decline', (data: { inviteId: string }) => {
+	socket.on('game:invite-decline', async (data: { inviteId: string }) => {
 		const invite = activeInvites.get(data.inviteId);
 		if (!invite || invite.toUserId !== userId) return;
 
@@ -277,10 +314,19 @@ export function registerGameHandlers(socket: Socket) {
 				io.to(sid).emit('game:invite-declined', { fromUsername: username });
 			}
 		}
+
+		// System message: challenge declined
+		const [declineSaved] = await db.insert(messages).values({
+			sender_id: invite.fromUserId,
+			recipient_id: userId,
+			type: 'system',
+			content: '❌ Challenge declined',
+		}).returning({ id: messages.id });
+		pushSystemMessage(invite.fromUserId, userId, '❌ Challenge declined', declineSaved.id);
 	});
 
 	// Cancel an invite (challenger changed their mind from waiting room)
-	socket.on('game:invite-cancel', () => {
+	socket.on('game:invite-cancel', async () => {
 		for (const [inviteId, invite] of activeInvites) {
 			if (invite.fromUserId === userId) {
 				clearTimeout(invite.timeout);
@@ -294,6 +340,15 @@ export function registerGameHandlers(socket: Socket) {
 						io.to(sid).emit('game:invite-cancelled', { inviteId });
 					}
 				}
+
+				// System message: invite cancelled
+				const [cancelSaved] = await db.insert(messages).values({
+					sender_id: userId,
+					recipient_id: invite.toUserId,
+					type: 'system',
+					content: '🚫 Game invite cancelled',
+				}).returning({ id: messages.id });
+				pushSystemMessage(userId, invite.toUserId, '🚫 Game invite cancelled', cancelSaved.id);
 				break;
 			}
 		}

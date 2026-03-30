@@ -13,6 +13,11 @@
 		viewAllHref: string;
 		variant: 'global' | 'friends';
 	} = $props();
+
+	let failedAvatars = $state(new Set<string>());
+	function onAvatarError(url: string) {
+		failedAvatars = new Set(failedAvatars).add(url);
+	}
 </script>
 
 <div class="lb-card {variant}">
@@ -27,8 +32,8 @@
 					{RANK_MEDALS[i]}
 				</span>
 				<div class="podium-avatar rank-{i + 1}">
-					{#if player.avatarUrl}
-						<img src={player.avatarUrl} alt="" class="podium-avatar-img" />
+					{#if player.avatarUrl && !failedAvatars.has(player.avatarUrl)}
+						<img src={player.avatarUrl} alt="" class="podium-avatar-img" onerror={() => onAvatarError(player.avatarUrl!)} />
 					{:else}
 						{(player.displayName || player.username).charAt(0).toUpperCase()}
 					{/if}

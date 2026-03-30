@@ -19,7 +19,7 @@
 	let pendingInvite: {
 		inviteId: string;
 		challenger:  { username: string; displayName: string | null; avatarUrl: string | null };
-		settings: { speedPreset: string; winScore: number; powerUps?: boolean };
+		settings: { speedPreset: string; winScore: number; powerUps: boolean };
 	} | null = $state(null);
 
 	let { children, data } = $props<{
@@ -82,13 +82,13 @@
 		socket.on('friend:online', () => { invalidateAll(); });
 		socket.on('friend:offline', () => { invalidateAll(); });
 
-		socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number }
+		socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number; powerUps: boolean }
 		}) => {
 			if (data?.notificationPrefs?.gameInvites === false) return;
 			pendingInvite = {
 				inviteId: evtData.inviteId,
 				challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
-				settings: evtData.settings ?? { speedPreset: 'normal', winScore: 5 },
+				settings: evtData.settings ?? { speedPreset: 'normal', winScore: 5, powerUps: false },
 			};
 		});
 

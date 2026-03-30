@@ -4,6 +4,7 @@
 	import PasswordInput from '$lib/component/common/PasswordInput.svelte';
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
 	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -81,6 +82,7 @@
 	async function updateNotificationPref(key: string, value: boolean) {
 		try {
 			await fetchJSON('/api/settings/notifications', 'PUT', { [key]: value });
+			await invalidateAll();
 		} catch {
 			// Silently fail
 		}

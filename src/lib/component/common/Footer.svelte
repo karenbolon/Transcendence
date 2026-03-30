@@ -29,7 +29,7 @@
 
 <footer>
 	<div class="footer-content">
-		<div class="flex justify-between gap-16">
+		<div class="footer-top">
 			<div class="footer-brand">
 				<a href="/" class="brand">
 					<img src={logo} alt="PONG logo" class="brand-logo" />
@@ -38,7 +38,7 @@
 				<p class="brand-tagline">The classic game, reimagined.</p>
 			</div>
 
-			<div class="flex gap-24">
+			<div class="footer-links">
 				<div class="link-column">
 					<h3>Resources</h3>
 					{#if user}
@@ -117,7 +117,7 @@
 
 		<hr class="footer-divider" />
 
-		<div class="flex items-center justify-between">
+		<div class="footer-bottom">
 			<p class="copyright">
 				© {currentYear} ft_transcendence™ — All rights reserved.
 			</p>

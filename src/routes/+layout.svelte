@@ -11,7 +11,7 @@
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { connectSocket, disconnectSocket, reconnectSocket, getSocket } from '$lib/stores/socket.svelte';
+	import { connectSocket, disconnectSocket, reconnectSocket, getSocket, setOnConnectCallback } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
@@ -174,8 +174,9 @@
 
 	onMount(async () => {
 		if (data?.user) {
+			// Set up callback to register listeners when socket connects
+			setOnConnectCallback(registerSocketListeners);
 			connectSocket();
-			registerSocketListeners();
 			loadUnreadCounts();
 		}
 	});
@@ -213,8 +214,8 @@
 		if (currentUserId !== lastUserId) {
 			lastUserId = currentUserId;
 			if (currentUserId) {
+				setOnConnectCallback(registerSocketListeners);
 				reconnectSocket();
-				registerSocketListeners();
 				loadUnreadCounts();
 			} else {
 				disconnectSocket();

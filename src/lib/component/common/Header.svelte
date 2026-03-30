@@ -20,6 +20,7 @@
 
 	let { user }: Props = $props();
 	let dropdownOpen = $state(false);
+	let mobileMenuOpen = $state(false);
 
 	function toggleDropdown() {
 		dropdownOpen = !dropdownOpen;
@@ -29,10 +30,21 @@
 		dropdownOpen = false;
 	}
 
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
 	function handleClickOutside(e: MouseEvent) {
 		const target = e.target as HTMLElement;
 		if (!target.closest('.dropdown-wrapper')) {
 			closeDropdown();
+		}
+		if (!target.closest('.mobile-menu') && !target.closest('.hamburger-btn')) {
+			closeMobileMenu();
 		}
 	}
 </script>
@@ -46,6 +58,17 @@
 				<img src={logo} alt="PONG logo" class="brand-logo" />
 				<span class="brand-name">PONG</span>
 			</a>
+
+			<!-- Hamburger button (mobile only) -->
+			<button class="hamburger-btn" onclick={toggleMobileMenu} aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+					{#if mobileMenuOpen}
+						<path d="M18 6L6 18M6 6l12 12" />
+					{:else}
+						<path d="M4 6h16M4 12h16M4 18h16" />
+					{/if}
+				</svg>
+			</button>
 
 			<div class="nav-links">
 				{#if user}
@@ -132,6 +155,21 @@
 			</div>
 		</nav>
 	</div>
+
+	<!-- Mobile dropdown menu -->
+	{#if mobileMenuOpen}
+		<div class="mobile-menu">
+			{#if user}
+				<a href="/play" class="mobile-menu-link" onclick={closeMobileMenu}>Play</a>
+				<a href="/leaderboard" class="mobile-menu-link" onclick={closeMobileMenu}>Leaderboard</a>
+				<a href="/tournaments" class="mobile-menu-link" onclick={closeMobileMenu}>Tournaments</a>
+				<a href="/friends" class="mobile-menu-link" onclick={closeMobileMenu}>Friends</a>
+			{:else}
+				<a href="/instructions" class="mobile-menu-link" onclick={closeMobileMenu}>Instructions</a>
+				<a href="/about" class="mobile-menu-link" onclick={closeMobileMenu}>About</a>
+			{/if}
+		</div>
+	{/if}
 </header>
 
 <style>

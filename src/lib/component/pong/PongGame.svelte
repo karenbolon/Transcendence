@@ -107,12 +107,28 @@
 
 	const keysDown = new Set<string>();
 
+	// ── Touch Input ─────────────────────────────────────────
+	let touchP1: 'up' | 'down' | 'stop' = 'stop';
+	let touchP2: 'up' | 'down' | 'stop' = 'stop';
+
+	function touchStart(player: 1 | 2, dir: 'up' | 'down', e?: Event) {
+		e?.preventDefault();
+		if (player === 1) touchP1 = dir;
+		else touchP2 = dir;
+	}
+
+	function touchEnd(player: 1 | 2, e?: Event) {
+		e?.preventDefault();
+		if (player === 1) touchP1 = 'stop';
+		else touchP2 = 'stop';
+	}
+
 	function getInput(): InputState {
 		const humanInput: InputState = {
-			paddle1Up:   keysDown.has('w'),
-			paddle1Down: keysDown.has('s'),
-			paddle2Up:   keysDown.has('arrowup'),
-			paddle2Down: keysDown.has('arrowdown'),
+			paddle1Up:   keysDown.has('w') || touchP1 === 'up',
+			paddle1Down: keysDown.has('s') || touchP1 === 'down',
+			paddle2Up:   keysDown.has('arrowup') || touchP2 === 'up',
+			paddle2Down: keysDown.has('arrowdown') || touchP2 === 'down',
 		};
 
 		// In computer mode, override paddle 2 with AI logic
@@ -477,6 +493,92 @@
 	<MuteButton bind:muted={localMuted} onToggle={(m) => onMuteChange?.(m)} />
 </div>
 
+<!-- Mobile touch controls -->
+<div class="touch-controls">
+	{#if settings.gameMode === 'local'}
+		<!-- Player 1 (left) -->
+		<div class="touch-side">
+			<span class="touch-label">P1</span>
+			<div class="touch-buttons">
+				<button
+					class="touch-btn"
+					ontouchstart={(e) => touchStart(1, 'up', e)}
+					ontouchend={(e) => touchEnd(1, e)}
+					onmousedown={() => touchStart(1, 'up')}
+					onmouseup={() => touchEnd(1)}
+					onmouseleave={() => touchEnd(1)}
+					aria-label="Player 1 up"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="28" height="28"><path d="M18 15l-6-6-6 6" /></svg>
+				</button>
+				<button
+					class="touch-btn"
+					ontouchstart={(e) => touchStart(1, 'down', e)}
+					ontouchend={(e) => touchEnd(1, e)}
+					onmousedown={() => touchStart(1, 'down')}
+					onmouseup={() => touchEnd(1)}
+					onmouseleave={() => touchEnd(1)}
+					aria-label="Player 1 down"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="28" height="28"><path d="M6 9l6 6 6-6" /></svg>
+				</button>
+			</div>
+		</div>
+		<!-- Player 2 (right) -->
+		<div class="touch-side">
+			<span class="touch-label">P2</span>
+			<div class="touch-buttons">
+				<button
+					class="touch-btn"
+					ontouchstart={(e) => touchStart(2, 'up', e)}
+					ontouchend={(e) => touchEnd(2, e)}
+					onmousedown={() => touchStart(2, 'up')}
+					onmouseup={() => touchEnd(2)}
+					onmouseleave={() => touchEnd(2)}
+					aria-label="Player 2 up"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="28" height="28"><path d="M18 15l-6-6-6 6" /></svg>
+				</button>
+				<button
+					class="touch-btn"
+					ontouchstart={(e) => touchStart(2, 'down', e)}
+					ontouchend={(e) => touchEnd(2, e)}
+					onmousedown={() => touchStart(2, 'down')}
+					onmouseup={() => touchEnd(2)}
+					onmouseleave={() => touchEnd(2)}
+					aria-label="Player 2 down"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="28" height="28"><path d="M6 9l6 6 6-6" /></svg>
+				</button>
+			</div>
+		</div>
+	{:else}
+		<!-- Single player (computer mode) -->
+		<button
+			class="touch-btn"
+			ontouchstart={(e) => touchStart(1, 'up', e)}
+			ontouchend={(e) => touchEnd(1, e)}
+			onmousedown={() => touchStart(1, 'up')}
+			onmouseup={() => touchEnd(1)}
+			onmouseleave={() => touchEnd(1)}
+			aria-label="Move paddle up"
+		>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="32" height="32"><path d="M18 15l-6-6-6 6" /></svg>
+		</button>
+		<button
+			class="touch-btn"
+			ontouchstart={(e) => touchStart(1, 'down', e)}
+			ontouchend={(e) => touchEnd(1, e)}
+			onmousedown={() => touchStart(1, 'down')}
+			onmouseup={() => touchEnd(1)}
+			onmouseleave={() => touchEnd(1)}
+			aria-label="Move paddle down"
+		>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="32" height="32"><path d="M6 9l6 6 6-6" /></svg>
+		</button>
+	{/if}
+</div>
+
 <style>
 	.canvas-wrapper {
 		border-radius: 0.75rem;
@@ -491,4 +593,64 @@
 		height: auto;
 	}
 
+	.touch-controls {
+		display: none;
+		justify-content: center;
+		gap: 2rem;
+		margin-top: 1rem;
+	}
+
+	.touch-side {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.3rem;
+	}
+
+	.touch-label {
+		color: #9ca3af;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+	}
+
+	.touch-buttons {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.touch-btn {
+		width: 5rem;
+		height: 5rem;
+		border-radius: 50%;
+		border: 2px solid rgba(255, 107, 157, 0.3);
+		background: rgba(22, 33, 62, 0.9);
+		color: #e5e5e5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		user-select: none;
+		-webkit-user-select: none;
+		touch-action: none;
+		transition: background 0.15s, border-color 0.15s;
+	}
+
+	.touch-btn:active {
+		background: rgba(255, 107, 157, 0.2);
+		border-color: #ff6b9d;
+	}
+
+	@media (max-width: 768px) {
+		.touch-controls {
+			display: flex;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.touch-controls {
+			display: flex;
+		}
+	}
 </style>

@@ -68,8 +68,23 @@
 		return 'stop';
 	}
 
+	// ── Touch Input ─────────────────────────────────────────
+	let touchDirection: 'up' | 'down' | 'stop' = 'stop';
+
+	function touchStart(dir: 'up' | 'down', e?: Event) {
+		e?.preventDefault();
+		touchDirection = dir;
+		sendDirection();
+	}
+
+	function touchEnd(e?: Event) {
+		e?.preventDefault();
+		touchDirection = 'stop';
+		sendDirection();
+	}
+
 	function sendDirection() {
-		const dir = computeDirection();
+		const dir = touchDirection !== 'stop' ? touchDirection : computeDirection();
 		if (dir !== lastSentDirection) {
 			lastSentDirection = dir;
 			const socket = getSocket();
@@ -401,6 +416,36 @@
 	<MuteButton />
 </div>
 
+<!-- Mobile touch controls -->
+<div class="touch-controls">
+	<button
+		class="touch-btn"
+		ontouchstart={(e) => touchStart('up', e)}
+		ontouchend={(e) => touchEnd(e)}
+		onmousedown={() => touchStart('up')}
+		onmouseup={() => touchEnd()}
+		onmouseleave={() => touchEnd()}
+		aria-label="Move paddle up"
+	>
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="32" height="32">
+			<path d="M18 15l-6-6-6 6" />
+		</svg>
+	</button>
+	<button
+		class="touch-btn"
+		ontouchstart={(e) => touchStart('down', e)}
+		ontouchend={(e) => touchEnd(e)}
+		onmousedown={() => touchStart('down')}
+		onmouseup={() => touchEnd()}
+		onmouseleave={() => touchEnd()}
+		aria-label="Move paddle down"
+	>
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="32" height="32">
+			<path d="M6 9l6 6 6-6" />
+		</svg>
+	</button>
+</div>
+
 <style>
 	.canvas-wrapper {
 	border-radius: 0.75rem;
@@ -413,5 +458,46 @@
 	display: block;
 	max-width: 100%;
 	height: auto;
+	}
+
+	.touch-controls {
+		display: none;
+		justify-content: center;
+		gap: 1.5rem;
+		margin-top: 1rem;
+	}
+
+	.touch-btn {
+		width: 5rem;
+		height: 5rem;
+		border-radius: 50%;
+		border: 2px solid rgba(255, 107, 157, 0.3);
+		background: rgba(22, 33, 62, 0.9);
+		color: #e5e5e5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		user-select: none;
+		-webkit-user-select: none;
+		touch-action: none;
+		transition: background 0.15s, border-color 0.15s;
+	}
+
+	.touch-btn:active {
+		background: rgba(255, 107, 157, 0.2);
+		border-color: #ff6b9d;
+	}
+
+	@media (max-width: 768px) {
+		.touch-controls {
+			display: flex;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.touch-controls {
+			display: flex;
+		}
 	}
 </style>

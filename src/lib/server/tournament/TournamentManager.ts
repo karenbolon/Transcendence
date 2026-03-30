@@ -179,8 +179,8 @@ export async function leaveTournament(
 		.select()
 		.from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
-	// Allow leaving if tournament is scheduled (normal leave) or cancelled (abandoned)
-	if (!tournament || (tournament.status !== 'scheduled' && tournament.status !== 'cancelled')) {
+	// Allow leaving if tournament is scheduled, in_progress, or cancelled
+	if (!tournament || !['scheduled', 'in_progress', 'cancelled'].includes(tournament.status)) {
 		return false;
 	}
 

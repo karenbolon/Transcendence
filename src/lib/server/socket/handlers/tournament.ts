@@ -124,26 +124,44 @@ export function registerTournamentHandlers(socket: Socket) {
 	// Handle creator/participant disconnect — graceful cleanup
 	socket.on('disconnect', async () => {
 		try {
-			// Check if this user was a tournament creator with active tournament
+			// Check if this user was a tournament creator
 			const [usersTournament] = await db
 				.select({ tournamentId: tournaments.id, status: tournaments.status })
 				.from(tournaments)
 				.where(eq(tournaments.created_by, userId))
 				.limit(1);
 
-			if (usersTournament && usersTournament.status === 'in_progress') {
-				// Creator disconnected while tournament was active
-				// Mark tournament as cancelled and notify all participants
-				await db
-					.update(tournaments)
-					.set({ status: 'cancelled' })
-					.where(eq(tournaments.id, usersTournament.tournamentId));
-
+			if (usersTournament) {
 				const io = getIO();
-				io.emit('tournament:abandoned', {
-					tournamentId: usersTournament.tournamentId,
-					reason: 'Creator disconnected',
-				});
+				
+				if (usersTournament.status === 'in_progress') {
+					// Creator disconnected while tournament was active
+					// Mark tournament as cancelled and notify all participants
+					await db
+						.update(tournaments)
+						.set({ status: 'cancelled' })
+						.where(eq(tournaments.id, usersTournament.tournamentId));
+
+					io.emit('tournament:abandoned', {
+						tournamentId: usersTournament.tournamentId,
+						reason: 'Creator disconnected',
+					});
+				} else if (usersTournament.status === 'scheduled') {
+					// Creator disconnected before tournament started
+					// Delete the tournament and notify participants
+					await db
+						.delete(tournamentParticipants)
+						.where(eq(tournamentParticipants.tournament_id, usersTournament.tournamentId));
+					
+					await db
+						.delete(tournaments)
+						.where(eq(tournaments.id, usersTournament.tournamentId));
+
+					io.emit('tournament:abandoned', {
+						tournamentId: usersTournament.tournamentId,
+						reason: 'Creator left - tournament cancelled',
+					});
+				}
 			}
 		} catch (err) {
 			// Silently fail on disconnect cleanup

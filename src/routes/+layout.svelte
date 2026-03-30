@@ -19,13 +19,18 @@
 	let pendingInvite: {
 		inviteId: string;
 		challenger:  { username: string; displayName: string | null; avatarUrl: string | null };
-		settings: { speedPreset: string; winScore: number };
+		settings: { speedPreset: string; winScore: number; powerUps?: boolean };
 	} | null = $state(null);
 
 	let { children, data } = $props<{
 		children: any;
 		data?: {
 			user?: any;
+			notificationPrefs?: {
+				friendRequests: boolean;
+				gameInvites: boolean;
+				matchResults: boolean;
+			} | null;
 		}
 	}>();
 
@@ -62,11 +67,15 @@
 		socket.off('tournament:finished');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
-			toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
+			if (data?.notificationPrefs?.friendRequests !== false) {
+				toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
+			}
 			invalidateAll();
 		});
 		socket.on('friend:accepted', (evtData: { fromUsername: string }) => {
-			toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
+			if (data?.notificationPrefs?.friendRequests !== false) {
+				toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
+			}
 			invalidateAll();
 		});
 		socket.on('friend:removed', () => { invalidateAll(); });
@@ -75,6 +84,7 @@
 
 		socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number }
 		}) => {
+			if (data?.notificationPrefs?.gameInvites === false) return;
 			pendingInvite = {
 				inviteId: evtData.inviteId,
 				challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
@@ -84,7 +94,9 @@
 
 		socket.on('game:invite-expired', () => {
 			pendingInvite = null;
-			toast.warning('Game invite expired');
+			if (data?.notificationPrefs?.gameInvites !== false) {
+				toast.warning('Game invite expired');
+			}
 		});
 
 		socket.on('game:invite-cancelled', () => {
@@ -93,7 +105,9 @@
 
 		socket.on('game:invite-declined', () => {
 			if ($page.url.pathname.includes('/play/online/waiting')) return;
-			toast.game('Challenge Declined');
+			if (data?.notificationPrefs?.gameInvites !== false) {
+				toast.game('Challenge Declined');
+			}
 		});
 
 		socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
@@ -160,18 +174,24 @@
 		});
 
 		socket.on('tournament:match-ready', (evtData: any) => {
-			const myId = Number(data?.user?.id);
-			const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
-			toast.game('Tournament Match', `Your match is ready! vs ${opponent}`);
+			if (data?.notificationPrefs?.matchResults !== false) {
+				const myId = Number(data?.user?.id);
+				const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
+				toast.game('Tournament Match', `Your match is ready! vs ${opponent}`);
+			}
 			// game:start is also emitted, so player navigates automatically
 		});
 
-		socket.on('tournament:eliminated', (data: any) => {
-			toast.info('Tournament', 'You have been eliminated');
+		socket.on('tournament:eliminated', (_evtData: any) => {
+			if (data?.notificationPrefs?.matchResults !== false) {
+				toast.info('Tournament', 'You have been eliminated');
+			}
 		});
 
-		socket.on('tournament:finished', (data: any) => {
-			toast.game('Tournament Over', `${data.winnerUsername} is the champion!`);
+		socket.on('tournament:finished', (evtData: any) => {
+			if (data?.notificationPrefs?.matchResults !== false) {
+				toast.game('Tournament Over', `${evtData.winnerUsername} is the champion!`);
+			}
 		});
 	}
 

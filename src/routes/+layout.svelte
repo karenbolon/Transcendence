@@ -65,6 +65,7 @@
 		socket.off('tournament:started');
 		socket.off('tournament:eliminated');
 		socket.off('tournament:finished');
+		socket.off('tournament:abandoned');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
 			if (data?.notificationPrefs?.friendRequests !== false) {
@@ -192,6 +193,11 @@
 			if (data?.notificationPrefs?.matchResults !== false) {
 				toast.game('Tournament Over', `${evtData.winnerUsername} is the champion!`);
 			}
+		});
+
+		socket.on('tournament:abandoned', (evtData: any) => {
+			toast.warning('Tournament Cancelled', `Tournament was cancelled - ${evtData.reason}`);
+			invalidateAll();
 		});
 	}
 

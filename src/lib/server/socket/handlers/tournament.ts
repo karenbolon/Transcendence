@@ -1,5 +1,8 @@
 import type { Socket } from 'socket.io';
 import { getIO } from '../index';
+import { db } from '$lib/server/db';
+import { tournaments } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import {
 	createTournament,
 	joinTournament,
@@ -116,5 +119,35 @@ export function registerTournamentHandlers(socket: Socket) {
 			tournamentId: data.tournamentId,
 			bracket: tourney.bracket,
 		});
+	});
+
+	// Handle creator/participant disconnect — graceful cleanup
+	socket.on('disconnect', async () => {
+		try {
+			// Check if this user was a tournament creator with active tournament
+			const [usersTournament] = await db
+				.select({ tournamentId: tournaments.id, status: tournaments.status })
+				.from(tournaments)
+				.where(eq(tournaments.created_by, userId))
+				.limit(1);
+
+			if (usersTournament && usersTournament.status === 'in_progress') {
+				// Creator disconnected while tournament was active
+				// Mark tournament as cancelled and notify all participants
+				await db
+					.update(tournaments)
+					.set({ status: 'cancelled' })
+					.where(eq(tournaments.id, usersTournament.tournamentId));
+
+				const io = getIO();
+				io.emit('tournament:abandoned', {
+					tournamentId: usersTournament.tournamentId,
+					reason: 'Creator disconnected',
+				});
+			}
+		} catch (err) {
+			// Silently fail on disconnect cleanup
+			console.error('[Tournament] Disconnect cleanup failed:', err);
+		}
 	});
 }

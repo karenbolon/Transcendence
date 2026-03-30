@@ -179,7 +179,10 @@ export async function leaveTournament(
 		.select()
 		.from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
-	if (!tournament || tournament.status !== 'scheduled') return false;
+	// Allow leaving if tournament is scheduled (normal leave) or cancelled (abandoned)
+	if (!tournament || (tournament.status !== 'scheduled' && tournament.status !== 'cancelled')) {
+		return false;
+	}
 
 	await db
 		.delete(tournamentParticipants)

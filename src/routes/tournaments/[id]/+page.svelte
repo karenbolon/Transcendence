@@ -91,6 +91,12 @@
 				goto('/tournaments');
 			}
 		});
+		socket.on('tournament:abandoned', (d: any) => {
+			if (d.tournamentId === tournament.id) {
+				socketOverrides = { ...socketOverrides, status: 'cancelled' };
+				toast.warning('Tournament Cancelled', `${d.reason}`);
+			}
+		});
 		socket.on('tournament:started', (d: any) => {
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
@@ -113,6 +119,7 @@
 		const socket = getSocket();
 		if (!socket) return;
 		socket.off('tournament:cancelled');
+		socket.off('tournament:abandoned');
 		socket.off('tournament:player-joined');
 		socket.off('tournament:player-left');
 		socket.off('tournament:started');
@@ -123,6 +130,7 @@
 	function statusLabel(status: string): string {
 		if (status === 'scheduled') return 'Open';
 		if (status === 'in_progress') return 'In Progress';
+		if (status === 'cancelled') return 'Cancelled';
 		return 'Finished';
 	}
 

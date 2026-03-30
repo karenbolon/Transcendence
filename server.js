@@ -2063,9 +2063,25 @@ io.on('connection', (socket) => {
 				return;
 			}
 
+			// Fetch participants before deleting so we can notify them
+			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+
 			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
 			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-			socket.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+
+			// Notify each participant individually (toast even if on another page)
+			for (const p of participants) {
+				const participantSockets = userSockets.get(Number(p.user_id));
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:cancelled', {
+							tournamentId: data.tournamentId,
+							tournamentName: tournament.name,
+						});
+					}
+				}
+			}
+
 			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);

@@ -134,8 +134,11 @@
 	onDestroy(() => {
 		const socket = getSocket();
 		if (!socket) return;
+<<<<<<< feat/infinite-tourney
 		socket.off('tournament:cancelled');
 		socket.off('tournament:abandoned');
+=======
+>>>>>>> main
 		socket.off('tournament:player-joined');
 		socket.off('tournament:player-left');
 		socket.off('tournament:started');

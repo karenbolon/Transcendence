@@ -82,16 +82,30 @@ export function registerTournamentHandlers(socket: Socket) {
 	// Cancel a tournament (creator only, before it starts)
 	socket.on('tournament:cancel', async (data: { tournamentId: number }) => {
 		try {
-			const success = await cancelTournament(data.tournamentId, userId);
-			if (!success) {
+			const result = await cancelTournament(data.tournamentId, userId);
+			if (!result.success) {
 				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
 				return;
 			}
-			// Broadcast to all clients (including the creator)
+
 			const io = getIO();
-			io.emit('tournament:cancelled', {
-				tournamentId: data.tournamentId,
-			});
+
+			// Notify each participant individually so they get the toast
+			// even if they're on a different page
+			for (const participantId of result.participantUserIds) {
+				const participantSockets = userSockets.get(participantId);
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:cancelled', {
+							tournamentId: data.tournamentId,
+							tournamentName: result.tournamentName,
+						});
+					}
+				}
+			}
+
+			// Also broadcast list-updated so tournament list pages refresh
+			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);
 			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });

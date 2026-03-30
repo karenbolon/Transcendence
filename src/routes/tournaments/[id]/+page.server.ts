@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants, users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { redirect, error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { getActiveTournament } from '$lib/server/tournament/TournamentManager';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const [tournament] = await db.select().from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
-	if (!tournament) throw error(404, 'Tournament not found');
+	if (!tournament) throw redirect(302, '/tournaments');
 
 	const participants = await db.select({
 		userId: tournamentParticipants.user_id,

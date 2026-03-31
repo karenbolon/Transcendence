@@ -164,6 +164,18 @@ export class GameRoom {
 					} catch (err) {
 						console.error('[Tournament] Disconnect advancement failed:', err);
 					}
+					// Clean up game room state (was missing — caused lingering rooms
+					// and the remaining player never receiving a navigation event)
+					this.gameEnded = true;
+					this.stop();
+					this.broadcastEvent(this.roomId, 'game:cancelled', {
+						roomId: this.roomId,
+						reason: 'Player disconnected at 0-0',
+						leftUserId: userId,
+						stayedUserId: opponent.userId,
+						stayedUsername: opponent.username,
+						settings: this.rawSettings,
+					});
 				} else {
 					// For casual games, use standard forfeit logic
 					this.handleForfeit(opponent);

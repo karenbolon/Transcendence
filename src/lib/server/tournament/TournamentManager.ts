@@ -891,7 +891,73 @@ export async function advanceWinner(
 	loserScore: number = 0,
 ): Promise<void> {
 	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
+	if (!tourney) {
+		// Tournament not in memory (e.g., after HMR/server restart).
+		// Fall back to a direct DB update so the tournament doesn't stay 'in_progress' forever.
+		tournamentLogger.warn({ tournamentId, round, matchIndex, winnerId, loserId },
+			'advanceWinner: tournament not in activeTournaments, attempting DB fallback');
+
+		const [tournament] = await db.select().from(tournaments)
+			.where(eq(tournaments.id, tournamentId));
+		if (!tournament || tournament.status !== 'in_progress') return;
+
+		const bracket = tournament.bracket_data as BracketRound[] | null;
+		const totalRounds = bracket?.length ?? 0;
+		const isFinalRound = round === totalRounds;
+
+		if (isFinalRound) {
+			const totalPlayers = await db.select({ value: count() })
+				.from(tournamentParticipants)
+				.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+			await db.transaction(async (tx) => {
+				await tx.update(tournaments).set({
+					status: 'finished',
+					winner_id: winnerId,
+					finished_at: new Date(),
+				}).where(eq(tournaments.id, tournamentId));
+
+				await tx.update(tournamentParticipants).set({
+					status: 'champion',
+					placement: 1,
+				}).where(and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.user_id, winnerId),
+				));
+
+				await tx.update(tournamentParticipants).set({
+					status: 'eliminated',
+					placement: Number(totalPlayers[0].value),
+				}).where(and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.user_id, loserId),
+				));
+			});
+
+			emitToUser(winnerId, 'tournament:finished', {
+				tournamentId, winnerId, loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round, totalRounds, roundName: 'Final',
+				podium: [], championWins: 0, runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			emitToUser(loserId, 'tournament:finished', {
+				tournamentId, winnerId, loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round, totalRounds, roundName: 'Final',
+				podium: [], championWins: 0, runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			getIO().emit('tournament:list-updated');
+			tournamentLogger.info({ tournamentId, winnerId }, 'DB fallback: tournament finished');
+		} else {
+			tournamentLogger.error({ tournamentId, round, totalRounds },
+				'advanceWinner: tournament not in memory and not final round — cannot advance bracket');
+		}
+		return;
+	}
 
 	const roundData = tourney.bracket.find((r) => r.round === round);
 	if (!roundData) return;

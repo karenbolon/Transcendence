@@ -217,10 +217,116 @@ export async function playerDisconnectedFromTournament(
 	userId: number,
 ): Promise<void> {
 	const tourney = activeTournaments.get(tournamentId);
+	
+	// If tournament not in memory, handle with database-only logic
 	if (!tourney) {
-		console.log(`[Tournament] playerDisconnected: Tournament ${tournamentId} not in activeTournaments`);
+		console.log(`[Tournament] Tournament ${tournamentId} not in activeTournaments. Using DB-only elimination.`);
+		
+		// Just mark the player as eliminated
+		const totalPlayers = await db
+			.select()
+			.from(tournamentParticipants)
+			.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+		const [{ value: eliminatedCount }] = await db
+			.select({ value: count() })
+			.from(tournamentParticipants)
+			.where(
+				and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.status, 'eliminated'),
+				),
+			);
+		const placement = totalPlayers.length - Number(eliminatedCount);
+
+		// Mark player as eliminated
+		await db
+			.update(tournamentParticipants)
+			.set({ status: 'eliminated', placement })
+			.where(
+				and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.user_id, userId),
+				),
+			);
+
+		// Check if only 1 active player remains
+		const activeParticipants = await db
+			.select({ userId: tournamentParticipants.user_id })
+			.from(tournamentParticipants)
+			.where(
+				and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.status, 'active'),
+				),
+			);
+
+		if (activeParticipants.length === 1) {
+			console.log(
+				`[Tournament] Tournament ${tournamentId}: Only 1 active player left! Declaring winner (no in-memory bracket).`
+			);
+			const winnerId = activeParticipants[0].userId;
+
+			// Mark winner and finish tournament
+			await db.transaction(async (tx) => {
+				await tx
+					.update(tournamentParticipants)
+					.set({ status: 'champion', placement: 1 })
+					.where(
+						and(
+							eq(tournamentParticipants.tournament_id, tournamentId),
+							eq(tournamentParticipants.user_id, winnerId),
+						),
+					);
+
+				await tx
+					.update(tournaments)
+					.set({
+						status: 'finished',
+						winner_id: winnerId,
+						finished_at: new Date(),
+					})
+					.where(eq(tournaments.id, tournamentId));
+			});
+
+			// Emit tournament finished event
+			const podiumParticipants = await db
+				.select({
+					userId: tournamentParticipants.user_id,
+					username: users.username,
+					placement: tournamentParticipants.placement,
+					avatarUrl: users.avatar_url,
+				})
+				.from(tournamentParticipants)
+				.innerJoin(users, eq(users.id, tournamentParticipants.user_id))
+				.where(eq(tournamentParticipants.tournament_id, tournamentId))
+				.orderBy(tournamentParticipants.placement);
+
+			const podium = podiumParticipants
+				.filter((p) => p.placement !== null && p.placement <= 3)
+				.map((p) => ({
+					userId: p.userId,
+					username: p.username,
+					avatarUrl: p.avatarUrl,
+					placement: p.placement!,
+				}));
+
+			emitToParticipants(tournamentId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				winnerUsername: (await db.select({ username: users.username }).from(users).where(eq(users.id, winnerId)))[0]
+					?.username,
+				tournamentName: '',
+				podium,
+				championWins: 0,
+				bracket: [],
+			});
+
+			getIO().emit('tournament:list-updated');
+		}
 		return;
 	}
+
 	console.log(`[Tournament] Player ${userId} disconnected from tournament ${tournamentId}`);
 
 	// Find all this player's remaining matches

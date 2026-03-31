@@ -144,7 +144,7 @@ export function registerTournamentHandlers(socket: Socket) {
 		});
 	});
 
-	// Handle creator/participant disconnect — graceful cleanup
+	// Handle creator disconnect — graceful cleanup
 	socket.on('disconnect', async () => {
 		try {
 			// Check if this user was a tournament creator
@@ -154,7 +154,8 @@ export function registerTournamentHandlers(socket: Socket) {
 				.where(eq(tournaments.created_by, userId))
 				.limit(1);
 
-			if (usersTournament && (usersTournament.status === 'scheduled' || usersTournament.status === 'in_progress')) {
+			if (usersTournament && usersTournament.status === 'scheduled') {
+				// Creator left BEFORE tournament started — cancel and cleanup
 				const tournamentId = usersTournament.tournamentId;
 				
 				// Get all participants before cleanup
@@ -176,9 +177,6 @@ export function registerTournamentHandlers(socket: Socket) {
 
 				// Notify each participant individually so they get the toast even if on different page
 				const io = getIO();
-				const reason = usersTournament.status === 'scheduled' 
-					? 'Creator left - tournament cancelled'
-					: 'Creator disconnected - tournament cancelled';
 
 				for (const participant of participants) {
 					const participantSockets = userSockets.get(participant.userId);
@@ -186,7 +184,7 @@ export function registerTournamentHandlers(socket: Socket) {
 						for (const sid of participantSockets) {
 							io.to(sid).emit('tournament:abandoned', {
 								tournamentId,
-								reason,
+								reason: 'Creator left - tournament cancelled',
 							});
 						}
 					}
@@ -195,7 +193,16 @@ export function registerTournamentHandlers(socket: Socket) {
 				// Broadcast list update so tournaments page refreshes
 				io.emit('tournament:list-updated');
 
-				console.log(`[Tournament] Creator ${userId} disconnected from tournament ${tournamentId} (status: ${usersTournament.status}) - auto-cancelled`);
+				console.log(`[Tournament] Creator ${userId} left scheduled tournament ${tournamentId} - auto-cancelled`);
+			} else if (usersTournament && usersTournament.status === 'in_progress') {
+				// Creator disconnected during active tournament
+				// Immediately forfeit them as normal participant (don't wait for reconnect timeout)
+				// This allows tournament to continue and other players to advance
+				const tournamentId = usersTournament.tournamentId;
+				console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} - queuing forfeit`);
+				
+				// Queue the forfeit immediately instead of waiting for GameRoom timeout
+				await leaveTournament(tournamentId, userId);
 			}
 		} catch (err) {
 			// Silently fail on disconnect cleanup

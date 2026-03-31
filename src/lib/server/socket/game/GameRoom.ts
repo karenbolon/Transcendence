@@ -11,6 +11,7 @@ import {
 	type SpeedPreset,
 } from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
+import { advanceWinner } from '../../tournament/TournamentManager';
 
 export type { GameResult, GameStateSnapshot };
 
@@ -142,11 +143,31 @@ export class GameRoom {
 				userId, timeout: RECONNECT_TIMEOUT
 			});
 
-			const timer = setTimeout(() => {
+			const timer = setTimeout(async () => {
 				this.disconnectTimers.delete(userId);
-				// Opponent wins by forfeit
+				// Guard against double-forfeit: only process if game hasn't ended
+				if (this.gameEnded) return;
+				
 				const opponent = userId === this.player1.userId ? this.player2 : this.player1;
-				this.handleForfeit(opponent);
+				const isTournamentMatch = this.roomId.startsWith('tournament-');
+				const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
+
+				// For tournament matches at 0-0, advance opponent immediately
+				// (bypass handleForfeit which would just cancel the game)
+				if (isTournamentMatch && bothZero) {
+					try {
+						const parts = this.roomId.split('-');
+						const tournamentId = Number(parts[1]);
+						const round = Number(parts[2].replace('r', ''));
+						const matchIndex = Number(parts[3].replace('m', ''));
+						await advanceWinner(tournamentId, round, matchIndex, opponent.userId, userId, 1, 0);
+					} catch (err) {
+						console.error('[Tournament] Disconnect advancement failed:', err);
+					}
+				} else {
+					// For casual games, use standard forfeit logic
+					this.handleForfeit(opponent);
+				}
 			}, RECONNECT_TIMEOUT);
 
 			this.disconnectTimers.set(userId, timer);
@@ -402,6 +423,10 @@ export class GameRoom {
 
 	getState(): GameStateSnapshot {
 		return this.getSnapshot();
+	}
+
+	get hasGameEnded(): boolean {
+		return this.gameEnded;
 	}
 
 	private getPlayer(userId: number): RoomPlayer | null {

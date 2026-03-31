@@ -1,5 +1,8 @@
 import type { Socket } from 'socket.io';
 import { getIO, userSockets } from '../index';
+import { db } from '$lib/server/db';
+import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import {
 	createTournament,
 	joinTournament,
@@ -76,6 +79,15 @@ export function registerTournamentHandlers(socket: Socket) {
 		});
 	});
 
+	// Leave spectator mode (after elimination or timeout, stop watching tournament)
+	socket.on('tournament:leave-spectator', async (data: { tournamentId: number }) => {
+		// Simply confirm — client will handle navigation away
+		socket.emit('tournament:spectator-left', { tournamentId: data.tournamentId });
+
+		// Optionally: track spectators to stop sending them updates (future optimization)
+		console.log(`[Tournament] Player ${userId} left spectator mode for tournament ${data.tournamentId}`);
+	});
+
 	// Cancel a tournament (creator only, before it starts)
 	socket.on('tournament:cancel', async (data: { tournamentId: number }) => {
 		try {
@@ -130,5 +142,64 @@ export function registerTournamentHandlers(socket: Socket) {
 			tournamentId: data.tournamentId,
 			bracket: tourney.bracket,
 		});
+	});
+
+	// Handle creator/participant disconnect — graceful cleanup
+	socket.on('disconnect', async () => {
+		try {
+			// Check if this user was a tournament creator
+			const [usersTournament] = await db
+				.select({ tournamentId: tournaments.id, status: tournaments.status })
+				.from(tournaments)
+				.where(eq(tournaments.created_by, userId))
+				.limit(1);
+
+			if (usersTournament && (usersTournament.status === 'scheduled' || usersTournament.status === 'in_progress')) {
+				const tournamentId = usersTournament.tournamentId;
+				
+				// Get all participants before cleanup
+				const participants = await db
+					.select({ userId: tournamentParticipants.user_id })
+					.from(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+				// Mark tournament as cancelled
+				await db
+					.update(tournaments)
+					.set({ status: 'cancelled' })
+					.where(eq(tournaments.id, tournamentId));
+
+				// Delete participants so cleanup can cascade (FK on delete cascade)
+				await db
+					.delete(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+				// Notify each participant individually so they get the toast even if on different page
+				const io = getIO();
+				const reason = usersTournament.status === 'scheduled' 
+					? 'Creator left - tournament cancelled'
+					: 'Creator disconnected - tournament cancelled';
+
+				for (const participant of participants) {
+					const participantSockets = userSockets.get(participant.userId);
+					if (participantSockets) {
+						for (const sid of participantSockets) {
+							io.to(sid).emit('tournament:abandoned', {
+								tournamentId,
+								reason,
+							});
+						}
+					}
+				}
+
+				// Broadcast list update so tournaments page refreshes
+				io.emit('tournament:list-updated');
+
+				console.log(`[Tournament] Creator ${userId} disconnected from tournament ${tournamentId} (status: ${usersTournament.status}) - auto-cancelled`);
+			}
+		} catch (err) {
+			// Silently fail on disconnect cleanup
+			console.error('[Tournament] Disconnect cleanup failed:', err);
+		}
 	});
 }

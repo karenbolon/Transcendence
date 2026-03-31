@@ -10,6 +10,7 @@ import {
 	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
+import { advanceWinner } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -355,10 +356,16 @@ export function registerGameHandlers(socket: Socket) {
 	});
 
 	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
-	socket.on('game:leave', () => {
+	socket.on('game:leave', async () => {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
 		const roomId = room.roomId;
+
+		// Guard: if game already ended (e.g., due to disconnect timeout), don't process again
+		if (room.hasGameEnded) {
+			socket.emit('game:error', { message: 'Game has already ended' });
+			return;
+		}
 
 		// Grab opponent info BEFORE forfeit destroys the room state
 		const opponentUserId = userId === room.player1.userId
@@ -369,6 +376,21 @@ export function registerGameHandlers(socket: Socket) {
 		const snapshot = room.getState();
 		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
+		const isTournamentMatch = roomId.startsWith('tournament-');
+
+		// For tournament matches, trigger opponent's advancement even if forfeit at 0-0
+		if (isTournamentMatch && isCancellable) {
+			try {
+				const parts = roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2].replace('r', ''));
+				const matchIndex = Number(parts[3].replace('m', ''));
+				// Advance opponent with 1-0 forfeit score
+				await advanceWinner(tournamentId, round, matchIndex, opponentUserId, userId, 1, 0);
+			} catch (err) {
+				console.error('[Tournament] Forfeit advancement failed:', err);
+			}
+		}
 
 		room.forfeitByPlayer(userId);
 
@@ -379,7 +401,8 @@ export function registerGameHandlers(socket: Socket) {
 		}
 
 		// Re-queue the remaining player so they don't lose their spot
-		if (isCancellable && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+		// (Only for non-tournament matches; tournament advancement already handled above)
+		if (isCancellable && !isTournamentMatch && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
 			const opponentSockets = userSockets.get(opponentUserId);
 			if (opponentSockets && opponentSockets.size > 0) {
 				const firstSocketId = opponentSockets.values().next().value;

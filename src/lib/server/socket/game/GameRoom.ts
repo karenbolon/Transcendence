@@ -357,10 +357,8 @@ export class GameRoom {
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
 		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
-		// Fair forfeit rules:
-		// - Game hasn't started yet → no winner, just cancel
-		// - Score is 0-0 → no winner UNLESS it's a tournament (must advance)
-		// - Score is 1+ → remaining player wins
+		// For casual games: if game hasn't started or is 0-0, just cancel (no winner recorded)
+		// For tournament matches: ALWAYS record a winner (the non-forfeiting player wins)
 		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted
 				? 'Player left before game started'
@@ -378,33 +376,11 @@ export class GameRoom {
 			return;
 		}
 
-		// For tournament matches even at 0-0, we must record the winner and advance bracket
-		if (isTournamentMatch && bothZero && gameNotStarted) {
-			this.broadcastEvent(this.roomId, 'game:cancelled', {
-				roomId: this.roomId,
-				reason: 'Player left before game started',
-				leftUserId: loser.userId,
-				stayedUserId: winner.userId,
-				stayedUsername: winner.username,
-				settings: this.rawSettings,
-			});
-			// Fall through to call onGameEnd for bracket advancement
-		} else if (isTournamentMatch && bothZero) {
-			// At 0-0 for tournament, broadcast cancellation but still advance
-			this.broadcastEvent(this.roomId, 'game:cancelled', {
-				roomId: this.roomId,
-				reason: 'Player disconnected at 0-0',
-				leftUserId: loser.userId,
-				stayedUserId: winner.userId,
-				stayedUsername: winner.username,
-				settings: this.rawSettings,
-			});
-			// Fall through to call onGameEnd for bracket advancement
-		}
-
+		// For tournament matches at 0-0, still need to record the forfeit win
+		// Fall through to onGameEnd() to advance the bracket
 
 		// Score is 1+ — the remaining player wins by forfeit
-		// OR: Tournament match at 0-0 (winner is opponent, loser left)
+		// OR: Tournament match (even at 0-0) — remaining player wins, forfeiting player is eliminated
 		endGame(this.state, winner.username);
 
 		const result: GameResult = {
@@ -423,6 +399,8 @@ export class GameRoom {
 		};
 
 		this.broadcastEvent(this.roomId, 'game:forfeit', result);
+		this.onGameEnd(result);
+	}
 		this.onGameEnd(result);
 	}
 

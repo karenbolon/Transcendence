@@ -217,7 +217,11 @@ export async function playerDisconnectedFromTournament(
 	userId: number,
 ): Promise<void> {
 	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
+	if (!tourney) {
+		console.log(`[Tournament] playerDisconnected: Tournament ${tournamentId} not in activeTournaments`);
+		return;
+	}
+	console.log(`[Tournament] Player ${userId} disconnected from tournament ${tournamentId}`);
 
 	// Find all this player's remaining matches
 	const remainingMatches: Array<{ round: number; matchIndex: number; isPlayer1: boolean; opponent: number | null }> = [];
@@ -308,10 +312,13 @@ export async function playerDisconnectedFromTournament(
 		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 
 	const activePlayers = allParticipants.filter(p => p.status === 'active');
+	console.log(`[Tournament] Tournament ${tournamentId}: Found ${activePlayers.length} active players out of ${allParticipants.length} total`);
+	console.log(`[Tournament] All participants statuses:`, allParticipants.map(p => `${p.userId}=${p.status}`).join(', '));
 	
 	if (activePlayers.length === 1) {
 		// Only 1 player left → declare them winner
 		const winnerId = activePlayers[0].userId;
+		console.log(`[Tournament] Tournament ${tournamentId}: WINNER DECLARED - Player ${winnerId}! (Only 1 active player remains)`);
 		const totalRounds = tourney.bracket.length;
 		const finalRound = tourney.bracket[totalRounds - 1];
 		
@@ -327,6 +334,7 @@ export async function playerDisconnectedFromTournament(
 			);
 
 		// Mark tournament as finished
+		console.log(`[Tournament] Setting tournament ${tournamentId} status to 'finished'`);
 		await db
 			.update(tournaments)
 			.set({ status: 'finished', winner_id: winnerId })
@@ -867,6 +875,7 @@ export async function advanceWinner(
 		}
 	} else {
 		// No next round — tournament is over!
+		console.log(`[Tournament] advanceWinner: NO NEXT ROUND! Tournament ${tournamentId} winner declared: Player ${winnerId} (Final match)`);
 		await db
 			.update(tournaments)
 			.set({

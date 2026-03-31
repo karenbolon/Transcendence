@@ -378,7 +378,8 @@ export function registerGameHandlers(socket: Socket) {
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
 		const isTournamentMatch = roomId.startsWith('tournament-');
 
-		console.log(`[DEBUG game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
+		// Emit debug info back to the leaving player's browser so it shows in their console
+		socket.emit('debug:server', `[SERVER game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
 
 		// For tournament matches, trigger opponent's advancement even if forfeit at 0-0
 		if (isTournamentMatch && isCancellable) {
@@ -387,16 +388,19 @@ export function registerGameHandlers(socket: Socket) {
 				const tournamentId = Number(parts[1]);
 				const round = Number(parts[2].replace('r', ''));
 				const matchIndex = Number(parts[3].replace('m', ''));
-				console.log(`[DEBUG game:leave] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponentUserId}, loser=${userId})`);
+				socket.emit('debug:server', `[SERVER game:leave] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponentUserId}, loser=${userId})`);
 				// Advance opponent with 1-0 forfeit score
 				await advanceWinner(tournamentId, round, matchIndex, opponentUserId, userId, 1, 0);
-				console.log(`[DEBUG game:leave] advanceWinner completed`);
+				socket.emit('debug:server', `[SERVER game:leave] advanceWinner COMPLETED`);
 			} catch (err) {
+				socket.emit('debug:server', `[SERVER game:leave] advanceWinner THREW: ${err}`);
 				console.error('[Tournament] Forfeit advancement failed:', err);
 			}
+		} else {
+			socket.emit('debug:server', `[SERVER game:leave] skipping advanceWinner (isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable})`);
 		}
 
-		console.log(`[DEBUG game:leave] calling forfeitByPlayer for userId=${userId}`);
+		socket.emit('debug:server', `[SERVER game:leave] calling forfeitByPlayer`);
 		room.forfeitByPlayer(userId);
 
 		// If the game was cancelled (0-0 or not started), onGameEnd wasn't called

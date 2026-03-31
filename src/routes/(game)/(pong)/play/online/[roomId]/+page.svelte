@@ -231,6 +231,16 @@
 				socket.off('tournament:eliminated', handleTournamentEliminated);
 				socket.off('tournament:finished', handleTournamentFinished);
 			}
+
+			// If the game was still active when this component unmounts (e.g. browser
+			// back button), treat it as a leave so the server can clean up the room
+			// and advance the tournament bracket. Without this, the socket stays
+			// connected but the server never receives game:leave or a disconnect,
+			// leaving the tournament stuck as 'in_progress' forever.
+			if (gameReady && !gameOverResult) {
+				console.log('[DEBUG cleanup] game still active on unmount — emitting game:leave');
+				socket.emit('game:leave');
+			}
 		};
 	});
 

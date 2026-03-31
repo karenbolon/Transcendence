@@ -2,7 +2,7 @@ import type { Socket } from 'socket.io';
 import { getIO, userSockets } from '../index';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import {
 	createTournament,
 	joinTournament,
@@ -144,19 +144,19 @@ export function registerTournamentHandlers(socket: Socket) {
 		});
 	});
 
-	// Handle creator disconnect — graceful cleanup
+	// Handle disconnect — graceful cleanup for both creator and participants
 	socket.on('disconnect', async () => {
 		try {
 			// Check if this user was a tournament creator
-			const [usersTournament] = await db
+			const [creatorTournament] = await db
 				.select({ tournamentId: tournaments.id, status: tournaments.status })
 				.from(tournaments)
 				.where(eq(tournaments.created_by, userId))
 				.limit(1);
 
-			if (usersTournament && usersTournament.status === 'scheduled') {
+			if (creatorTournament && creatorTournament.status === 'scheduled') {
 				// Creator left BEFORE tournament started — cancel and cleanup
-				const tournamentId = usersTournament.tournamentId;
+				const tournamentId = creatorTournament.tournamentId;
 				
 				// Get all participants before cleanup
 				const participants = await db
@@ -194,15 +194,40 @@ export function registerTournamentHandlers(socket: Socket) {
 				io.emit('tournament:list-updated');
 
 				console.log(`[Tournament] Creator ${userId} left scheduled tournament ${tournamentId} - auto-cancelled`);
-			} else if (usersTournament && usersTournament.status === 'in_progress') {
+			} else if (creatorTournament && creatorTournament.status === 'in_progress') {
 				// Creator disconnected during active tournament
 				// Immediately forfeit them as normal participant (don't wait for reconnect timeout)
 				// This allows tournament to continue and other players to advance
-				const tournamentId = usersTournament.tournamentId;
+				const tournamentId = creatorTournament.tournamentId;
 				console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} - queuing forfeit`);
 				
 				// Queue the forfeit immediately instead of waiting for GameRoom timeout
 				await leaveTournament(tournamentId, userId);
+			}
+
+			// Check if this user is a participant in any ACTIVE tournament (regardless of creator)
+			// This handles non-creator participant disconnects in in_progress tournaments
+			const [participantTournament] = await db
+				.select({ tournamentId: tournaments.id })
+				.from(tournaments)
+				.innerJoin(tournamentParticipants, eq(tournaments.id, tournamentParticipants.tournament_id))
+				.where(
+					and(
+						eq(tournamentParticipants.user_id, userId),
+						eq(tournaments.status, 'in_progress'),
+					),
+				)
+				.limit(1);
+
+			if (participantTournament) {
+				// Non-creator participant in active tournament — forfeit them
+				// (If they were the creator, the above logic already handled them)
+				const isCreatorOfThisTournament = creatorTournament?.tournamentId === participantTournament.tournamentId;
+				
+				if (!isCreatorOfThisTournament) {
+					console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} - queuing forfeit`);
+					await leaveTournament(participantTournament.tournamentId, userId);
+				}
 			}
 		} catch (err) {
 			// Silently fail on disconnect cleanup

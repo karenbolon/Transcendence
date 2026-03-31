@@ -10,7 +10,7 @@ import {
 	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
-import { advanceWinner } from '../../tournament/TournamentManager';
+import { advanceWinner, leaveTournament } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -378,17 +378,19 @@ export function registerGameHandlers(socket: Socket) {
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
 		const isTournamentMatch = roomId.startsWith('tournament-');
 
-		// For tournament matches, trigger opponent's advancement even if forfeit at 0-0
-		if (isTournamentMatch && isCancellable) {
+		// For tournament matches, use full forfeit logic (handles all player's matches + check for winner)
+		if (isTournamentMatch) {
 			try {
 				const parts = roomId.split('-');
 				const tournamentId = Number(parts[1]);
-				const round = Number(parts[2].replace('r', ''));
-				const matchIndex = Number(parts[3].replace('m', ''));
-				// Advance opponent with 1-0 forfeit score
-				await advanceWinner(tournamentId, round, matchIndex, opponentUserId, userId, 1, 0);
+				// Use leaveTournament to trigger full forfeit queue logic:
+				// - Finds all remaining matches for this player
+				// - Auto-forfeits each match by advancing opponent
+				// - Checks if only 1 active player remains
+				// - If so, declares tournament winner
+				await leaveTournament(tournamentId, userId);
 			} catch (err) {
-				console.error('[Tournament] Forfeit advancement failed:', err);
+				console.error('[Tournament] Forfeit handling failed:', err);
 			}
 		}
 

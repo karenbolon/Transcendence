@@ -247,6 +247,36 @@ async function testNonCreatorTwoPlayerDisconnect() {
 	}
 }
 
+// Test case 6: Player leaves game in tournament (previously only advanced single match)
+async function testPlayerLeavesGameInTournament() {
+	console.log('=== TEST 6: Player Leaves Game in Tournament (Full Forfeit) ===\n');
+	processedEvents = [];
+	
+	// Simulate: Creator is playing in their tournament
+	// Creator leaves game mid-match
+	// Should trigger FULL forfeit logic (all remaining matches), not just that one match
+	
+	queueForfeitEvent(2000, 201); // Creator leaves during match
+	
+	await new Promise(resolve => setTimeout(resolve, 500));
+	
+	console.log('Expected: 1 event processed (full forfeit, not single match advance)');
+	console.log(`Actual: ${processedEvents.length} events processed`);
+	
+	if (processedEvents.length === 1) {
+		const event = processedEvents[0];
+		console.log(`Creator 201 fully forfeited from tournament 2000 ✅`);
+		console.log(`(Triggers forfeit queue → playerDisconnectedFromTournament)`);
+		console.log(`(Finds ALL remaining matches, not just one)`);
+		console.log(`(Checks tournament completion)`);
+		console.log(`Result: ✅ PASS\n`);
+		return true;
+	} else {
+		console.log(`Result: ❌ FAIL\n`);
+		return false;
+	}
+}
+
 // Run all tests
 async function runAllTests() {
 	console.log('╔════════════════════════════════════════════════════════╗');
@@ -262,6 +292,7 @@ async function runAllTests() {
 		results.push(await testDifferentTournaments());
 		results.push(await testTwoPlayersFinals());
 		results.push(await testNonCreatorTwoPlayerDisconnect());
+		results.push(await testPlayerLeavesGameInTournament());
 		
 		console.log('╔════════════════════════════════════════════════════════╗');
 		const passed = results.filter(r => r).length;

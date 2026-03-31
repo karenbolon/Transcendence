@@ -10,7 +10,7 @@ import {
 	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
-import { advanceWinner } from '../../tournament/TournamentManager';
+import { advanceWinner, leaveTournament } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -381,23 +381,25 @@ export function registerGameHandlers(socket: Socket) {
 		// Emit debug info back to the leaving player's browser so it shows in their console
 		socket.emit('debug:server', `[SERVER game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
 
-		// For tournament matches, trigger opponent's advancement even if forfeit at 0-0
-		if (isTournamentMatch && isCancellable) {
+		// For tournament matches, use full forfeit logic (handles all player's matches + check for winner)
+		if (isTournamentMatch) {
 			try {
 				const parts = roomId.split('-');
 				const tournamentId = Number(parts[1]);
-				const round = Number(parts[2].replace('r', ''));
-				const matchIndex = Number(parts[3].replace('m', ''));
-				socket.emit('debug:server', `[SERVER game:leave] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponentUserId}, loser=${userId})`);
-				// Advance opponent with 1-0 forfeit score
-				await advanceWinner(tournamentId, round, matchIndex, opponentUserId, userId, 1, 0);
-				socket.emit('debug:server', `[SERVER game:leave] advanceWinner COMPLETED`);
+				socket.emit('debug:server', `[SERVER game:leave] calling leaveTournament(tournamentId=${tournamentId}, userId=${userId})`);
+				// Use leaveTournament to trigger full forfeit queue logic:
+				// - Finds all remaining matches for this player
+				// - Auto-forfeits each match by advancing opponent
+				// - Checks if only 1 active player remains
+				// - If so, declares tournament winner
+				await leaveTournament(tournamentId, userId);
+				socket.emit('debug:server', `[SERVER game:leave] leaveTournament COMPLETED`);
 			} catch (err) {
-				socket.emit('debug:server', `[SERVER game:leave] advanceWinner THREW: ${err}`);
-				console.error('[Tournament] Forfeit advancement failed:', err);
+				socket.emit('debug:server', `[SERVER game:leave] leaveTournament THREW: ${err}`);
+				console.error('[Tournament] Forfeit handling failed:', err);
 			}
 		} else {
-			socket.emit('debug:server', `[SERVER game:leave] skipping advanceWinner (isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable})`);
+			socket.emit('debug:server', `[SERVER game:leave] skipping leaveTournament (isTournamentMatch=${isTournamentMatch})`);
 		}
 
 		socket.emit('debug:server', `[SERVER game:leave] calling forfeitByPlayer`);

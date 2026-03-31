@@ -11,6 +11,7 @@ import {
 	type SpeedPreset,
 } from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
+import { advanceWinner } from '../../tournament/TournamentManager';
 
 export type { GameResult, GameStateSnapshot };
 
@@ -142,11 +143,46 @@ export class GameRoom {
 				userId, timeout: RECONNECT_TIMEOUT
 			});
 
-			const timer = setTimeout(() => {
+			const timer = setTimeout(async () => {
 				this.disconnectTimers.delete(userId);
-				// Opponent wins by forfeit
+				// Guard against double-forfeit: only process if game hasn't ended
+				if (this.gameEnded) return;
+				
 				const opponent = userId === this.player1.userId ? this.player2 : this.player1;
-				this.handleForfeit(opponent);
+				const isTournamentMatch = this.roomId.startsWith('tournament-');
+				const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
+
+				// For tournament matches at 0-0, advance opponent immediately
+				// (bypass handleForfeit which would just cancel the game)
+				console.log(`[DEBUG removeSocket timer] isTournamentMatch=${isTournamentMatch} bothZero=${bothZero} roomId=${this.roomId}`);
+				if (isTournamentMatch && bothZero) {
+					try {
+						const parts = this.roomId.split('-');
+						const tournamentId = Number(parts[1]);
+						const round = Number(parts[2].replace('r', ''));
+						const matchIndex = Number(parts[3].replace('m', ''));
+						console.log(`[DEBUG removeSocket] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponent.userId}, loser=${userId})`);
+						await advanceWinner(tournamentId, round, matchIndex, opponent.userId, userId, 1, 0);
+						console.log(`[DEBUG removeSocket] advanceWinner completed, emitting game:cancelled`);
+					} catch (err) {
+						console.error('[Tournament] Disconnect advancement failed:', err);
+					}
+					// Clean up game room state (was missing — caused lingering rooms
+					// and the remaining player never receiving a navigation event)
+					this.gameEnded = true;
+					this.stop();
+					this.broadcastEvent(this.roomId, 'game:cancelled', {
+						roomId: this.roomId,
+						reason: 'Player disconnected at 0-0',
+						leftUserId: userId,
+						stayedUserId: opponent.userId,
+						stayedUsername: opponent.username,
+						settings: this.rawSettings,
+					});
+				} else {
+					// For casual games, use standard forfeit logic
+					this.handleForfeit(opponent);
+				}
 			}, RECONNECT_TIMEOUT);
 
 			this.disconnectTimers.set(userId, timer);
@@ -319,12 +355,11 @@ export class GameRoom {
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
-		// Fair forfeit rules:
-		// - Game hasn't started yet → no winner, just cancel
-		// - Score is 0-0 → no winner (could be connection issue)
-		// - Score is 1+ → remaining player wins
-		if (gameNotStarted || bothZero) {
+		// For casual games: if game hasn't started or is 0-0, just cancel (no winner recorded)
+		// For tournament matches: ALWAYS record a winner (the non-forfeiting player wins)
+		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted
 				? 'Player left before game started'
 				: 'Player disconnected at 0-0';
@@ -341,7 +376,11 @@ export class GameRoom {
 			return;
 		}
 
+		// For tournament matches at 0-0, still need to record the forfeit win
+		// Fall through to onGameEnd() to advance the bracket
+
 		// Score is 1+ — the remaining player wins by forfeit
+		// OR: Tournament match (even at 0-0) — remaining player wins, forfeiting player is eliminated
 		endGame(this.state, winner.username);
 
 		const result: GameResult = {
@@ -402,6 +441,10 @@ export class GameRoom {
 
 	getState(): GameStateSnapshot {
 		return this.getSnapshot();
+	}
+
+	get hasGameEnded(): boolean {
+		return this.gameEnded;
 	}
 
 	private getPlayer(userId: number): RoomPlayer | null {

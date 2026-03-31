@@ -11,7 +11,7 @@
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { connectSocket, disconnectSocket, reconnectSocket, getSocket } from '$lib/stores/socket.svelte';
+	import { connectSocket, disconnectSocket, reconnectSocket, getSocket, setOnConnectCallback } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
@@ -66,6 +66,7 @@
 		socket.off('tournament:started');
 		socket.off('tournament:eliminated');
 		socket.off('tournament:finished');
+		socket.off('tournament:abandoned');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
 			if (data?.notificationPrefs?.friendRequests !== false) {
@@ -206,12 +207,18 @@
 				toast.game('Tournament Over', `${evtData.winnerUsername} is the champion!`);
 			}
 		});
+
+		socket.on('tournament:abandoned', (evtData: any) => {
+			toast.warning('Tournament Cancelled', `Tournament was cancelled - ${evtData.reason}`);
+			invalidateAll();
+		});
 	}
 
 	onMount(async () => {
 		if (data?.user) {
+			// Set up callback to register listeners when socket connects
+			setOnConnectCallback(registerSocketListeners);
 			connectSocket();
-			registerSocketListeners();
 			loadUnreadCounts();
 		}
 	});
@@ -249,8 +256,8 @@
 		if (currentUserId !== lastUserId) {
 			lastUserId = currentUserId;
 			if (currentUserId) {
+				setOnConnectCallback(registerSocketListeners);
 				reconnectSocket();
-				registerSocketListeners();
 				loadUnreadCounts();
 			} else {
 				disconnectSocket();

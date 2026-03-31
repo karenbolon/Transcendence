@@ -22,7 +22,7 @@ services:
     ports:
       - 5433:5432
     env_file:
-      - .env.test
+      - .env.example
     volumes:
       - pgdata_test:/var/lib/postgresql/data
 

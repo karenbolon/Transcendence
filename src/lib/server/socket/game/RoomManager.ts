@@ -204,13 +204,31 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
 			}
 
-			await tx.insert(messages).values({
+			const matchContent = `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`;
+			const [msgSaved] = await tx.insert(messages).values({
 				sender_id: result.player1.userId,
 				recipient_id: result.player2.userId,
 				game_id: gameRecord.id, // from the insert returning
 				type: 'system',
-				content: `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`,
-			});
+				content: matchContent,
+			}).returning({ id: messages.id });
+
+			// Push match result into both players' chat panels
+			const msgPayload = {
+				id: msgSaved.id,
+				senderId: result.player1.userId,
+				senderUsername: '',
+				senderAvatar: null,
+				recipientId: result.player2.userId,
+				content: matchContent,
+				createdAt: new Date().toISOString(),
+				gameId: gameRecord.id,
+				type: 'system',
+			};
+			const p1Sockets = userSockets.get(result.player1.userId);
+			if (p1Sockets) for (const sid of p1Sockets) io.to(sid).emit('chat:sent', msgPayload);
+			const p2Sockets = userSockets.get(result.player2.userId);
+			if (p2Sockets) for (const sid of p2Sockets) io.to(sid).emit('chat:message', msgPayload);
 		});
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
 	} catch (err) {

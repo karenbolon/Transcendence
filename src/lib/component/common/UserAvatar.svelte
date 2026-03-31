@@ -49,11 +49,18 @@
 		}
 		return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 	});
+
+	let imgFailed = $state(false);
+	$effect(() => {
+		// Reset on avatarUrl change so a new valid URL is retried
+		avatarUrl;
+		imgFailed = false;
+	});
 </script>
 
 <div class="avatar-wrap" class:has-status={!!status} style="width:{px}px;height:{px}px">
-	{#if avatarUrl}
-		<img src={avatarUrl} alt="{username}'s avatar" class="avatar-img" />
+	{#if avatarUrl && !imgFailed}
+		<img src={avatarUrl} alt="{username}'s avatar" class="avatar-img" onerror={() => (imgFailed = true)} />
 	{:else}
 		<span class="avatar-initial" style="--avatar-gradient: linear-gradient(135deg, {colorPair[0]}, {colorPair[1]})" class:text-xs={size === 'xs'} class:text-sm={size === 'sm'} class:text-md={size === 'md'} class:text-lg={size === 'lg'} class:text-xl={size === 'xl'} class:text-xxl={size === 'xxl'}>
 			{initials}

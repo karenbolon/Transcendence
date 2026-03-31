@@ -18,7 +18,7 @@
 		user: { id: string; username: string; name: string; avatar_url: string | null };
 	};
 
-	let { user }: Props = $props();
+	let { user }: Props = $props()
 
 	// Friend list from page data (same data the friends page uses)
 	// We get this from the layout's data.friends if available,

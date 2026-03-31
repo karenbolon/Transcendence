@@ -228,16 +228,20 @@ export async function playerDisconnectedFromTournament(
 
 			let isPlayer1 = false;
 			let opponent: number | null = null;
+			let isPlayerInMatch = false;
 
 			if (match.player1Id === userId) {
 				isPlayer1 = true;
+				isPlayerInMatch = true;
 				opponent = match.player2Id ?? null;
 			} else if (match.player2Id === userId) {
 				isPlayer1 = false;
+				isPlayerInMatch = true;
 				opponent = match.player1Id ?? null;
 			}
 
-			if (opponent !== null || (match.status === 'pending' && !opponent)) {
+			// Only add if player is actually in this match
+			if (isPlayerInMatch) {
 				remainingMatches.push({
 					round: round.round,
 					matchIndex: match.matchIndex,
@@ -262,8 +266,33 @@ export async function playerDisconnectedFromTournament(
 				0, // forfeit score: opponent wins 1-0
 			);
 		} else {
-			// No opponent yet (pending match with bye or not scheduled)
-			// Just mark as finished without advancing anyone
+			// No opponent yet (pending match) → mark disconnected player as eliminated
+			const totalPlayers = tourney.playerMap.size;
+			const [{ value: eliminatedCount }] = await db
+				.select({ value: count() })
+				.from(tournamentParticipants)
+				.where(
+					and(
+						eq(tournamentParticipants.tournament_id, tournamentId),
+						eq(tournamentParticipants.status, 'eliminated'),
+					),
+				);
+			const placement = totalPlayers - Number(eliminatedCount);
+
+			await db
+				.update(tournamentParticipants)
+				.set({
+					status: 'eliminated',
+					placement,
+				})
+				.where(
+					and(
+						eq(tournamentParticipants.tournament_id, tournamentId),
+						eq(tournamentParticipants.user_id, userId),
+					),
+				);
+
+			// Mark match as finished  in memory
 			const roundData = tourney.bracket.find(r => r.round === remaining.round);
 			if (roundData) {
 				const match = roundData.matches[remaining.matchIndex];

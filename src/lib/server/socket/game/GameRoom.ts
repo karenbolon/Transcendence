@@ -154,13 +154,16 @@ export class GameRoom {
 
 				// For tournament matches at 0-0, advance opponent immediately
 				// (bypass handleForfeit which would just cancel the game)
+				console.log(`[DEBUG removeSocket timer] isTournamentMatch=${isTournamentMatch} bothZero=${bothZero} roomId=${this.roomId}`);
 				if (isTournamentMatch && bothZero) {
 					try {
 						const parts = this.roomId.split('-');
 						const tournamentId = Number(parts[1]);
 						const round = Number(parts[2].replace('r', ''));
 						const matchIndex = Number(parts[3].replace('m', ''));
+						console.log(`[DEBUG removeSocket] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponent.userId}, loser=${userId})`);
 						await advanceWinner(tournamentId, round, matchIndex, opponent.userId, userId, 1, 0);
+						console.log(`[DEBUG removeSocket] advanceWinner completed, emitting game:cancelled`);
 					} catch (err) {
 						console.error('[Tournament] Disconnect advancement failed:', err);
 					}

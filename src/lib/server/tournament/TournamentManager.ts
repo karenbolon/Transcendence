@@ -959,11 +959,18 @@ export async function advanceWinner(
 		return;
 	}
 
+	tournamentLogger.info({ tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore },
+		'[advanceWinner] called — tournament IS in activeTournaments');
+
 	const roundData = tourney.bracket.find((r) => r.round === round);
-	if (!roundData) return;
+	if (!roundData) {
+		tournamentLogger.error({ tournamentId, round, bracketRounds: tourney.bracket.map(r => r.round) }, '[advanceWinner] roundData not found!');
+		return;
+	}
 
 	// Mark match finished with scores
 	const match = roundData.matches[matchIndex];
+	tournamentLogger.info({ matchFound: !!match, matchIndex, matchStatus: match?.status }, '[advanceWinner] match lookup');
 	if (match) {
 		match.winnerId = winnerId;
 		match.status = 'finished';
@@ -1007,6 +1014,7 @@ export async function advanceWinner(
 
 	// Place winner in next round
 	const nextRound = tourney.bracket.find((r) => r.round === round + 1);
+	tournamentLogger.info({ nextRoundExists: !!nextRound, currentRound: round, totalRounds: tourney.bracket.length, lookingForRound: round + 1 }, '[advanceWinner] nextRound check');
 
 	// Count how many matches this player won in the tournament
 	const loserWins = tourney.bracket.reduce((count, r) => {
@@ -1122,7 +1130,7 @@ export async function advanceWinner(
 		}
 	} else {
 		// No next round — tournament is over!
-		console.log(`[Tournament] advanceWinner: NO NEXT ROUND! Tournament ${tournamentId} winner declared: Player ${winnerId} (Final match)`);
+		tournamentLogger.info({ tournamentId, winnerId, loserId }, '[advanceWinner] NO NEXT ROUND — marking tournament finished, running DB transaction');
 		
 		// Use transaction for finalist updates
 		await db.transaction(async (tx) => {
@@ -1197,13 +1205,16 @@ export async function advanceWinner(
 			bracket: tourney.bracket,
 		});
 
+		tournamentLogger.info({ tournamentId, winnerId }, '[advanceWinner] DB transaction done — emitting tournament:finished, deleting from activeTournaments');
 		activeTournaments.delete(tournamentId);
 
 		// Notify ALL clients so tournament list pages refresh
 		getIO().emit('tournament:list-updated');
+		tournamentLogger.info({ tournamentId }, '[advanceWinner] tournament:list-updated emitted');
 	}
 
 	// Persist bracket to DB and broadcast to all participants
+	tournamentLogger.info({ tournamentId, stillInMap: activeTournaments.has(tournamentId) }, '[advanceWinner] calling saveBracketToDb');
 	await saveBracketToDb(tournamentId, tourney.bracket);
 	if (activeTournaments.has(tournamentId)) {
 		emitToParticipants(tournamentId, 'tournament:bracket-update', {

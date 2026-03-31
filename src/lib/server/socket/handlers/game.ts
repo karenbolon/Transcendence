@@ -378,6 +378,8 @@ export function registerGameHandlers(socket: Socket) {
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
 		const isTournamentMatch = roomId.startsWith('tournament-');
 
+		console.log(`[DEBUG game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
+
 		// For tournament matches, trigger opponent's advancement even if forfeit at 0-0
 		if (isTournamentMatch && isCancellable) {
 			try {
@@ -385,13 +387,16 @@ export function registerGameHandlers(socket: Socket) {
 				const tournamentId = Number(parts[1]);
 				const round = Number(parts[2].replace('r', ''));
 				const matchIndex = Number(parts[3].replace('m', ''));
+				console.log(`[DEBUG game:leave] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponentUserId}, loser=${userId})`);
 				// Advance opponent with 1-0 forfeit score
 				await advanceWinner(tournamentId, round, matchIndex, opponentUserId, userId, 1, 0);
+				console.log(`[DEBUG game:leave] advanceWinner completed`);
 			} catch (err) {
 				console.error('[Tournament] Forfeit advancement failed:', err);
 			}
 		}
 
+		console.log(`[DEBUG game:leave] calling forfeitByPlayer for userId=${userId}`);
 		room.forfeitByPlayer(userId);
 
 		// If the game was cancelled (0-0 or not started), onGameEnd wasn't called

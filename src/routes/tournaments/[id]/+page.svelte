@@ -22,7 +22,11 @@
 		isParticipant?: boolean;
 	} = $state({});
 
-	let tournament = $derived({ ...data.tournament, ...( socketOverrides.status ? { status: socketOverrides.status } : {}), ...( socketOverrides.winnerId !== undefined ? { winnerId: socketOverrides.winnerId } : {}) });
+	let tournament = $derived.by(() => {
+		const t = { ...data.tournament, ...( socketOverrides.status ? { status: socketOverrides.status } : {}), ...( socketOverrides.winnerId !== undefined ? { winnerId: socketOverrides.winnerId } : {}) };
+		console.log('[DEBUG] tournament derived updated — status:', t.status, '| winnerId:', t.winnerId, '| socketOverrides.status:', socketOverrides.status, '| data.tournament.status:', data.tournament.status);
+		return t;
+	});
 	let participants = $derived(data.participants);
 	let bracket = $derived(socketOverrides.bracket ?? data.bracket);
 	let isCreator = $derived(data.isCreator);
@@ -31,6 +35,7 @@
 	// Reset overrides when data changes (e.g. navigation/invalidation)
 	$effect(() => {
 		data; // track
+		console.log('[DEBUG] data changed — resetting socketOverrides. New data.tournament.status:', data.tournament.status, '| winnerId:', data.tournament.winnerId);
 		socketOverrides = {};
 	});
 
@@ -91,7 +96,8 @@
 	onMount(() => {
 		const socket = getSocket();
 		if (!socket) return;
-		console.log('[DEBUG] tournament detail mounted, tournament id:', tournament.id);
+		console.log('[DEBUG] tournament detail MOUNTED, tournament id:', tournament.id, '| status from server:', data.tournament.status);
+		console.log('[DEBUG] tournament detail MOUNTED, full data.tournament:', JSON.stringify(data.tournament));
 
 		socket.on('tournament:player-joined', (d: any) => {
 			if (d.tournamentId === tournament.id) invalidateAll();
@@ -113,18 +119,22 @@
 			}
 		});
 		socket.on('tournament:started', (d: any) => {
+			console.log('[DEBUG] tournament:started received on OVERVIEW PAGE:', d);
 			if (d.tournamentId === tournament.id) {
-				console.log('[DEBUG] tournament:started received', d);
+				console.log('[DEBUG] tournament:started — setting socketOverrides.status = in_progress');
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
 			}
 		});
 		socket.on('tournament:bracket-update', (d: any) => {
+			console.log('[DEBUG] tournament:bracket-update received on OVERVIEW PAGE:', d.tournamentId, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, bracket: d.bracket };
 			}
 		});
 		socket.on('tournament:finished', (d: any) => {
+			console.log('[DEBUG] tournament:finished received on OVERVIEW PAGE:', d, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:finished — setting socketOverrides.status = finished, calling invalidateAll()');
 				socketOverrides = { ...socketOverrides, status: 'finished', winnerId: d.winnerId, bracket: d.bracket };
 				invalidateAll(); // Reload participants with final placements
 			}

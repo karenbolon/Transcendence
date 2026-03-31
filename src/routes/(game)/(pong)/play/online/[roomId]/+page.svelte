@@ -138,10 +138,16 @@
 
 		// Game cancelled (opponent left at 0-0 or before game started)
 		function handleCancelled(cancelData: { reason: string }) {
+			console.log('[DEBUG game:cancelled] received:', cancelData);
+			console.log('[DEBUG game:cancelled] isTournament:', isTournament, '| tournamentId:', tournamentId);
+			console.log('[DEBUG game:cancelled] tournamentEventData at cancel time:', JSON.stringify(tournamentEventData));
+			console.log('[DEBUG game:cancelled] history.length:', history.length);
 			toast.info(cancelData.reason);
 			if (history.length > 1) {
+				console.log('[DEBUG game:cancelled] calling history.back()');
 				history.back();
 			} else {
+				console.log('[DEBUG game:cancelled] calling goto(/play)');
 				goto('/play');
 			}
 		}
@@ -174,20 +180,22 @@
 
 		// Tournament-specific event handlers
 		function handleTournamentAdvanced(eventData: any) {
-			if (eventData.tournamentId !== tournamentId) return;
+			console.log('[DEBUG tournament:advanced] received:', eventData, '| this tournamentId:', tournamentId);
+			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:advanced] IGNORED — wrong tournamentId'); return; }
 			tournamentEventData = { type: 'advanced', data: eventData };
 		}
 
 		function handleTournamentEliminated(eventData: any) {
-			if (eventData.tournamentId !== tournamentId) return;
+			console.log('[DEBUG tournament:eliminated] received:', eventData, '| this tournamentId:', tournamentId);
+			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:eliminated] IGNORED — wrong tournamentId'); return; }
 			tournamentEventData = { type: 'eliminated', data: eventData };
 		}
 
 		function handleTournamentFinished(eventData: any) {
-			if (eventData.tournamentId !== tournamentId) return;
-			// Don't override eliminated state — only players in the final
-			// (champion + runner-up) should see the finished screen
-			if (tournamentEventData?.type === 'eliminated') return;
+			console.log('[DEBUG tournament:finished] received on GAME PAGE:', eventData, '| this tournamentId:', tournamentId);
+			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:finished] IGNORED — wrong tournamentId'); return; }
+			if (tournamentEventData?.type === 'eliminated') { console.log('[DEBUG tournament:finished] IGNORED — already eliminated'); return; }
+			console.log('[DEBUG tournament:finished] setting tournamentEventData to finished');
 			tournamentEventData = { type: 'finished', data: eventData };
 		}
 
@@ -199,12 +207,14 @@
 		socket.on('chat:sent', handleChatSent);
 
 		if (isTournament) {
+			console.log('[DEBUG game page] registering tournament listeners for tournamentId:', tournamentId);
 			socket.on('tournament:advanced', handleTournamentAdvanced);
 			socket.on('tournament:eliminated', handleTournamentEliminated);
 			socket.on('tournament:finished', handleTournamentFinished);
 		}
 
 		// Tell the server we're here
+		console.log('[DEBUG game page] joining room:', roomId, '| isTournament:', isTournament);
 		socket.emit('game:join-room', { roomId });
 
 		// Cleanup: runs when roomId changes or component is destroyed

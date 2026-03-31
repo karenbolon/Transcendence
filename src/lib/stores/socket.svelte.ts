@@ -45,7 +45,10 @@ export function connectSocket() {
 
 export function disconnectSocket() {
 	if (socket) {
+		socket.io.opts.reconnection = false;
+		socket.removeAllListeners();
 		socket.disconnect();
+		socket.close();
 		socket = null;
 		connected = false;
 	}

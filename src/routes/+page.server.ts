@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { games, users, friendships, tournaments, tournamentParticipants, achievements, achievement_definitions } from '$lib/server/db/schema';
 import { eq, or, desc, and, count, inArray, gte } from 'drizzle-orm';
@@ -9,7 +10,7 @@ import { calcWinRate } from '$lib/utils/format_game';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		return{ loggedIn: false as const };
+		redirect(302, '/login');
 	}
 
 	const userId = Number(locals.user.id);

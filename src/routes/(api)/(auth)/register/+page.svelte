@@ -86,6 +86,7 @@
 				type="text"
 				id="username"
 				name="username"
+				autocomplete="username"
 				placeholder="Choose a username"
 				minlength="3"
 				maxlength="20"
@@ -107,6 +108,7 @@
 				type="email"
 				id="email"
 				name="email"
+				autocomplete="email"
 				placeholder="your.email@example.com"
 				required
 				bind:value={email}
@@ -125,6 +127,7 @@
 			<PasswordInput
 				id="password"
 				name="password"
+				autocomplete="new-password"
 				placeholder="Create a password"
 				minlength={8}
 				required
@@ -146,6 +149,7 @@
 			<PasswordInput
 				id="confirmPassword"
 				name="confirmPassword"
+				autocomplete="new-password"
 				placeholder="Re-enter your password"
 				required
 				bind:value={confirmPassword}
@@ -172,7 +176,8 @@
 			</p>
 		</div>
 
-		<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
+		<!-- Old: <button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}> -->
+		<button class="btn-signup w-full py-3" type="submit" disabled={loading}>
 			{#if loading}
 				Signing up...
 			{:else}

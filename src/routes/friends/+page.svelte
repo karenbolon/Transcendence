@@ -13,6 +13,11 @@
 	import { openChat } from '$lib/stores/chat.svelte';
 	import { friendAction as doFriendAction } from '$lib/utils/friends';
 
+	type FriendSearchResult = SearchResult & {
+		relationshipDirection: 'incoming' | 'outgoing' | null;
+		blockedByMe: boolean;
+	};
+
 	let challengeTarget: { id: number; username: string; name: string | null; avatar_url: string | null } | null = $state(null);
 
 	function openChallenge(friendId: number, username: string, name: string | null = null, avatarUrl: string | null = null) {
@@ -35,7 +40,7 @@
 	let { data } = $props();
 
 	let searchQuery = $state('');
-	let searchResults: SearchResult[] = $state([]);
+	let searchResults: FriendSearchResult[] = $state([]);
 	let searching = $state(false);
 	let activeTab = $state('friends');
 	let loading = $state('');
@@ -248,7 +253,7 @@
 													{#if user.relationship === 'accepted'}
 														✓ Friends
 													{:else if user.relationship === 'pending'}
-														⏳ Pending
+														{user.relationshipDirection === 'incoming' ? '📨 Incoming Request' : '⏳ Pending'}
 													{:else if user.relationship === 'blocked'}
 														✕ Blocked
 													{/if}
@@ -257,12 +262,14 @@
 										</div>
 									</a>
 									<div class="friend-actions">
-										{#if !user.relationship}
+										{#if !user.relationship || (user.relationship === 'pending' && user.relationshipDirection === 'incoming')}
 											<button
 												class="btn btn-add"
 												disabled={loading === `request-${user.id}`}
 												onclick={() => handleFriendAction('request', user.id)}
 											>Add Friend</button>
+										{:else if user.relationship === 'blocked' && user.blockedByMe}
+											<button class="btn btn-add" disabled>Blocked</button>
 										{/if}
 									</div>
 								</div>

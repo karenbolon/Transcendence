@@ -7,6 +7,25 @@ import { z } from 'zod';
 import { processMatchProgression } from '$lib/server/progression';
 import { apiLogger } from '$lib/server/logger';
 
+
+//added GET for pagination and match history
+export const GET: RequestHandler = async ({ locals, url }) => {
+	if (!locals.user) return json({ error: 'Unauthorized' }, { status: 401 });
+	const userId = Number(locals.user.id);
+	const limit = Math.min(Number(url.searchParams.get('limit')) || 10, 100);
+
+	const rows = await db.select().from(games)
+		.where(and(
+			or(eq(games.player1_id, userId), eq(games.player2_id, userId)),
+			eq(games.status, 'finished')
+		))
+		.orderBy(desc(games.finished_at))
+		.limit(limit + 1);
+
+	const hasMore = rows.length > limit;
+	return json({ matches: rows.slice(0, limit), hasMore, limit });
+};
+
 const matchResultSchema = z.object({
 	// Game mode: how the game was played
 	gameMode: z.enum(['local', 'computer', 'online']),

@@ -127,7 +127,6 @@
 			errorMessage: 'Failed to save profile.',
 			validate: () => {
 				if (!name.trim()) return 'Name is required.';
-				if (name.trim().length > 100) return 'Name must be 100 characters or less.';
 				if (bio.length > 300) return 'Bio must be 300 characters or less.';
 			},
 			onSuccess: (result) => {
@@ -186,7 +185,6 @@
 					autocomplete="nickname"
 					class="field-input"
 					bind:value={name}
-					maxlength={100}
 					disabled={saving}
 					placeholder="Your display name"
 				/>

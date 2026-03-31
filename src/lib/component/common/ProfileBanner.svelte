@@ -17,6 +17,9 @@
 		variant: 'own' | 'friend';
 		isFriend?: boolean;
 		friendshipStatus?: FriendshipStatus;
+		hasIncomingRequest?: boolean;
+		hasOutgoingRequest?: boolean;
+		blockedByMe?: boolean;
 		progression?: Progression | null;
 		oneditprofile?: () => void;
 		onaddfriend?: () => void;
@@ -36,6 +39,9 @@
 		variant,
 		isFriend = false,
 		friendshipStatus = null,
+		hasIncomingRequest = false,
+		hasOutgoingRequest = false,
+		blockedByMe = false,
 		progression = null,
 		oneditprofile,
 		onaddfriend,
@@ -96,8 +102,12 @@
 					{/if}
 					<button class="banner-btn banner-btn--accent" onclick={onchallenge}>🎮 Challenge</button>
 					<button class="banner-btn banner-btn--danger" onclick={onunfriend}>Unfriend</button>
-				{:else if friendshipStatus === 'pending'}
+				{:else if hasIncomingRequest}
+					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 Add Friend</button>
+				{:else if hasOutgoingRequest || friendshipStatus === 'pending'}
 					<button class="banner-btn banner-btn--pending" disabled>⏳ Request Sent</button>
+				{:else if blockedByMe}
+					<button class="banner-btn banner-btn--pending" disabled>🚫 User Blocked</button>
 				{:else}
 					<button class="banner-btn banner-btn--primary" onclick={onaddfriend}>👋 Add Friend</button>
 				{/if}
@@ -191,6 +201,9 @@
 		font-size: 0.9rem;
 		font-weight: 500;
 		margin: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.banner-bio {

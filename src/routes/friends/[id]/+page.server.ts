@@ -49,6 +49,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const friendshipStatus = friendship?.status ?? null;
 	const isFriend = friendshipStatus === 'accepted';
+		const hasIncomingRequest = friendshipStatus === 'pending' && friendship?.user_id === friendId;
+		const hasOutgoingRequest = friendshipStatus === 'pending' && friendship?.user_id === currentUserId;
+		const blockedByMe = friendshipStatus === 'blocked' && friendship?.user_id === currentUserId;
 
 	// Stats
 	const wins = friend.wins ?? 0;
@@ -200,6 +203,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		},
 		isFriend,
 		friendshipStatus,
+		hasIncomingRequest,
+		hasOutgoingRequest,
+		blockedByMe,
 		stats: {
 			totalGames,
 			wins,

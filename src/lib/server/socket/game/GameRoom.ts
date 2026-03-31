@@ -401,8 +401,6 @@ export class GameRoom {
 		this.broadcastEvent(this.roomId, 'game:forfeit', result);
 		this.onGameEnd(result);
 	}
-		this.onGameEnd(result);
-	}
 
 	/** Immediate forfeit — player chose to leave (no reconnect timer) */
 	forfeitByPlayer(userId: number): void {

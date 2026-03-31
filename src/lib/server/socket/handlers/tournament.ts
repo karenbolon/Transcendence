@@ -1,5 +1,5 @@
 import type { Socket } from 'socket.io';
-import { getIO } from '../index';
+import { getIO, userSockets } from '../index';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -79,6 +79,15 @@ export function registerTournamentHandlers(socket: Socket) {
 		});
 	});
 
+	// Leave spectator mode (after elimination or timeout, stop watching tournament)
+	socket.on('tournament:leave-spectator', async (data: { tournamentId: number }) => {
+		// Simply confirm — client will handle navigation away
+		socket.emit('tournament:spectator-left', { tournamentId: data.tournamentId });
+
+		// Optionally: track spectators to stop sending them updates (future optimization)
+		console.log(`[Tournament] Player ${userId} left spectator mode for tournament ${data.tournamentId}`);
+	});
+
 	// Cancel a tournament (creator only, before it starts)
 	socket.on('tournament:cancel', async (data: { tournamentId: number }) => {
 		try {
@@ -145,32 +154,48 @@ export function registerTournamentHandlers(socket: Socket) {
 				.where(eq(tournaments.created_by, userId))
 				.limit(1);
 
-			if (usersTournament && usersTournament.status === 'scheduled') {
-				// Creator disconnected before tournament started
-				// Mark tournament as cancelled (don't delete — allows others to leave gracefully)
+			if (usersTournament && (usersTournament.status === 'scheduled' || usersTournament.status === 'in_progress')) {
+				const tournamentId = usersTournament.tournamentId;
+				
+				// Get all participants before cleanup
+				const participants = await db
+					.select({ userId: tournamentParticipants.user_id })
+					.from(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+				// Mark tournament as cancelled
 				await db
 					.update(tournaments)
 					.set({ status: 'cancelled' })
-					.where(eq(tournaments.id, usersTournament.tournamentId));
+					.where(eq(tournaments.id, tournamentId));
 
-				const io = getIO();
-				io.emit('tournament:abandoned', {
-					tournamentId: usersTournament.tournamentId,
-					reason: 'Creator left - tournament cancelled',
-				});
-			} else if (usersTournament && usersTournament.status === 'in_progress') {
-				// Creator disconnected while tournament was active
-				// Mark tournament as cancelled and notify all participants
+				// Delete participants so cleanup can cascade (FK on delete cascade)
 				await db
-					.update(tournaments)
-					.set({ status: 'cancelled' })
-					.where(eq(tournaments.id, usersTournament.tournamentId));
+					.delete(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
 
+				// Notify each participant individually so they get the toast even if on different page
 				const io = getIO();
-				io.emit('tournament:abandoned', {
-					tournamentId: usersTournament.tournamentId,
-					reason: 'Creator disconnected',
-				});
+				const reason = usersTournament.status === 'scheduled' 
+					? 'Creator left - tournament cancelled'
+					: 'Creator disconnected - tournament cancelled';
+
+				for (const participant of participants) {
+					const participantSockets = userSockets.get(participant.userId);
+					if (participantSockets) {
+						for (const sid of participantSockets) {
+							io.to(sid).emit('tournament:abandoned', {
+								tournamentId,
+								reason,
+							});
+						}
+					}
+				}
+
+				// Broadcast list update so tournaments page refreshes
+				io.emit('tournament:list-updated');
+
+				console.log(`[Tournament] Creator ${userId} disconnected from tournament ${tournamentId} (status: ${usersTournament.status}) - auto-cancelled`);
 			}
 		} catch (err) {
 			// Silently fail on disconnect cleanup

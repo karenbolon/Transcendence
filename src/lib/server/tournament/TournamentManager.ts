@@ -31,6 +31,71 @@ const activeTournaments = new Map<
 	}
 >();
 
+// ── Forfeit Event Queue (serialize disconnect handling) ──
+interface ForfeitEvent {
+	tournamentId: number;
+	userId: number;
+	timestamp: Date;
+}
+
+// tournamentId → queue of forfeit events
+const forfeitQueues = new Map<number, ForfeitEvent[]>();
+
+// tournamentId → whether queue is currently processing
+const processingQueues = new Set<number>();
+
+/**
+ * Queue a forfeit event for a tournament.
+ * Events are processed serially to prevent race conditions.
+ */
+function queueForfeitEvent(tournamentId: number, userId: number): void {
+	if (!forfeitQueues.has(tournamentId)) {
+		forfeitQueues.set(tournamentId, []);
+	}
+	const queue = forfeitQueues.get(tournamentId)!;
+	queue.push({
+		tournamentId,
+		userId,
+		timestamp: new Date(),
+	});
+	
+	// Start processing if not already processing
+	if (!processingQueues.has(tournamentId)) {
+		processForfeitQueue(tournamentId);
+	}
+}
+
+/**
+ * Process forfeit events for a tournament serially.
+ * Only one event at a time per tournament to prevent race conditions.
+ */
+async function processForfeitQueue(tournamentId: number): Promise<void> {
+	if (processingQueues.has(tournamentId)) return; // Already processing
+	
+	const queue = forfeitQueues.get(tournamentId) || [];
+	if (queue.length === 0) return; // Nothing to process
+	
+	processingQueues.add(tournamentId);
+	
+	try {
+		while (queue.length > 0) {
+			const event = queue.shift()!;
+			console.log(`[Tournament] Processing forfeit event: tournament=${event.tournamentId}, player=${event.userId}`);
+			
+			// Process this forfeit (internal function, no recursive queueing)
+			await playerDisconnectedFromTournament(event.tournamentId, event.userId, true);
+			
+			// Small delay to allow state updates to settle
+			await new Promise(resolve => setTimeout(resolve, 100));
+		}
+	} catch (error) {
+		console.error(`[Tournament] Error processing forfeit queue for tournament ${tournamentId}:`, error);
+	} finally {
+		processingQueues.delete(tournamentId);
+		forfeitQueues.delete(tournamentId);
+	}
+}
+
 // ── Helpers ──────────────────────────────────────────────
 
 /** Broadcast to all sockets of both players in a room */
@@ -194,9 +259,9 @@ export async function leaveTournament(
 		return true;
 	}
 
-	// If in_progress, trigger elimination logic
+	// If in_progress, queue elimination logic (serialize to prevent race conditions)
 	if (tournament.status === 'in_progress') {
-		await playerDisconnectedFromTournament(tournamentId, userId);
+		queueForfeitEvent(tournamentId, userId);
 		return true;
 	}
 
@@ -215,7 +280,14 @@ export async function leaveTournament(
 export async function playerDisconnectedFromTournament(
 	tournamentId: number,
 	userId: number,
+	isFromQueue: boolean = false,
 ): Promise<void> {
+	// If not called from queue, queue this event to serialize processing
+	if (!isFromQueue) {
+		queueForfeitEvent(tournamentId, userId);
+		return;
+	}
+
 	const tourney = activeTournaments.get(tournamentId);
 	
 	// If tournament not in memory, handle with database-only logic
@@ -575,24 +647,27 @@ export async function startTournament(
 		playerMap,
 	});
 
-	// Update DB (including initial bracket)
-	await db
-		.update(tournaments)
-		.set({
-			status: 'in_progress',
-			current_round: 1,
-			started_at: new Date(),
-			bracket_data: JSON.parse(JSON.stringify(bracket)),
-		})
-		.where(eq(tournaments.id, tournamentId));
+	// Update DB in a transaction (bracket + status + participants must be atomic)
+	await db.transaction(async (tx) => {
+		// Update tournament to in_progress with initial bracket
+		await tx
+			.update(tournaments)
+			.set({
+				status: 'in_progress',
+				current_round: 1,
+				started_at: new Date(),
+				bracket_data: JSON.parse(JSON.stringify(bracket)),
+			})
+			.where(eq(tournaments.id, tournamentId));
 
-	// Update all participants to active
-	await db
-		.update(tournamentParticipants)
-		.set({
-			status: 'active',
-		})
-		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+		// Update all participants to active
+		await tx
+			.update(tournamentParticipants)
+			.set({
+				status: 'active',
+			})
+			.where(eq(tournamentParticipants.tournament_id, tournamentId));
+	});
 
 	// Notify all participants
 	emitToParticipants(tournamentId, 'tournament:started', {
@@ -982,27 +1057,32 @@ export async function advanceWinner(
 	} else {
 		// No next round — tournament is over!
 		console.log(`[Tournament] advanceWinner: NO NEXT ROUND! Tournament ${tournamentId} winner declared: Player ${winnerId} (Final match)`);
-		await db
-			.update(tournaments)
-			.set({
-				status: 'finished',
-				winner_id: winnerId,
-				finished_at: new Date(),
-			})
-			.where(eq(tournaments.id, tournamentId));
+		
+		// Use transaction for finalist updates
+		await db.transaction(async (tx) => {
+			await tx
+				.update(tournaments)
+				.set({
+					status: 'finished',
+					winner_id: winnerId,
+					finished_at: new Date(),
+					bracket_data: JSON.parse(JSON.stringify(tourney.bracket)),
+				})
+				.where(eq(tournaments.id, tournamentId));
 
-		await db
-			.update(tournamentParticipants)
-			.set({
-				status: 'champion',
-				placement: 1,
-			})
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, winnerId),
-				),
-			);
+			await tx
+				.update(tournamentParticipants)
+				.set({
+					status: 'champion',
+					placement: 1,
+				})
+				.where(
+					and(
+						eq(tournamentParticipants.tournament_id, tournamentId),
+						eq(tournamentParticipants.user_id, winnerId),
+					),
+				);
+		});
 
 		// Build podium (top 3)
 		const podiumParticipants = await db

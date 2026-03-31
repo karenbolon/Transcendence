@@ -181,6 +181,72 @@ async function testDifferentTournaments() {
 	return processedEvents.length === 3 && areParallel;
 }
 
+// Test case 4: Two players (finals match scenario)
+async function testTwoPlayersFinals() {
+	console.log('=== TEST 4: Two Players Finals Match (Sequential Disconnect) ===\n');
+	processedEvents = [];
+	
+	// Simulate finals: Player 1 and Player 2 in tournament 1
+	queueForfeitEvent(1, 100); // Player 1 disconnects
+	await new Promise(resolve => setTimeout(resolve, 50));
+	queueForfeitEvent(1, 101); // Player 2 disconnects shortly after
+	
+	// Wait for both to process
+	await new Promise(resolve => setTimeout(resolve, 600));
+	
+	console.log('Expected: 2 events processed serially');
+	console.log(`Actual: ${processedEvents.length} events processed`);
+	
+	// Verify both were processed in order
+	let correctOrder = true;
+	let hasDelay = true;
+	
+	if (processedEvents.length >= 2) {
+		if (processedEvents[0].userId !== 100 || processedEvents[1].userId !== 101) {
+			console.log(`⚠️  Events processed out of order: ${processedEvents.map(e => e.userId).join(', ')}`);
+			correctOrder = false;
+		}
+		
+		const timeDelta = processedEvents[1].processStartTimestamp - processedEvents[0].processStartTimestamp;
+		if (timeDelta < 120) { // Should have ~100ms delay + 50ms processing
+			console.log(`⚠️  Events processed too quickly: ${timeDelta}ms (expected >= 120ms)`);
+			hasDelay = false;
+		}
+	}
+	
+	console.log(`Correct order: ${correctOrder ? '✅ YES' : '❌ NO'}`);
+	console.log(`Proper delay: ${hasDelay ? '✅ YES' : '❌ NO'}`);
+	console.log(`Result: ${processedEvents.length === 2 && correctOrder && hasDelay ? '✅ PASS' : '❌ FAIL'}\n`);
+	
+	return processedEvents.length === 2 && correctOrder && hasDelay;
+}
+
+// Test case 5: Non-creator leaves 2-person tournament
+async function testNonCreatorTwoPlayerDisconnect() {
+	console.log('=== TEST 5: Non-Creator Leaves 2-Person Tournament ===\n');
+	processedEvents = [];
+	
+	// Simulate 2-person tournament in_progress
+	// Creator = 500, Participant = 501
+	// Participant 501 disconnects (non-creator)
+	queueForfeitEvent(999, 501); // 999 = tournament ID, 501 = non-creator participant
+	
+	await new Promise(resolve => setTimeout(resolve, 500));
+	
+	console.log('Expected: 1 event processed (non-creator forfeit)');
+	console.log(`Actual: ${processedEvents.length} events processed`);
+	
+	if (processedEvents.length === 1) {
+		const event = processedEvents[0];
+		console.log(`Participant 501 forfeited from tournament 999 ✅`);
+		console.log(`Result: ✅ PASS\n`);
+		return true;
+	} else {
+		console.log(`Result: ❌ FAIL\n`);
+		return false;
+	}
+}
+
 // Run all tests
 async function runAllTests() {
 	console.log('╔════════════════════════════════════════════════════════╗');
@@ -194,6 +260,8 @@ async function runAllTests() {
 		results.push(await testSingleDisconnect());
 		results.push(await testMultipleSimultaneous());
 		results.push(await testDifferentTournaments());
+		results.push(await testTwoPlayersFinals());
+		results.push(await testNonCreatorTwoPlayerDisconnect());
 		
 		console.log('╔════════════════════════════════════════════════════════╗');
 		const passed = results.filter(r => r).length;

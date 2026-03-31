@@ -11,7 +11,11 @@
 	} = $props();
 </script>
 
-<form method="POST" action="/logout" use:enhance>
+<form
+	method="POST"
+	action="/logout"
+	use:enhance
+>
 	<button type="submit" class={className}>
 		{#if children}
 			{@render children()}

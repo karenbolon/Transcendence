@@ -110,6 +110,8 @@
 				{/each}
 				<label class="avatar-option upload-placeholder" class:disabled={uploading}>
 					<input
+						id="avatar-upload"
+						name="avatar-upload"
 						type="file"
 						accept="image/png,image/jpeg,image/webp"
 						onchange={onupload}

@@ -144,7 +144,9 @@
 					<label class="field-label" for="new-email">New Email</label>
 					<input 
 						id="new-email" 
+						name="new-email"
 						type="email" 
+						autocomplete="email"
 						class="field-input" 
 						bind:value={newEmail} 
 						disabled={savingEmail} 
@@ -153,7 +155,7 @@
 				<div class="field">
 					<label class="field-label" for="email-password">Password</label>
 					<!-- <input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" /> -->
-					<PasswordInput id="confirm-password" name="confirm-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
+					<PasswordInput id="email-password" name="email-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
 				</div>
 
 				{#if emailError}

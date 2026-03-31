@@ -35,6 +35,13 @@
 			closeDropdown();
 		}
 	}
+
+	function handleChatClick(e: MouseEvent) {
+		e.preventDefault();
+		toggleChat();
+	}
+	// Old behavior:
+	// <button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">...</button>
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -52,6 +59,7 @@
 					<a href="/play" class="nav-link">Play</a>
 					<a href="/leaderboard" class="nav-link">Leaderboard</a>
 					<a href="/tournaments" class="nav-link">Tournaments</a>
+					<a href="/profile" class="nav-link">Profile</a>
 					<a href="/friends" class="nav-link">Friends</a>
 				{:else}
 					<a href="/instructions" class="nav-link">Instructions</a>
@@ -62,14 +70,16 @@
 			<div class="header-right">
 				{#if user}
 					<!-- Chat button -->
-					<button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">
+					<!-- Old: <button class="chat-trigger" onclick={toggleChat} aria-label="Open chat"> -->
+					<a href="/friends" class="chat-trigger" onclick={handleChatClick} aria-label="Open chat">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
 							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 						</svg>
 						{#if getTotalUnread() > 0}
 							<span class="chat-badge">{getTotalUnread()}</span>
 						{/if}
-					</button>
+					</a>
+					<!-- Old: </button> -->
 
 					<div class="dropdown-wrapper">
 						<button
@@ -137,12 +147,16 @@
 <style>
 	.chat-trigger {
 		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		background: none;
 		border: none;
 		color: #9ca3af;
 		cursor: pointer;
 		padding: 0.4rem;
 		border-radius: 0.4rem;
+		text-decoration: none;
 		transition: color 0.15s;
 	}
 

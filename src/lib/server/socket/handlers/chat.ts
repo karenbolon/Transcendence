@@ -18,9 +18,18 @@ export function registerChatHandlers(socket: Socket) {
 		const { recipientId, content, gameId } = data;
 
 		// Validate
-		if (!content || content.trim().length === 0) return;
-		if (content.length > 500) return;  // max message length
-		if (recipientId === userId) return;
+		if (!content || content.trim().length === 0) {
+			socket.emit('chat:error', { message: 'Message cannot be empty' });
+			return;
+		}
+		if (content.length > 500) {
+			socket.emit('chat:error', { message: 'Message cannot exceed 500 characters' });
+			return;
+		}
+		if (recipientId === userId) {
+			socket.emit('chat:error', { message: 'Cannot send message to yourself' });
+			return;
+		}
 
 		// Block check — always check, even for in-game chat
 		const blocked = await isBlocked(userId, recipientId);

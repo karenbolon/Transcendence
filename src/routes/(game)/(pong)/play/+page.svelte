@@ -581,6 +581,14 @@
 <Scanlines opacity={0.04} />
 <!-- <NoiseGrain opacity={0.03} /> -->
 
+<noscript>
+	<div class="nojs-notice" role="status" aria-live="polite">
+		Pong gameplay and matchmaking require JavaScript. With JavaScript disabled, mode switches,
+		settings, and Start Game are unavailable.
+		<a href="/instructions">Read instructions</a> or <a href="/profile">go to your profile</a>.
+	</div>
+</noscript>
+
 <div class="game-container">
 	<!-- Queue search banner (shown when searching + on local/computer tab) -->
 	{#if isSearching && gameMode !== 'online'}
@@ -831,6 +839,23 @@
 		gap: 1.25rem;
 		width: 100%;
 		padding: 1rem 0 2rem;
+	}
+
+	.nojs-notice {
+		max-width: 950px;
+		margin: 1rem auto 0;
+		padding: 0.85rem 1rem;
+		border-radius: 0.6rem;
+		border: 1px solid rgba(255, 107, 157, 0.3);
+		background: rgba(255, 107, 157, 0.08);
+		color: #ffd9e7;
+		font-size: 0.9rem;
+		line-height: 1.45;
+	}
+
+	.nojs-notice a {
+		color: #ffd9e7;
+		text-decoration: underline;
 	}
 
 	.game-header {

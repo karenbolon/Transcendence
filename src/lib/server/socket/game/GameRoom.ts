@@ -355,12 +355,13 @@ export class GameRoom {
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
 		// Fair forfeit rules:
 		// - Game hasn't started yet → no winner, just cancel
-		// - Score is 0-0 → no winner (could be connection issue)
+		// - Score is 0-0 → no winner UNLESS it's a tournament (must advance)
 		// - Score is 1+ → remaining player wins
-		if (gameNotStarted || bothZero) {
+		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted
 				? 'Player left before game started'
 				: 'Player disconnected at 0-0';
@@ -377,7 +378,33 @@ export class GameRoom {
 			return;
 		}
 
+		// For tournament matches even at 0-0, we must record the winner and advance bracket
+		if (isTournamentMatch && bothZero && gameNotStarted) {
+			this.broadcastEvent(this.roomId, 'game:cancelled', {
+				roomId: this.roomId,
+				reason: 'Player left before game started',
+				leftUserId: loser.userId,
+				stayedUserId: winner.userId,
+				stayedUsername: winner.username,
+				settings: this.rawSettings,
+			});
+			// Fall through to call onGameEnd for bracket advancement
+		} else if (isTournamentMatch && bothZero) {
+			// At 0-0 for tournament, broadcast cancellation but still advance
+			this.broadcastEvent(this.roomId, 'game:cancelled', {
+				roomId: this.roomId,
+				reason: 'Player disconnected at 0-0',
+				leftUserId: loser.userId,
+				stayedUserId: winner.userId,
+				stayedUsername: winner.username,
+				settings: this.rawSettings,
+			});
+			// Fall through to call onGameEnd for bracket advancement
+		}
+
+
 		// Score is 1+ — the remaining player wins by forfeit
+		// OR: Tournament match at 0-0 (winner is opponent, loser left)
 		endGame(this.state, winner.username);
 
 		const result: GameResult = {

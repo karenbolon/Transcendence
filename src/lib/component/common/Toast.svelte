@@ -4,38 +4,59 @@
 
 </script>
 
-{#if toasts.length > 0}
-	<div class="toast-container">
-		{#each toasts as t (t.id) }
-			<div
-				class="toast toast--{t.type}"
-				class:clickable={!!t.onclick}
-				style="--toast-color: {TOAST_CONFIG[t.type].color};"
-				transition:fly={{ x: 300, duration: 300 }}
-				onclick={() => { if (t.onclick) { t.onclick(); toast.dismiss(t.id); } }}
-				role={t.onclick ? 'button' : undefined}
-				tabindex={t.onclick ? 0 : undefined}
-			>
-				<span class="toast-icon">{t.icon}</span>
-				<div class="toast-body">
-					<span class="toast-title">{t.title}</span>
-					{#if t.message}
-						<span class="toast-message">{t.message}</span>
-					{/if}
-				</div>
-				<button class="toast-dismiss" onclick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }}>
-					&times;
-				</button>
-				<div class="toast-progress">
+	{#if toasts.length > 0}
+		<div class="toast-container">
+			{#each toasts as t (t.id) }
+				{#if t.onclick}
+					<button
+						type="button"
+						class="toast toast--{t.type} clickable"
+						style="--toast-color: {TOAST_CONFIG[t.type].color};"
+						transition:fly={{ x: 300, duration: 300 }}
+						onclick={() => { t.onclick?.(); toast.dismiss(t.id); }}
+						aria-label={t.title}
+					>
+						<span class="toast-icon">{t.icon}</span>
+						<div class="toast-body">
+							<span class="toast-title">{t.title}</span>
+							{#if t.message}
+								<span class="toast-message">{t.message}</span>
+							{/if}
+						</div>
+						<div class="toast-progress">
+							<div
+								class="toast-progress-bar"
+								style="animation-duration: {t.duration}ms;"
+							></div>
+						</div>
+					</button>
+				{:else}
 					<div
-						class="toast-progress-bar"
-						style="animation-duration: {t.duration}ms;"
-					></div>
-				</div>
-			</div>
-		{/each}
-	</div>
-{/if}
+						class="toast toast--{t.type}"
+						style="--toast-color: {TOAST_CONFIG[t.type].color};"
+						transition:fly={{ x: 300, duration: 300 }}
+					>
+						<span class="toast-icon">{t.icon}</span>
+						<div class="toast-body">
+							<span class="toast-title">{t.title}</span>
+							{#if t.message}
+								<span class="toast-message">{t.message}</span>
+							{/if}
+						</div>
+						<button class="toast-dismiss" onclick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }}>
+							&times;
+						</button>
+						<div class="toast-progress">
+							<div
+								class="toast-progress-bar"
+								style="animation-duration: {t.duration}ms;"
+							></div>
+						</div>
+					</div>
+				{/if}
+			{/each}
+		</div>
+	{/if}
 
 <style>
 	.toast-container {
@@ -67,6 +88,16 @@
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 		pointer-events: all;
 		overflow: hidden;
+	}
+
+	button.toast {
+		font: inherit;
+		text-align: left;
+		background: rgba(22, 22, 58, 0.95);
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		border-right: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-left: 3px solid var(--toast-color);
 	}
 
 	.toast.clickable {

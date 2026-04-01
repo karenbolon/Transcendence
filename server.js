@@ -1,10 +1,16 @@
 import { createServer } from 'http';
-import { createReadStream, existsSync } from 'fs';
+import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import { join, extname } from 'path';
-import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import { handler } from './build/handler.js';
+import { createMatchQueue } from './server.matchmaking.js';
+import { createInviteManager } from './server.invites.js';
+import { registerChatHandlers } from './server.chat.js';
+import { registerGameHandlers } from './server.game-handlers.js';
+import { registerTournamentHandlers } from './server.tournament-handlers.js';
+import { createTournamentRuntime } from './server.tournament-runtime.js';
+import { createProgressionRuntime } from './server.progression-runtime.js';
 import pino from 'pino';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
@@ -82,6 +88,22 @@ function parseCookies(cookieHeader) {
 
 // Map userId → Set of socketIds
 const userSockets = new Map();
+const inviteManager = createInviteManager();
+
+function emitToSocketIds(socketIds, event, data) {
+	if (!socketIds) return;
+	for (const socketId of socketIds) {
+		io.to(socketId).emit(event, data);
+	}
+}
+
+function emitToUser(userId, event, data) {
+	emitToSocketIds(userSockets.get(userId), event, data);
+}
+
+function emitToUsers(userIds, event, data) {
+	for (const userId of userIds) emitToUser(userId, event, data);
+}
 
 async function socketAuthMiddleware(socket, next) {
 	try {
@@ -140,17 +162,56 @@ async function getFriendIds(userId) {
 	return rows.map(r => Number(r.friend_id));
 }
 
+async function hasFriendshipStatus(userId, otherUserId, relationshipStatus) {
+	const [row] = await sql`
+		SELECT id FROM friendships
+		WHERE status = ${relationshipStatus}
+		  AND (
+			(user_id = ${userId} AND friend_id = ${otherUserId})
+			OR
+			(user_id = ${otherUserId} AND friend_id = ${userId})
+		  )
+		LIMIT 1
+	`;
+	return Boolean(row);
+}
+
+function areFriends(userId, otherUserId) {
+	return hasFriendshipStatus(userId, otherUserId, 'accepted');
+}
+
+function isBlocked(userId, otherUserId) {
+	return hasFriendshipStatus(userId, otherUserId, 'blocked');
+}
+
 // ── Helper: notify all online friends ─────────────────────────────
 async function notifyFriends(userId, event, data) {
 	const friendIds = await getFriendIds(userId);
-	for (const friendId of friendIds) {
-		const friendSocketIds = userSockets.get(friendId);
-		if (friendSocketIds) {
-			for (const socketId of friendSocketIds) {
-				io.to(socketId).emit(event, data);
-			}
-		}
-	}
+	emitToUsers(friendIds, event, data);
+}
+
+function registerSocketForUser(userId, socketId) {
+	if (!userSockets.has(userId)) userSockets.set(userId, new Set());
+	const sockets = userSockets.get(userId);
+	const wasOffline = sockets.size === 0;
+	sockets.add(socketId);
+	return wasOffline;
+}
+
+function unregisterSocketForUser(userId, socketId) {
+	const sockets = userSockets.get(userId);
+	if (!sockets) return true;
+	sockets.delete(socketId);
+	if (sockets.size > 0) return false;
+	userSockets.delete(userId);
+	return true;
+}
+
+function setUserOnlineStatus(userId, username, isOnline) {
+	const event = isOnline ? 'friend:online' : 'friend:offline';
+	return sql`UPDATE users SET is_online = ${isOnline} WHERE id = ${userId}`
+		.then(() => notifyFriends(userId, event, { userId, username }))
+		.catch(() => {});
 }
 
 // ── Game Engine (inline copy of gameEngine.ts — plain JS) ────────
@@ -583,15 +644,15 @@ function destroyGameRoom(roomId) {
 function broadcastRoomState(roomId, state) {
 	const room = getGameRoom(roomId);
 	if (!room) return;
-	for (const sid of room.player1.socketIds) { io.to(sid).emit('game:state', state); }
-	for (const sid of room.player2.socketIds) { io.to(sid).emit('game:state', state); }
+	emitToSocketIds(room.player1.socketIds, 'game:state', state);
+	emitToSocketIds(room.player2.socketIds, 'game:state', state);
 }
 
 function broadcastRoomEvent(roomId, event, data) {
 	const room = getGameRoom(roomId);
 	if (!room) return;
-	for (const sid of room.player1.socketIds) { io.to(sid).emit(event, data); }
-	for (const sid of room.player2.socketIds) { io.to(sid).emit(event, data); }
+	emitToSocketIds(room.player1.socketIds, event, data);
+	emitToSocketIds(room.player2.socketIds, event, data);
 }
 
 class ServerGameRoom {
@@ -827,7 +888,7 @@ function createGameRoom(roomId, p1, p2, settings) {
 	// Safety: destroy room if nobody joins within 30 seconds
 	room._joinTimeout = setTimeout(() => {
 		if (room.player1.socketIds.size === 0 || room.player2.socketIds.size === 0) {
-			console.log(`[GameRoom] Room ${roomId} timed out — nobody joined`);
+			socketLog.warn({ roomId }, 'Game room timed out before both players joined');
 			destroyGameRoom(roomId);
 		}
 	}, 30000);
@@ -835,483 +896,8 @@ function createGameRoom(roomId, p1, p2, settings) {
 	return room;
 }
 
-// ── Progression: XP Calculation (mirrors src/lib/server/progression/xp.ts) ──
-
-const XP_TABLE_SIZE = 100;
-const BASE_XP = 50;
-const GROWTH_FACTOR = 1.3;
-let _xpThresholds = null;
-
-function getXpThresholds() {
-	if (_xpThresholds) return _xpThresholds;
-	_xpThresholds = [0];
-	let cumulative = 0;
-	for (let i = 1; i <= XP_TABLE_SIZE; i++) {
-		cumulative += Math.round(BASE_XP * Math.pow(GROWTH_FACTOR, i - 1));
-		_xpThresholds.push(cumulative);
-	}
-	return _xpThresholds;
-}
-
-function calculateMatchXp(result) {
-	const bonuses = [];
-	const base = result.won ? 50 : 20;
-	if (result.won && result.player2Score === 0) {
-		bonuses.push({ name: 'Shutout', amount: 15 });
-	}
-	if (result.won && result.currentWinStreak > 0) {
-		bonuses.push({ name: 'Win Streak', amount: Math.min(result.currentWinStreak * 5, 25) });
-	}
-	if (result.won && result.maxDeficit >= 2) {
-		bonuses.push({ name: 'Comeback', amount: 10 });
-	}
-	const speedBonusMap = { chill: 0, normal: 5, fast: 10 };
-	const speedBonus = speedBonusMap[result.speedPreset] ?? 0;
-	if (speedBonus > 0) {
-		bonuses.push({ name: 'Speed Bonus', amount: speedBonus });
-	}
-	const total = base + bonuses.reduce((sum, b) => sum + b.amount, 0);
-	return { base, bonuses, total };
-}
-
-function getLevelForXp(totalXp) {
-	const thresholds = getXpThresholds();
-	let level = 0;
-	for (let i = 1; i < thresholds.length; i++) {
-		if (totalXp >= thresholds[i]) level = i;
-		else break;
-	}
-	const xpAtCurrentLevel = thresholds[level] ?? 0;
-	const xpAtNextLevel = thresholds[level + 1] ?? thresholds[level] + 1000;
-	return { level, xpIntoLevel: totalXp - xpAtCurrentLevel, xpForNextLevel: xpAtNextLevel - xpAtCurrentLevel };
-}
-
-// ── Progression: Achievement Evaluation (mirrors src/lib/server/progression/achievements.ts) ──
-
-const ACHIEVEMENT_CONDITIONS = [
-	{ id: 'shutout_bronze', field: 'shutout_wins', threshold: 1 },
-	{ id: 'shutout_silver', field: 'shutout_wins', threshold: 10 },
-	{ id: 'shutout_gold', field: 'shutout_wins', threshold: 50 },
-	{ id: 'streak_bronze', field: 'best_win_streak', threshold: 3 },
-	{ id: 'streak_silver', field: 'best_win_streak', threshold: 7 },
-	{ id: 'streak_gold', field: 'best_win_streak', threshold: 15 },
-	{ id: 'matches_10', field: 'games_played', threshold: 10 },
-	{ id: 'matches_50', field: 'games_played', threshold: 50 },
-	{ id: 'matches_v_100', field: 'games_played', threshold: 100 },
-	{ id: 'matches_v_250', field: 'games_played', threshold: 250 },
-	{ id: 'matches_v_500', field: 'games_played', threshold: 500 },
-	{ id: 'points_bronze', field: 'total_points_scored', threshold: 50 },
-	{ id: 'points_silver', field: 'total_points_scored', threshold: 250 },
-	{ id: 'points_gold', field: 'total_points_scored', threshold: 1000 },
-	{ id: 'comeback_bronze', field: 'comeback_wins', threshold: 1 },
-	{ id: 'comeback_silver', field: 'comeback_wins', threshold: 5 },
-	{ id: 'comeback_gold', field: 'comeback_wins', threshold: 20 },
-	{ id: 'rally_bronze', field: 'total_ball_returns', threshold: 100 },
-	{ id: 'rally_silver', field: 'total_ball_returns', threshold: 500 },
-	{ id: 'rally_gold', field: 'total_ball_returns', threshold: 2000 },
-];
-
-function evaluateAchievements(stats, existingIds) {
-	const newlyUnlocked = [];
-	for (const cond of ACHIEVEMENT_CONDITIONS) {
-		if (existingIds.has(cond.id)) continue;
-		if (stats[cond.field] >= cond.threshold) newlyUnlocked.push(cond.id);
-	}
-	return newlyUnlocked;
-}
-
-// ── Progression: Process match progression for one player (raw SQL version) ──
-
-async function processMatchProgressionSQL(userId, input) {
-	// 1. Read or create progression row
-	const [existingRow] = await sql`
-		SELECT * FROM player_progression WHERE user_id = ${userId}
-	`;
-	const isFirstGame = !existingRow;
-	const current = existingRow ?? {
-		current_level: 0, current_xp: 0, total_game_xp: 0, total_xp: 0,
-		xp_to_next_level: 50, current_win_streak: 0, best_win_streak: 0,
-		total_points_scored: 0, total_ball_returns: 0, shutout_wins: 0,
-		comeback_wins: 0, consecutive_days_played: 0, last_played_at: null,
-	};
-
-	// 2. Update cumulative stats
-	const newWinStreak = input.won ? current.current_win_streak + 1 : 0;
-	const newBestStreak = Math.max(current.best_win_streak, newWinStreak);
-	const newTotalPoints = current.total_points_scored + input.player1Score;
-	const newBallReturns = current.total_ball_returns + input.ballReturns;
-	const isShutout = input.won && input.player2Score === 0;
-	const newShutoutWins = current.shutout_wins + (isShutout ? 1 : 0);
-	const isComeback = input.won && input.maxDeficit >= 2;
-	const newComebackWins = current.comeback_wins + (isComeback ? 1 : 0);
-
-	// 3. Calculate XP
-	const xpBreakdown = calculateMatchXp({
-		won: input.won,
-		player1Score: input.player1Score,
-		player2Score: input.player2Score,
-		winScore: input.winScore,
-		speedPreset: input.speedPreset,
-		currentWinStreak: newWinStreak,
-		ballReturns: input.ballReturns,
-		maxDeficit: input.maxDeficit,
-	});
-	const oldTotalXp = current.total_xp;
-	const newTotalXp = oldTotalXp + xpBreakdown.total;
-
-	// 4. Determine levels
-	const oldLevelInfo = getLevelForXp(oldTotalXp);
-	const newLevelInfo = getLevelForXp(newTotalXp);
-
-	// 5. Consecutive days tracking
-	const now = new Date();
-	let newConsecutiveDays = current.consecutive_days_played;
-	if (current.last_played_at) {
-		const diffHours = (now.getTime() - new Date(current.last_played_at).getTime()) / (1000 * 60 * 60);
-		if (diffHours >= 20 && diffHours <= 48) newConsecutiveDays++;
-		else if (diffHours > 48) newConsecutiveDays = 1;
-	} else {
-		newConsecutiveDays = 1;
-	}
-
-	// 6. Upsert progression row
-	if (isFirstGame) {
-		await sql`
-			INSERT INTO player_progression (user_id, current_level, current_xp, total_game_xp, total_xp,
-				xp_to_next_level, current_win_streak, best_win_streak, total_points_scored,
-				total_ball_returns, shutout_wins, comeback_wins, consecutive_days_played, last_played_at)
-			VALUES (${userId}, ${newLevelInfo.level}, ${newLevelInfo.xpIntoLevel},
-				${current.total_game_xp + xpBreakdown.total}, ${newTotalXp}, ${newLevelInfo.xpForNextLevel},
-				${newWinStreak}, ${newBestStreak}, ${newTotalPoints}, ${newBallReturns},
-				${newShutoutWins}, ${newComebackWins}, ${newConsecutiveDays}, ${now})
-		`;
-	} else {
-		await sql`
-			UPDATE player_progression SET
-				current_level = ${newLevelInfo.level}, current_xp = ${newLevelInfo.xpIntoLevel},
-				total_game_xp = total_game_xp + ${xpBreakdown.total}, total_xp = ${newTotalXp},
-				xp_to_next_level = ${newLevelInfo.xpForNextLevel},
-				current_win_streak = ${newWinStreak}, best_win_streak = ${newBestStreak},
-				total_points_scored = ${newTotalPoints}, total_ball_returns = ${newBallReturns},
-				shutout_wins = ${newShutoutWins}, comeback_wins = ${newComebackWins},
-				consecutive_days_played = ${newConsecutiveDays}, last_played_at = ${now}
-			WHERE user_id = ${userId}
-		`;
-	}
-
-	// 7. Get games_played for achievements
-	const [userRow] = await sql`SELECT games_played FROM users WHERE id = ${userId}`;
-
-	// 8. Evaluate achievements
-	const existingAchievements = await sql`
-		SELECT achievement_id FROM achievements WHERE user_id = ${userId}
-	`;
-	const existingIds = new Set(existingAchievements.map(a => a.achievement_id));
-
-	const stats = {
-		shutout_wins: newShutoutWins,
-		best_win_streak: newBestStreak,
-		total_points_scored: newTotalPoints,
-		comeback_wins: newComebackWins,
-		total_ball_returns: newBallReturns,
-		games_played: userRow?.games_played ?? 0,
-	};
-
-	const newAchievementIds = evaluateAchievements(stats, existingIds);
-
-	// 9. Insert newly unlocked achievements
-	if (newAchievementIds.length > 0) {
-		for (const achId of newAchievementIds) {
-			await sql`INSERT INTO achievements (user_id, achievement_id) VALUES (${userId}, ${achId})`;
-		}
-	}
-
-	// 10. Fetch definitions for newly unlocked
-	let newAchievementDetails = [];
-	if (newAchievementIds.length > 0) {
-		newAchievementDetails = await sql`
-			SELECT id, name, description, tier FROM achievement_definitions WHERE id = ANY(${newAchievementIds})
-		`;
-	}
-
-	return {
-		xpEarned: xpBreakdown.total,
-		bonuses: [{ name: 'Base', amount: xpBreakdown.base }, ...xpBreakdown.bonuses],
-		oldLevel: oldLevelInfo.level,
-		newLevel: newLevelInfo.level,
-		currentXp: newLevelInfo.xpIntoLevel,
-		xpForNextLevel: newLevelInfo.xpForNextLevel,
-		newAchievements: newAchievementDetails.map(d => ({ id: d.id, name: d.name, description: d.description, tier: d.tier })),
-	};
-}
-
-/** Save online match result to database */
-async function saveOnlineMatch(result) {
-	try {
-		const finishedAt = new Date();
-		const startedAt = new Date(finishedAt.getTime() - result.durationSeconds * 1000);
-		const p1Won = result.winnerId === result.player1.userId;
-		const p2Won = result.winnerId === result.player2.userId;
-
-		// Parse tournament info from roomId if applicable
-		const isTournament = result.roomId.startsWith('tournament-');
-		let tournamentId = null, tournamentRound = null, tournamentMatchIndex = null;
-		if (isTournament) {
-			const parts = result.roomId.split('-');
-			tournamentId = Number(parts[1]);
-			tournamentRound = Number(parts[2].replace('r', ''));
-			tournamentMatchIndex = Number(parts[3].replace('m', ''));
-		}
-
-		// Use a transaction for atomicity
-		let gameRecordId = null;
-		await sql.begin(async (tx) => {
-			// 1. Insert game record
-
-			const [gameRecord] = await tx`
-				INSERT INTO games (type, status, game_mode, player1_id, player2_id, player2_name,
-					player1_score, player2_score, winner_id, winner_name, winner_score,
-					speed_preset, duration_seconds, started_at, finished_at,
-					tournament_id, tournament_round, tournament_match_index)
-				VALUES ('pong', 'finished', 'online',
-					${result.player1.userId}, ${result.player2.userId}, ${result.player2.username},
-					${result.player1.score}, ${result.player2.score},
-					${result.winnerId}, ${result.winnerUsername}, ${result.settings.winScore},
-					${result.settings.speedPreset}, ${result.durationSeconds},
-					${startedAt}, ${finishedAt},
-					${tournamentId}, ${tournamentRound}, ${tournamentMatchIndex})
-				RETURNING id
-			`;
-			gameRecordId = gameRecord.id;
-
-			// 2. Update player 1 stats
-			await tx`
-				UPDATE users SET
-					games_played = games_played + 1,
-					wins = wins + ${p1Won ? 1 : 0},
-					losses = losses + ${p1Won ? 0 : 1},
-					updated_at = ${finishedAt}
-				WHERE id = ${result.player1.userId}
-			`;
-
-			// 3. Update player 2 stats
-			await tx`
-				UPDATE users SET
-					games_played = games_played + 1,
-					wins = wins + ${p2Won ? 1 : 0},
-					losses = losses + ${p2Won ? 0 : 1},
-					updated_at = ${finishedAt}
-				WHERE id = ${result.player2.userId}
-			`;
-		});
-
-		// 4. Process progression for both players (outside tx — uses its own queries)
-		const p1MaxDeficit = result.maxDeficit;
-		const p2MaxDeficit = Math.max(0, result.player1.score - result.player2.score);
-
-		const [p1Progression, p2Progression] = await Promise.all([
-			processMatchProgressionSQL(result.player1.userId, {
-				won: p1Won,
-				player1Score: result.player1.score,
-				player2Score: result.player2.score,
-				winScore: result.settings.winScore,
-				speedPreset: result.settings.speedPreset,
-				ballReturns: result.ballReturns,
-				maxDeficit: p1MaxDeficit,
-				reachedDeuce: result.reachedDeuce,
-			}),
-			processMatchProgressionSQL(result.player2.userId, {
-				won: p2Won,
-				player1Score: result.player2.score,
-				player2Score: result.player1.score,
-				winScore: result.settings.winScore,
-				speedPreset: result.settings.speedPreset,
-				ballReturns: result.ballReturns,
-				maxDeficit: p2MaxDeficit,
-				reachedDeuce: result.reachedDeuce,
-			}),
-		]);
-
-		// 5. Emit progression to each player via socket
-		const io = globalThis.__socketIO;
-		const sockets = globalThis.__userSockets;
-		if (io && sockets) {
-			for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]]) {
-				const playerSockets = sockets.get(uid);
-				if (playerSockets) {
-					for (const sid of playerSockets) {
-						io.to(sid).emit('game:progression', progression);
-					}
-				}
-			}
-		}
-
-		// 5b. Accumulate tournament XP for both players
-		if (isTournament && tournamentId != null) {
-			for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]]) {
-				if (progression.xpEarned > 0) {
-					await sql`
-						UPDATE tournament_participants
-						SET xp_earned = xp_earned + ${progression.xpEarned}
-						WHERE tournament_id = ${tournamentId} AND user_id = ${uid}
-					`;
-				}
-			}
-		}
-
-		// 6. Check if this was a tournament match
-		if (isTournament && tournamentId != null && tournamentRound != null && tournamentMatchIndex != null) {
-			const tWinnerScore = result.winnerId === result.player1.userId ? result.player1.score : result.player2.score;
-			const tLoserScore = result.winnerId === result.player1.userId ? result.player2.score : result.player1.score;
-			await advanceTournamentWinner(tournamentId, tournamentRound, tournamentMatchIndex, result.winnerId, result.loserId, tWinnerScore, tLoserScore);
-		}
-
-		// 7. System message in chat
-		await sql`
-			INSERT INTO messages (sender_id, recipient_id, game_id, type, content)
-			VALUES (${result.player1.userId}, ${result.player2.userId}, ${gameRecordId}, 'system',
-				${'🏆 ' + result.winnerUsername + ' won ' + result.player1.score + '-' + result.player2.score})
-		`;
-
-		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
-	} catch (err) {
-		console.error('[GameRoom] Failed to save match:', err);
-	} finally {
-		destroyGameRoom(result.roomId);
-	}
-}
-
-// ── Matchmaking Queue (inline — mirrors MatchmakingQueue.ts) ──────
-
-const matchQueue = new Map(); // userId → QueueEntry
-
-function resolveQueueSettings(mode, customSettings) {
-	if (mode === 'quick') return { speedPreset: 'normal', winScore: 5, powerUps: true };
-	if (mode === 'wild') return { speedPreset: 'normal', winScore: 5, powerUps: true };
-	return {
-		speedPreset: customSettings?.speedPreset || 'normal',
-		winScore: customSettings?.winScore || 5,
-		powerUps: customSettings?.powerUps ?? true,
-	};
-}
-
-function randomWildSettings() {
-	const speeds = ['chill', 'normal', 'fast'];
-	const scores = [3, 5, 7, 11];
-	return {
-		speedPreset: speeds[Math.floor(Math.random() * speeds.length)],
-		winScore: scores[Math.floor(Math.random() * scores.length)],
-		powerUps: Math.random() > 0.3,
-	};
-}
-
-// Score-based matchmaking: lower score = better compatibility
-const SPEED_ORDER = { chill: 0, normal: 1, fast: 2 };
-
-function queueCompatibilityScore(a, b) {
-	const speedA = SPEED_ORDER[a.settings.speedPreset] ?? 1;
-	const speedB = SPEED_ORDER[b.settings.speedPreset] ?? 1;
-	const speedDiff = Math.abs(speedA - speedB);
-	const scoreDiff = Math.abs(a.settings.winScore - b.settings.winScore);
-	const powerUpDiff = a.settings.powerUps !== b.settings.powerUps ? 2 : 0;
-	return speedDiff * 2 + scoreDiff + powerUpDiff;
-}
-
-function maxScoreForEntry(entry, now) {
-	if (now >= entry.joinedAt + 90000) return Infinity; // wide
-	if (now >= entry.flexibleAt) return 4;               // flexible
-	return 0;                                             // exact
-}
-
-function tryQueueMatch(a, b) {
-	const now = Date.now();
-	if (a.mode === 'wild' && b.mode === 'wild') return { player1: a, player2: b, settings: randomWildSettings() };
-	if (a.mode === 'wild') return { player1: a, player2: b, settings: b.settings };
-	if (b.mode === 'wild') return { player1: a, player2: b, settings: a.settings };
-
-	const score = queueCompatibilityScore(a, b);
-	const maxA = maxScoreForEntry(a, now);
-	const maxB = maxScoreForEntry(b, now);
-	const allowed = Math.max(maxA, maxB);
-	if (score > allowed) return null;
-
-	const settings = a.joinedAt <= b.joinedAt ? { ...a.settings } : { ...b.settings };
-	return { player1: a, player2: b, settings };
-}
-
-function addToMatchQueue(userId, username, avatarUrl, displayName, socketId, mode, customSettings) {
-	if (matchQueue.has(userId)) return null;
-	const now = Date.now();
-	const entry = { userId, username, avatarUrl, displayName, socketId, mode, settings: resolveQueueSettings(mode, customSettings), joinedAt: now, flexibleAt: now + 45000 };
-	matchQueue.set(userId, entry);
-
-	// Find BEST match (lowest score), not just first
-	let bestResult = null;
-	let bestScore = Infinity;
-	for (const [otherId, other] of matchQueue) {
-		if (otherId === userId) continue;
-		const result = tryQueueMatch(entry, other);
-		if (result) {
-			const s = (entry.mode === 'wild' || other.mode === 'wild') ? -1 : queueCompatibilityScore(entry, other);
-			if (s < bestScore) { bestScore = s; bestResult = result; }
-		}
-	}
-	if (bestResult) { matchQueue.delete(bestResult.player1.userId); matchQueue.delete(bestResult.player2.userId); return bestResult; }
-	return null;
-}
-
-function removeFromMatchQueue(userId) { return matchQueue.delete(userId); }
-function isInMatchQueue(userId) { return matchQueue.has(userId); }
-function getMatchQueueSize() { return matchQueue.size; }
-function getMatchQueuePosition(userId) {
-	if (!matchQueue.has(userId)) return 0;
-	const entries = Array.from(matchQueue.values()).sort((a, b) => a.joinedAt - b.joinedAt);
-	return entries.findIndex(e => e.userId === userId) + 1;
-}
-function getMatchQueueEntries(excludeUserId) {
-	const result = [];
-	for (const [uid, entry] of matchQueue) { if (uid !== excludeUserId) result.push(entry); }
-	return result;
-}
-function getFriendsInMatchQueue(friendIds) {
-	const result = [];
-	for (const fid of friendIds) { const e = matchQueue.get(fid); if (e) result.push(e); }
-	return result;
-}
-function scanMatchQueue() {
-	const matches = [];
-	const matched = new Set();
-	const entries = Array.from(matchQueue.values());
-	for (let i = 0; i < entries.length; i++) {
-		if (matched.has(entries[i].userId)) continue;
-		let bestResult = null;
-		let bestScore = Infinity;
-		for (let j = i + 1; j < entries.length; j++) {
-			if (matched.has(entries[j].userId)) continue;
-			const result = tryQueueMatch(entries[i], entries[j]);
-			if (result) {
-				const s = (entries[i].mode === 'wild' || entries[j].mode === 'wild') ? -1 : queueCompatibilityScore(entries[i], entries[j]);
-				if (s < bestScore) { bestScore = s; bestResult = result; }
-			}
-		}
-		if (bestResult) {
-			matches.push(bestResult);
-			matched.add(bestResult.player1.userId);
-			matched.add(bestResult.player2.userId);
-			matchQueue.delete(bestResult.player1.userId);
-			matchQueue.delete(bestResult.player2.userId);
-		}
-	}
-	return matches;
-}
-function removeExpiredFromQueue() {
-	const now = Date.now();
-	const expired = [];
-	for (const [userId, entry] of matchQueue) {
-		if (now - entry.joinedAt > 5 * 60 * 1000) { matchQueue.delete(userId); expired.push(userId); }
-	}
-	return expired;
-}
+// ── Matchmaking Queue ─────────────────────────────────────────────
+const matchmaking = createMatchQueue();
 
 function startGameFromQueueMatch(match) {
 	const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1322,31 +908,24 @@ function startGameFromQueueMatch(match) {
 		player2: { userId: match.player2.userId, username: match.player2.username, avatarUrl: match.player2.avatarUrl, displayName: match.player2.displayName },
 		settings: match.settings,
 	};
-	for (const uid of [match.player1.userId, match.player2.userId]) {
-		const sockets = userSockets.get(uid);
-		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:start', gameData); } }
-	}
+	emitToUsers([match.player1.userId, match.player2.userId], 'game:start', gameData);
 }
 
 async function notifyFriendsOfQueueChange(userId, username, mode, action) {
 	const friendIds = await getFriendIds(userId);
-	for (const fid of friendIds) {
-		const sockets = userSockets.get(fid);
-		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:queue-friend-update', { userId, username, mode, action }); } }
-	}
+	emitToUsers(friendIds, 'game:queue-friend-update', { userId, username, mode, action });
 }
 
 // Periodic queue scanner
 setInterval(() => {
-	const matches = scanMatchQueue();
+	const matches = matchmaking.scan();
 	for (const match of matches) startGameFromQueueMatch(match);
 }, 10000);
 
 setInterval(() => {
-	const expired = removeExpiredFromQueue();
+	const expired = matchmaking.removeExpired();
 	for (const userId of expired) {
-		const sockets = userSockets.get(userId);
-		if (sockets) { for (const sid of sockets) { io.to(sid).emit('game:queue-expired'); } }
+		emitToUser(userId, 'game:queue-expired');
 	}
 }, 30000);
 
@@ -1357,286 +936,35 @@ const activeTournaments = new Map(); // tournamentId → tournament state
 function emitToTournamentParticipants(tournamentId, event, data) {
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) return;
-	for (const [uid] of tourney.playerMap) {
-		const sockets = userSockets.get(uid);
-		if (sockets) { for (const sid of sockets) io.to(sid).emit(event, data); }
-	}
+	emitToUsers(tourney.playerMap.keys(), event, data);
 }
 
-function emitToTournamentUser(userId, event, data) {
-	const sockets = userSockets.get(userId);
-	if (sockets) { for (const sid of sockets) io.to(sid).emit(event, data); }
-}
+const tournamentRuntime = createTournamentRuntime({
+	activeTournaments,
+	emitToUser,
+	emitToUsers,
+	emitToTournamentParticipants,
+	createGameRoom,
+	getGameRoom,
+	destroyGameRoom,
+	sql,
+	io,
+	logger: logger.child({ component: 'tournament-runtime' }),
+});
+const {
+	generateBracketJS,
+	startTournamentRoundMatches,
+	advanceTournamentWinner,
+} = tournamentRuntime;
 
-// Bracket generation (mirrors bracket.ts)
-function nextPowerOf2(n) { let p = 1; while (p < n) p *= 2; return p; }
-function seedPairingArr(players) {
-	const n = players.length;
-	if (n <= 2) return players;
-	const result = new Array(n);
-	for (let i = 0; i < n / 2; i++) { result[i * 2] = players[i]; result[i * 2 + 1] = players[n - 1 - i]; }
-	return result;
-}
-
-function generateBracketJS(players) {
-	const size = nextPowerOf2(players.length);
-	const totalRounds = Math.log2(size);
-	const rounds = [];
-	const seeded = [...players];
-	while (seeded.length < size) seeded.push(null);
-	const paired = seedPairingArr(seeded);
-
-	// Round 1
-	const round1 = [];
-	for (let i = 0; i < paired.length; i += 2) {
-		const p1 = paired[i], p2 = paired[i + 1];
-		const isBye = p1 === null || p2 === null;
-		const winner = isBye ? (p1 ?? p2) : null;
-		round1.push({
-			matchIndex: i / 2, player1Id: p1?.id ?? null, player2Id: p2?.id ?? null,
-			player1Username: p1?.username ?? null, player2Username: p2?.username ?? null,
-			winnerId: winner?.id ?? null, status: isBye ? 'bye' : 'pending',
-		});
-	}
-	rounds.push({ round: 1, matches: round1 });
-
-	let matchesInRound = round1.length / 2;
-	for (let r = 2; r <= totalRounds; r++) {
-		const rm = [];
-		for (let i = 0; i < matchesInRound; i++) {
-			rm.push({ matchIndex: i, player1Id: null, player2Id: null, player1Username: null, player2Username: null, winnerId: null, status: 'pending' });
-		}
-		rounds.push({ round: r, matches: rm });
-		matchesInRound /= 2;
-	}
-
-	// Auto-advance bye winners into round 2
-	const round2 = rounds.find(r => r.round === 2);
-	if (round2) {
-		for (const match of round1) {
-			if (match.status === 'bye' && match.winnerId) {
-				const nextMatchIndex = Math.floor(match.matchIndex / 2);
-				const nextMatch = round2.matches[nextMatchIndex];
-				if (nextMatch) {
-					const winner = players.find(p => p.id === match.winnerId);
-					if (match.matchIndex % 2 === 0) { nextMatch.player1Id = match.winnerId; nextMatch.player1Username = winner?.username ?? null; }
-					else { nextMatch.player2Id = match.winnerId; nextMatch.player2Username = winner?.username ?? null; }
-				}
-			}
-		}
-	}
-	return rounds;
-}
-
-async function startTournamentRoundMatches(tournamentId, round) {
-	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
-	const roundData = tourney.bracket.find(r => r.round === round);
-	if (!roundData) return;
-
-	for (const match of roundData.matches) {
-		if (match.status !== 'pending' || !match.player1Id || !match.player2Id) continue;
-		match.status = 'playing';
-		const roomId = `tournament-${tournamentId}-r${round}-m${match.matchIndex}`;
-		const p1Username = tourney.playerMap.get(match.player1Id) ?? 'Player';
-		const p2Username = tourney.playerMap.get(match.player2Id) ?? 'Player';
-
-		createGameRoom(roomId,
-			{ userId: match.player1Id, username: p1Username },
-			{ userId: match.player2Id, username: p2Username },
-			tourney.settings,
-		);
-
-		const gameData = {
-			roomId,
-			player1: { userId: match.player1Id, username: p1Username },
-			player2: { userId: match.player2Id, username: p2Username },
-			settings: tourney.settings, tournamentId, round, matchIndex: match.matchIndex,
-		};
-		emitToTournamentUser(match.player1Id, 'tournament:match-ready', gameData);
-		emitToTournamentUser(match.player2Id, 'tournament:match-ready', gameData);
-		emitToTournamentUser(match.player1Id, 'game:start', gameData);
-		emitToTournamentUser(match.player2Id, 'game:start', gameData);
-
-		// 60s timeout — auto-forfeit absent player
-		const capturedP1Id = match.player1Id;
-		const capturedP2Id = match.player2Id;
-		setTimeout(() => {
-			const room = getGameRoom(roomId);
-			if (!room) return;
-			const p1Joined = room.player1.socketIds.size > 0;
-			const p2Joined = room.player2.socketIds.size > 0;
-			if (p1Joined && p2Joined) return;
-			if (!p1Joined && !p2Joined) { destroyGameRoom(roomId); return; }
-			const absentId = p1Joined ? capturedP2Id : capturedP1Id;
-			room.forfeitByPlayer(absentId);
-		}, 60000);
-	}
-
-	emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
-}
-
-function getRoundName(round, totalRounds) {
-	const fromFinal = totalRounds - round;
-	if (fromFinal === 0) return 'Final';
-	if (fromFinal === 1) return 'Semifinals';
-	if (fromFinal === 2) return 'Quarterfinals';
-	return `Round ${round}`;
-}
-
-async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
-	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
-
-	const roundData = tourney.bracket.find(r => r.round === round);
-	if (!roundData) return;
-
-	const match = roundData.matches[matchIndex];
-	if (match) {
-		match.winnerId = winnerId;
-		match.status = 'finished';
-		if (winnerScore !== undefined) {
-			if (match.player1Id === winnerId) {
-				match.player1Score = winnerScore;
-				match.player2Score = loserScore;
-			} else {
-				match.player1Score = loserScore;
-				match.player2Score = winnerScore;
-			}
-		}
-	}
-
-	// Eliminate loser — calculate placement based on round + matchIndex for unique ranks
-	const totalRounds = tourney.bracket.length;
-	const placement = Math.pow(2, totalRounds - round) + 1 + matchIndex;
-	await sql`UPDATE tournament_participants SET status = 'eliminated', placement = ${placement} WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}`;
-
-	// Count loser's tournament wins (for eliminated screen stats)
-	const loserWins = tourney.bracket.reduce((count, r) => {
-		return count + r.matches.filter(m => m.winnerId === loserId).length;
-	}, 0);
-
-	// Find next match happening in the tournament (for "Tournament continues..." card)
-	const nextRound = tourney.bracket.find(r => r.round === round + 1);
-	let tournamentContinues = null;
-	if (nextRound) {
-		const nextMatchForViewer = nextRound.matches.find(m => m.player1Id && m.player2Id && m.status === 'pending')
-			?? nextRound.matches.find(m => m.player1Id || m.player2Id);
-		if (nextMatchForViewer && nextMatchForViewer.player1Username && nextMatchForViewer.player2Username) {
-			tournamentContinues = {
-				player1Username: nextMatchForViewer.player1Username,
-				player2Username: nextMatchForViewer.player2Username,
-				roundName: getRoundName(round + 1, totalRounds),
-			};
-		}
-	}
-
-	if (nextRound) {
-		// Emit tournament:eliminated (non-final rounds only)
-		emitToTournamentUser(loserId, 'tournament:eliminated', {
-			tournamentId,
-			round,
-			placement,
-			totalRounds,
-			tournamentName: tourney.name,
-			roundName: getRoundName(round, totalRounds),
-			tournamentWins: loserWins,
-			tournamentLosses: 1,
-			tournamentContinues,
-		});
-
-		const nextMatchIndex = Math.floor(matchIndex / 2);
-		const nextMatch = nextRound.matches[nextMatchIndex];
-		if (nextMatch) {
-			const winnerUsername = tourney.playerMap.get(winnerId) ?? 'Player';
-			if (matchIndex % 2 === 0) { nextMatch.player1Id = winnerId; nextMatch.player1Username = winnerUsername; }
-			else { nextMatch.player2Id = winnerId; nextMatch.player2Username = winnerUsername; }
-
-			// Look up next opponent info
-			const nextOpponentId = matchIndex % 2 === 0 ? nextMatch.player2Id : nextMatch.player1Id;
-			let nextOpponentInfo = null;
-			if (nextOpponentId) {
-				const [opponentUser] = await sql`SELECT wins FROM users WHERE id = ${nextOpponentId}`;
-				const [opponentParticipant] = await sql`SELECT seed FROM tournament_participants WHERE tournament_id = ${tournamentId} AND user_id = ${nextOpponentId}`;
-				nextOpponentInfo = {
-					username: tourney.playerMap.get(nextOpponentId) ?? 'Player',
-					wins: opponentUser?.wins ?? 0,
-					seed: opponentParticipant?.seed ?? 0,
-				};
-			}
-
-			// Count winner's tournament wins so far
-			const winnerTournamentWins = tourney.bracket.reduce((count, r) => {
-				return count + r.matches.filter(m => m.winnerId === winnerId).length;
-			}, 0);
-
-			emitToTournamentUser(winnerId, 'tournament:advanced', {
-				tournamentId,
-				round,
-				nextRound: round + 1,
-				nextMatchIndex,
-				totalRounds,
-				tournamentName: tourney.name,
-				roundName: getRoundName(round, totalRounds),
-				nextRoundName: getRoundName(round + 1, totalRounds),
-				nextOpponent: nextOpponentInfo,
-				tournamentWins: winnerTournamentWins,
-			});
-
-			if (nextMatch.player1Id && nextMatch.player2Id) {
-				await startTournamentRoundMatches(tournamentId, round + 1);
-			}
-		}
-	} else {
-		// No next round — tournament is over!
-		await sql`UPDATE tournaments SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW(), bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
-		await sql`UPDATE tournament_participants SET status = 'champion', placement = 1 WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}`;
-		await sql`UPDATE tournament_participants SET placement = 2 WHERE tournament_id = ${tournamentId} AND user_id = ${loserId} AND (placement IS NULL OR placement > 2)`;
-
-		// Build podium (top 3)
-		const podiumRows = await sql`
-			SELECT tp.user_id, tp.placement, u.username, u.avatar_url
-			FROM tournament_participants tp
-			JOIN users u ON u.id = tp.user_id
-			WHERE tp.tournament_id = ${tournamentId}
-			ORDER BY tp.placement
-		`;
-		const podium = podiumRows
-			.filter(p => p.placement !== null && p.placement <= 3)
-			.map(p => ({ userId: p.user_id, username: p.username, avatarUrl: p.avatar_url, placement: p.placement }));
-
-		// Count champion's and runner-up's wins
-		const championWins = tourney.bracket.reduce((count, r) => {
-			return count + r.matches.filter(m => m.winnerId === winnerId).length;
-		}, 0);
-		const runnerUpWins = tourney.bracket.reduce((count, r) => {
-			return count + r.matches.filter(m => m.winnerId === loserId).length;
-		}, 0);
-
-		emitToTournamentParticipants(tournamentId, 'tournament:finished', {
-			tournamentId,
-			winnerId,
-			loserId,
-			winnerUsername: tourney.playerMap.get(winnerId),
-			tournamentName: tourney.name,
-			round,
-			totalRounds,
-			roundName: getRoundName(round, totalRounds),
-			podium,
-			championWins,
-			runnerUpWins,
-			bracket: tourney.bracket,
-		});
-		activeTournaments.delete(tournamentId);
-		io.emit('tournament:list-updated');
-	}
-
-	// Persist bracket to DB after each update
-	if (activeTournaments.has(tournamentId)) {
-		await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
-		emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
-	}
-}
+const progressionRuntime = createProgressionRuntime({
+	sql,
+	emitToUser,
+	advanceTournamentWinner,
+	destroyGameRoom,
+	logger: logger.child({ component: 'progression-runtime' }),
+});
+const { saveOnlineMatch } = progressionRuntime;
 
 // ── Socket.IO connection handler ──────────────────────────────────
 io.use(socketAuthMiddleware);
@@ -1647,18 +975,9 @@ io.on('connection', (socket) => {
 
 	socketLog.info({ userId, socketId: socket.id }, 'User connected');
 
-	// Register presence
-	if (!userSockets.has(userId)) {
-		userSockets.set(userId, new Set());
-	}
-	userSockets.get(userId).add(socket.id);
-
-	// If first socket, mark online
-	if (userSockets.get(userId).size === 1) {
-		sql`UPDATE users SET is_online = true WHERE id = ${userId}`
-			.then(() => notifyFriends(userId, 'friend:online', { userId, username }))
-			.catch(() => {});
-	}
+	// Register presence, and if this is the first socket mark user online.
+	const becameOnline = registerSocketForUser(userId, socket.id);
+	if (becameOnline) setUserOnlineStatus(userId, username, true);
 
 	// ── Friend handlers ───────────────────────────────────────────
 	// (friend:request, friend:accepted, etc. are emitted from API routes
@@ -1669,490 +988,71 @@ io.on('connection', (socket) => {
 	// because server.js can't import TypeScript/$lib modules.
 
 	// ── Game handlers ─────────────────────────────────────────────
-	const activeInvites = globalThis.__activeInvites || (globalThis.__activeInvites = new Map());
-
-	socket.on('game:invite', async (data) => {
-		const { friendId, settings } = data;
-
-		if (friendId === userId) return;
-
-		const friendIds = await getFriendIds(userId);
-		if (!friendIds.includes(friendId)) {
-			socket.emit('game:error', { message: 'You can only challenge friends' });
-			return;
-		}
-
-		if (!userSockets.has(friendId)) {
-			socket.emit('game:error', { message: 'Player is offline' });
-			return;
-		}
-
-		if (isPlayerInGame(userId)) {
-			socket.emit('game:error', { message: 'You are already in a game' });
-			return;
-		}
-		if (isPlayerInGame(friendId)) {
-			socket.emit('game:error', { message: 'Player is already in a game' });
-			return;
-		}
-
-		const inviteId = `${userId}-${friendId}-${Date.now()}`;
-		const resolvedSettings = {
-			speedPreset: settings?.speedPreset || 'normal',
-			winScore: Number(settings?.winScore || 5),
-			powerUps: settings?.powerUps ?? true,
-		};
-
-		const timeout = setTimeout(() => {
-			activeInvites.delete(inviteId);
-			socket.emit('game:invite-expired', { inviteId });
-			const targetSockets = userSockets.get(friendId);
-			if (targetSockets) {
-				for (const sid of targetSockets) {
-					io.to(sid).emit('game:invite-expired', { inviteId });
-				}
-			}
-		}, 30000);
-
-		activeInvites.set(inviteId, {
-			fromUserId: userId,
-			fromUsername: username,
-			toUserId: friendId,
-			settings: resolvedSettings,
-			timeout,
-		});
-
-		const targetSockets = userSockets.get(friendId);
-		if (targetSockets) {
-			for (const sid of targetSockets) {
-				io.to(sid).emit('game:invite', {
-					inviteId,
-					fromUserId: userId,
-					fromUsername: username,
-					fromDisplayName: socket.data.displayName,
-					fromAvatarUrl: socket.data.avatarUrl,
-					settings: resolvedSettings,
-				});
-			}
-		}
-	});
-
-	socket.on('game:invite-accept', (data) => {
-		const invite = activeInvites.get(data.inviteId);
-		if (!invite || invite.toUserId !== userId) return;
-
-		clearTimeout(invite.timeout);
-		activeInvites.delete(data.inviteId);
-
-		const roomId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-		// Create the game room
-		createGameRoom(
-			roomId,
-			{ userId: invite.fromUserId, username: invite.fromUsername },
-			{ userId, username },
-			invite.settings,
-		);
-
-		const gameData = {
-			roomId,
-			player1: { userId: invite.fromUserId, username: invite.fromUsername },
-			player2: { userId, username },
-			settings: invite.settings,
-		};
-
-		const challengerSockets = userSockets.get(invite.fromUserId);
-		if (challengerSockets) {
-			for (const sid of challengerSockets) {
-				io.to(sid).emit('game:start', gameData);
-			}
-		}
-		const accepterSockets = userSockets.get(userId);
-		if (accepterSockets) {
-			for (const sid of accepterSockets) {
-				io.to(sid).emit('game:start', gameData);
-			}
-		}
-	});
-
-	socket.on('game:invite-decline', (data) => {
-		const invite = activeInvites.get(data.inviteId);
-		if (!invite || invite.toUserId !== userId) return;
-
-		clearTimeout(invite.timeout);
-		activeInvites.delete(data.inviteId);
-
-		const challengerSockets = userSockets.get(invite.fromUserId);
-		if (challengerSockets) {
-			for (const sid of challengerSockets) {
-				io.to(sid).emit('game:invite-declined', { fromUsername: username });
-			}
-		}
-	});
-
-	// ── Join a game room ──────────────────────────────────────────
-	socket.on('game:join-room', (data) => {
-		const room = getGameRoom(data.roomId);
-		if (!room || !room.hasPlayer(userId)) {
-			socket.emit('game:error', { message: 'Game room not found' });
-			return;
-		}
-
-		room.addSocket(userId, socket.id);
-
-		const side = userId === room.player1.userId ? 'left' : 'right';
-		socket.emit('game:joined', {
-			roomId: data.roomId,
-			side,
-			player1: { userId: room.player1.userId, username: room.player1.username },
-			player2: { userId: room.player2.userId, username: room.player2.username },
-		});
-
-		if (room.player1.socketIds.size > 0 && room.player2.socketIds.size > 0) {
-			// Clear the join timeout since both players are in
-			if (room._joinTimeout) { clearTimeout(room._joinTimeout); room._joinTimeout = null; }
-			room.start();
-		}
-	});
-
-	// ── Paddle input ──────────────────────────────────────────────
-	socket.on('game:paddle-move', (data) => {
-		const room = getRoomByPlayerId(userId);
-		if (!room) return;
-		room.handleInput(userId, data.direction);
-	});
-
-	// ── Leave / forfeit ───────────────────────────────────────────
-	socket.on('game:leave', () => {
-		const room = getRoomByPlayerId(userId);
-		if (!room) return;
-		const roomId = room.roomId;
-		const opponentUserId = userId === room.player1.userId ? room.player2.userId : room.player1.userId;
-		const opponentUsername = userId === room.player1.userId ? room.player2.username : room.player1.username;
-		const settings = room.rawSettings;
-		const snapshot = room._getSnapshot();
-		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
-		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
-
-		room.forfeitByPlayer(userId);
-		if (activeRooms.has(roomId)) destroyGameRoom(roomId);
-
-		// Re-queue the remaining player if game was cancelled
-		if (isCancellable && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
-			const opponentSockets = userSockets.get(opponentUserId);
-			if (opponentSockets && opponentSockets.size > 0) {
-				const firstSocketId = opponentSockets.values().next().value;
-				const match = addToMatchQueue(opponentUserId, opponentUsername, null, null, firstSocketId, 'custom', settings);
-				if (match) {
-					startGameFromQueueMatch(match);
-				} else {
-					for (const sid of opponentSockets) {
-						io.to(sid).emit('game:queue-joined', { queueSize: getMatchQueueSize(), position: getMatchQueuePosition(opponentUserId) });
-					}
-				}
-			}
-		}
-	});
-
-	// ── Queue handlers ───────────────────────────────────────────
-	socket.on('game:queue-join', async (data) => {
-		if (isPlayerInGame(userId)) { socket.emit('game:error', { message: 'You are already in a game' }); return; }
-		if (isInMatchQueue(userId)) { socket.emit('game:error', { message: 'You are already in the queue' }); return; }
-
-		const match = addToMatchQueue(userId, username, socket.data.avatarUrl ?? null, socket.data.displayName ?? null, socket.id, data.mode, data.settings);
-		if (match) {
-			startGameFromQueueMatch(match);
-			notifyFriendsOfQueueChange(match.player1.userId, match.player1.username, match.player1.mode, 'matched');
-			notifyFriendsOfQueueChange(match.player2.userId, match.player2.username, match.player2.mode, 'matched');
-		} else {
-			socket.emit('game:queue-joined', { queueSize: getMatchQueueSize(), position: getMatchQueuePosition(userId) });
-			notifyFriendsOfQueueChange(userId, username, data.mode, 'joined');
-		}
-	});
-
-	socket.on('game:queue-leave', () => {
-		const wasInQueue = removeFromMatchQueue(userId);
-		if (wasInQueue) {
-			socket.emit('game:queue-left');
-			notifyFriendsOfQueueChange(userId, username, null, 'left');
-		}
-	});
-
-	socket.on('game:queue-status', async (callback) => {
-		const friendIds = await getFriendIds(userId);
-		const friendsInQueue = getFriendsInMatchQueue(friendIds);
-		const queueEntries = getMatchQueueEntries(userId);
-		const response = {
-			queueSize: getMatchQueueSize(),
-			myPosition: getMatchQueuePosition(userId),
-			friendsInQueue: friendsInQueue.map(f => ({ userId: f.userId, username: f.username, mode: f.mode, settings: f.settings })),
-			queuePlayers: queueEntries.filter(e => !friendIds.includes(e.userId)).map(e => ({ id: e.userId, username: e.username, displayName: e.displayName, avatarUrl: e.avatarUrl, wins: 0, queueSettings: e.settings })),
-		};
-		if (typeof callback === 'function') callback(response);
-		else socket.emit('game:queue-status', response);
-	});
-
-	socket.on('game:invite-cancel', () => {
-		for (const [inviteId, invite] of activeInvites) {
-			if (invite.fromUserId === userId) {
-				clearTimeout(invite.timeout);
-				activeInvites.delete(inviteId);
-				const targetSockets = userSockets.get(invite.toUserId);
-				if (targetSockets) { for (const sid of targetSockets) { io.to(sid).emit('game:invite-cancelled', { inviteId }); } }
-				break;
-			}
-		}
+	registerGameHandlers({
+		socket,
+		userId,
+		username,
+		getFriendIds,
+		areFriends,
+		userSockets,
+		emitToUser,
+		inviteManager,
+		isPlayerInGame,
+		createGameRoom,
+		getGameRoom,
+		getRoomByPlayerId,
+		activeRooms,
+		destroyGameRoom,
+		matchmaking,
+		startGameFromQueueMatch,
+		notifyFriendsOfQueueChange,
 	});
 
 	// ═══════════════════════════════════════════════════════════════
 	// CHAT HANDLERS
 	// ═══════════════════════════════════════════════════════════════
-
-	socket.on('chat:send', async (data) => {
-		const { recipientId, content, gameId } = data;
-		if (!content?.trim() || content.length > 500) return;
-		if (recipientId === userId) return;
-
-		// Block check
-		const [blocked] = await sql`
-			SELECT id FROM friendships
-			WHERE status = 'blocked'
-			AND ((user_id = ${userId} AND friend_id = ${recipientId})
-			  OR (user_id = ${recipientId} AND friend_id = ${userId}))
-			LIMIT 1
-		`;
-		if (blocked) {
-			socket.emit('chat:error', { message: 'Cannot send message to this user' });
-			return;
-		}
-
-		// Friend check (skip for in-game chat)
-		if (!gameId) {
-			const friends = await sql`
-				SELECT id FROM friendships
-				WHERE status = 'accepted'
-				AND ((user_id = ${userId} AND friend_id = ${recipientId})
-				  OR (user_id = ${recipientId} AND friend_id = ${userId}))
-				LIMIT 1
-			`;
-			if (friends.length === 0) {
-				socket.emit('chat:error', { message: 'You can only message friends' });
-				return;
-			}
-		}
-
-		const [msg] = await sql`
-			INSERT INTO messages (sender_id, recipient_id, game_id, type, content)
-			VALUES (${userId}, ${recipientId}, ${gameId ?? null}, 'chat', ${content.trim()})
-			RETURNING *
-		`;
-
-		const payload = {
-			id: msg.id,
-			senderId: userId,
-			senderUsername: username,
-			senderAvatar: socket.data?.avatarUrl ?? null,
-			recipientId,
-			content: msg.content,
-			createdAt: msg.created_at,
-			gameId: gameId ?? null,
-		};
-
-		const recipientSockets = userSockets.get(recipientId);
-		if (recipientSockets) {
-			for (const sid of recipientSockets) io.to(sid).emit('chat:message', payload);
-		}
-		socket.emit('chat:sent', payload);
-	});
-
-	socket.on('chat:read', async (data) => {
-		const { friendId } = data;
-		await sql`
-			UPDATE messages SET is_read = true, read_at = NOW()
-			WHERE sender_id = ${friendId} AND recipient_id = ${userId} AND is_read = false
-		`;
-		const senderSockets = userSockets.get(friendId);
-		if (senderSockets) {
-			for (const sid of senderSockets) {
-				io.to(sid).emit('chat:read-receipt', { readBy: userId, friendId });
-			}
-		}
-	});
-
-	socket.on('chat:typing', (data) => {
-		const recipientSockets = userSockets.get(data.recipientId);
-		if (recipientSockets) {
-			for (const sid of recipientSockets) {
-				io.to(sid).emit('chat:typing', { userId, username });
-			}
-		}
-	});
-
-	socket.on('chat:stop-typing', (data) => {
-		const recipientSockets = userSockets.get(data.recipientId);
-		if (recipientSockets) {
-			for (const sid of recipientSockets) {
-				io.to(sid).emit('chat:stop-typing', { userId });
-			}
-		}
+	registerChatHandlers({
+		socket,
+		userId,
+		username,
+		sql,
+		emitToUser,
+		areFriends,
+		isBlocked,
 	});
 
 	// ═══════════════════════════════════════════════════════════════
 	// TOURNAMENT HANDLERS
 	// ═══════════════════════════════════════════════════════════════
 
-	socket.on('tournament:create', async (data) => {
-		if (!data.name?.trim()) { socket.emit('tournament:error', { message: 'Tournament name is required' }); return; }
-		if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
-
-		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
-		const [tournament] = await sql`
-			INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
-			VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
-			RETURNING id
-		`;
-
-		// Auto-join creator
-		await sql`
-			INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
-			VALUES (${tournament.id}, ${userId}, 1, 'registered')
-		`;
-
-		socket.emit('tournament:created', { tournamentId: tournament.id });
-		io.emit('tournament:list-updated');
-	});
-
-	socket.on('tournament:join', async (data) => {
-		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament) { socket.emit('tournament:error', { message: 'Tournament not found' }); return; }
-		if (tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Tournament already started' }); return; }
-
-		const existing = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
-		if (existing.length > 0) { socket.emit('tournament:error', { message: 'Already joined' }); return; }
-
-		const participants = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
-		if (participants.length >= tournament.max_players) { socket.emit('tournament:error', { message: 'Tournament is full' }); return; }
-
-		await sql`
-			INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
-			VALUES (${data.tournamentId}, ${userId}, ${participants.length + 1}, 'registered')
-		`;
-
-		socket.emit('tournament:joined', { tournamentId: data.tournamentId });
-		io.emit('tournament:player-joined', { tournamentId: data.tournamentId, userId, username });
-	});
-
-	socket.on('tournament:leave', async (data) => {
-		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament || tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Cannot leave tournament' }); return; }
-
-		await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
-		socket.emit('tournament:left', { tournamentId: data.tournamentId });
-		io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
-	});
-
-	socket.on('tournament:cancel', async (data) => {
-		try {
-			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-			if (!tournament || tournament.created_by !== userId) {
-				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
-				return;
-			}
-			if (tournament.status !== 'scheduled') {
-				socket.emit('tournament:error', { message: 'Cannot cancel a started tournament' });
-				return;
-			}
-
-			// Fetch participants before deleting so we can notify them
-			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
-
-			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
-			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-
-			// Notify each participant individually (toast even if on another page)
-			for (const p of participants) {
-				const participantSockets = userSockets.get(Number(p.user_id));
-				if (participantSockets) {
-					for (const sid of participantSockets) {
-						io.to(sid).emit('tournament:cancelled', {
-							tournamentId: data.tournamentId,
-							tournamentName: tournament.name,
-						});
-					}
-				}
-			}
-
-			io.emit('tournament:list-updated');
-		} catch (err) {
-			console.error('[Tournament] Cancel failed:', err);
-			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });
-		}
-	});
-
-	socket.on('tournament:start', async (data) => {
-		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament || tournament.created_by !== userId) { socket.emit('tournament:error', { message: 'Only the creator can start' }); return; }
-		if (tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Tournament already started' }); return; }
-
-		const participants = await sql`
-			SELECT tp.user_id, tp.seed, u.username
-			FROM tournament_participants tp
-			JOIN users u ON u.id = tp.user_id
-			WHERE tp.tournament_id = ${data.tournamentId}
-			ORDER BY tp.seed
-		`;
-		if (participants.length < 2) { socket.emit('tournament:error', { message: 'Need at least 2 players' }); return; }
-
-		const players = participants.map(p => ({ id: Number(p.user_id), username: p.username }));
-		const bracket = generateBracketJS(players);
-
-		const playerMap = new Map();
-		for (const p of players) playerMap.set(p.id, p.username);
-
-		activeTournaments.set(data.tournamentId, {
-			id: data.tournamentId, bracket, settings: { speedPreset: tournament.speed_preset, winScore: tournament.win_score },
-			createdBy: userId, playerMap,
-		});
-
-		await sql`UPDATE tournaments SET status = 'in_progress', current_round = 1, started_at = NOW() WHERE id = ${data.tournamentId}`;
-		await sql`UPDATE tournament_participants SET status = 'active' WHERE tournament_id = ${data.tournamentId}`;
-
-		emitToTournamentParticipants(data.tournamentId, 'tournament:started', { tournamentId: data.tournamentId, bracket });
-		io.emit('tournament:list-updated');
-		await startTournamentRoundMatches(data.tournamentId, 1);
-	});
-
-	socket.on('tournament:status', (data) => {
-		const tourney = activeTournaments.get(data.tournamentId);
-		if (!tourney) { socket.emit('tournament:error', { message: 'Tournament not active' }); return; }
-		socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
+	registerTournamentHandlers({
+		socket,
+		io,
+		sql,
+		logger: logger.child({ component: 'tournament-handlers' }),
+		userId,
+		username,
+		activeTournaments,
+		emitToUser,
+		emitToTournamentParticipants,
+		generateBracketJS,
+		startTournamentRoundMatches,
 	});
 
 	// ── Disconnect ────────────────────────────────────────────────
 	socket.on('disconnect', () => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
 
-		const sockets = userSockets.get(userId);
-		if (sockets) {
-			sockets.delete(socket.id);
-			if (sockets.size === 0) {
-				userSockets.delete(userId);
-			}
-		}
+		unregisterSocketForUser(userId, socket.id);
 
 		// Queue cleanup
-		if (isInMatchQueue(userId)) {
-			removeFromMatchQueue(userId);
+		if (matchmaking.has(userId)) {
+			matchmaking.remove(userId);
 			notifyFriendsOfQueueChange(userId, username, null, 'left');
 		}
 
 		// Clean up game invites
-		for (const [inviteId, invite] of activeInvites) {
-			if (invite.fromUserId === userId || invite.toUserId === userId) {
-				clearTimeout(invite.timeout);
-				activeInvites.delete(inviteId);
-			}
-		}
+		inviteManager.removeByUser(userId);
 
 		// Remove socket from active game room (triggers reconnect timer)
 		const room = getRoomByPlayerId(userId);
@@ -2164,9 +1064,7 @@ io.on('connection', (socket) => {
 		setTimeout(() => {
 			const remaining = userSockets.get(userId)?.size ?? 0;
 			if (remaining === 0) {
-				sql`UPDATE users SET is_online = false WHERE id = ${userId}`
-					.then(() => notifyFriends(userId, 'friend:offline', { userId, username }))
-					.catch(() => {});
+				setUserOnlineStatus(userId, username, false);
 			}
 		}, 5000);
 	});

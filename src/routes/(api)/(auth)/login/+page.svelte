@@ -83,14 +83,11 @@
 				{/if}
 			</div>
 
-			<div class="flex items-center justify-between text-sm">
+			<div class="flex items-center text-sm">
 				<label >
 					<input type="checkbox" name="rememberMe" />
 					Remember Me
 				</label>
-				<a href=/forgot-password class="link text-sm">
-					Forgot password?
-				</a>
 			</div>
 
 			<!-- Old: <button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}> -->

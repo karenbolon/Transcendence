@@ -10,6 +10,7 @@ import {
 	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
+import { advanceWinner, leaveTournament } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -355,10 +356,16 @@ export function registerGameHandlers(socket: Socket) {
 	});
 
 	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
-	socket.on('game:leave', () => {
+	socket.on('game:leave', async () => {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
 		const roomId = room.roomId;
+
+		// Guard: if game already ended (e.g., due to disconnect timeout), don't process again
+		if (room.hasGameEnded) {
+			socket.emit('game:error', { message: 'Game has already ended' });
+			return;
+		}
 
 		// Grab opponent info BEFORE forfeit destroys the room state
 		const opponentUserId = userId === room.player1.userId
@@ -369,7 +376,33 @@ export function registerGameHandlers(socket: Socket) {
 		const snapshot = room.getState();
 		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
+		const isTournamentMatch = roomId.startsWith('tournament-');
 
+		// Emit debug info back to the leaving player's browser so it shows in their console
+		socket.emit('debug:server', `[SERVER game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
+
+		// For tournament matches, use full forfeit logic (handles all player's matches + check for winner)
+		if (isTournamentMatch) {
+			try {
+				const parts = roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				socket.emit('debug:server', `[SERVER game:leave] calling leaveTournament(tournamentId=${tournamentId}, userId=${userId})`);
+				// Use leaveTournament to trigger full forfeit queue logic:
+				// - Finds all remaining matches for this player
+				// - Auto-forfeits each match by advancing opponent
+				// - Checks if only 1 active player remains
+				// - If so, declares tournament winner
+				await leaveTournament(tournamentId, userId);
+				socket.emit('debug:server', `[SERVER game:leave] leaveTournament COMPLETED`);
+			} catch (err) {
+				socket.emit('debug:server', `[SERVER game:leave] leaveTournament THREW: ${err}`);
+				console.error('[Tournament] Forfeit handling failed:', err);
+			}
+		} else {
+			socket.emit('debug:server', `[SERVER game:leave] skipping leaveTournament (isTournamentMatch=${isTournamentMatch})`);
+		}
+
+		socket.emit('debug:server', `[SERVER game:leave] calling forfeitByPlayer`);
 		room.forfeitByPlayer(userId);
 
 		// If the game was cancelled (0-0 or not started), onGameEnd wasn't called
@@ -379,7 +412,8 @@ export function registerGameHandlers(socket: Socket) {
 		}
 
 		// Re-queue the remaining player so they don't lose their spot
-		if (isCancellable && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+		// (Only for non-tournament matches; tournament advancement already handled above)
+		if (isCancellable && !isTournamentMatch && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
 			const opponentSockets = userSockets.get(opponentUserId);
 			if (opponentSockets && opponentSockets.size > 0) {
 				const firstSocketId = opponentSockets.values().next().value;

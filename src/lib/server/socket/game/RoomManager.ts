@@ -14,6 +14,41 @@ const activeRooms = new Map<string, GameRoom>();
 // userId → roomId (quick lookup: "is this player in a game?")
 const playerRoomMap = new Map<number, string>();
 
+// roomId → creation timestamp (for TTL cleanup)
+const roomCreatedAt = new Map<string, number>();
+
+// Cleanup interval ID (for memory management)
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+// ── Room TTL Cleanup (prevent indefinite room accumulation) ──
+const ROOM_TTL_MS = 3600_000; // 1 hour
+const CLEANUP_INTERVAL_MS = 300_000; // Run cleanup every 5 minutes
+
+function startCleanupInterval(): void {
+	if (cleanupInterval) return; // Already running
+	
+	cleanupInterval = setInterval(() => {
+		const now = Date.now();
+		const expiredRoomIds: string[] = [];
+		
+		for (const [roomId, createdAt] of roomCreatedAt) {
+			const age = now - createdAt;
+			if (age > ROOM_TTL_MS) {
+				expiredRoomIds.push(roomId);
+			}
+		}
+		
+		if (expiredRoomIds.length > 0) {
+			console.log(`[RoomManager] Cleanup: Destroying ${expiredRoomIds.length} expired room(s)`);
+			for (const roomId of expiredRoomIds) {
+				destroyRoom(roomId);
+			}
+		}
+	}, CLEANUP_INTERVAL_MS);
+	
+	console.log(`[RoomManager] Room TTL cleanup started (TTL: ${ROOM_TTL_MS/1000}s, interval: ${CLEANUP_INTERVAL_MS/1000}s)`);
+}
+
 // ── Public API ────────────────────────────────────────────────
 export function getRoom(roomId: string): GameRoom | undefined {
 	return activeRooms.get(roomId);
@@ -53,6 +88,13 @@ export function createRoom(
 		activeRooms.set(roomId, room);
 		playerRoomMap.set(player1.userId, roomId);
 		playerRoomMap.set(player2.userId, roomId);
+		
+		// Track creation timestamp for TTL cleanup
+		roomCreatedAt.set(roomId, Date.now());
+		
+		// Start cleanup interval if not already running
+		startCleanupInterval();
+		
 		return room;
 }
 
@@ -71,6 +113,7 @@ export function destroyRoom(roomId: string): void {
 		playerRoomMap.delete(room.player2.userId);
 	}
 	activeRooms.delete(roomId);
+	roomCreatedAt.delete(roomId); // Clean up TTL tracking
 }
 
 // ── Match Saving (called when game ends) ──────────────────────

@@ -20,6 +20,7 @@
 
 	let { user }: Props = $props();
 	let dropdownOpen = $state(false);
+	let mobileMenuOpen = $state(false);
 
 	function toggleDropdown() {
 		dropdownOpen = !dropdownOpen;
@@ -29,12 +30,30 @@
 		dropdownOpen = false;
 	}
 
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
 	function handleClickOutside(e: MouseEvent) {
 		const target = e.target as HTMLElement;
 		if (!target.closest('.dropdown-wrapper')) {
 			closeDropdown();
 		}
+		if (!target.closest('.mobile-menu') && !target.closest('.hamburger-btn')) {
+			closeMobileMenu();
+		}
 	}
+
+	function handleChatClick(e: MouseEvent) {
+		e.preventDefault();
+		toggleChat();
+	}
+	// Old behavior:
+	// <button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">...</button>
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -47,11 +66,23 @@
 				<span class="brand-name">PONG</span>
 			</a>
 
+			<!-- Hamburger button (mobile only) -->
+			<button class="hamburger-btn" onclick={toggleMobileMenu} aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+					{#if mobileMenuOpen}
+						<path d="M18 6L6 18M6 6l12 12" />
+					{:else}
+						<path d="M4 6h16M4 12h16M4 18h16" />
+					{/if}
+				</svg>
+			</button>
+
 			<div class="nav-links">
 				{#if user}
 					<a href="/play" class="nav-link">Play</a>
 					<a href="/leaderboard" class="nav-link">Leaderboard</a>
 					<a href="/tournaments" class="nav-link">Tournaments</a>
+					<a href="/profile" class="nav-link">Profile</a>
 					<a href="/friends" class="nav-link">Friends</a>
 				{:else}
 					<a href="/instructions" class="nav-link">Instructions</a>
@@ -62,14 +93,16 @@
 			<div class="header-right">
 				{#if user}
 					<!-- Chat button -->
-					<button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">
+					<!-- Old: <button class="chat-trigger" onclick={toggleChat} aria-label="Open chat"> -->
+					<a href="/friends" class="chat-trigger" onclick={handleChatClick} aria-label="Open chat">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
 							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 						</svg>
 						{#if getTotalUnread() > 0}
 							<span class="chat-badge">{getTotalUnread()}</span>
 						{/if}
-					</button>
+					</a>
+					<!-- Old: </button> -->
 
 					<div class="dropdown-wrapper">
 						<button
@@ -132,17 +165,36 @@
 			</div>
 		</nav>
 	</div>
+
+	<!-- Mobile dropdown menu -->
+	{#if mobileMenuOpen}
+		<div class="mobile-menu">
+			{#if user}
+				<a href="/play" class="mobile-menu-link" onclick={closeMobileMenu}>Play</a>
+				<a href="/leaderboard" class="mobile-menu-link" onclick={closeMobileMenu}>Leaderboard</a>
+				<a href="/tournaments" class="mobile-menu-link" onclick={closeMobileMenu}>Tournaments</a>
+				<a href="/friends" class="mobile-menu-link" onclick={closeMobileMenu}>Friends</a>
+			{:else}
+				<a href="/instructions" class="mobile-menu-link" onclick={closeMobileMenu}>Instructions</a>
+				<a href="/about" class="mobile-menu-link" onclick={closeMobileMenu}>About</a>
+			{/if}
+		</div>
+	{/if}
 </header>
 
 <style>
 	.chat-trigger {
 		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		background: none;
 		border: none;
 		color: #9ca3af;
 		cursor: pointer;
 		padding: 0.4rem;
 		border-radius: 0.4rem;
+		text-decoration: none;
 		transition: color 0.15s;
 	}
 

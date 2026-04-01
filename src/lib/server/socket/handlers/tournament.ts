@@ -1,5 +1,8 @@
 import type { Socket } from 'socket.io';
-import { getIO } from '../index';
+import { getIO, userSockets } from '../index';
+import { db } from '$lib/server/db';
+import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
+import { eq, and } from 'drizzle-orm';
 import {
 	createTournament,
 	joinTournament,
@@ -76,19 +79,42 @@ export function registerTournamentHandlers(socket: Socket) {
 		});
 	});
 
+	// Leave spectator mode (after elimination or timeout, stop watching tournament)
+	socket.on('tournament:leave-spectator', async (data: { tournamentId: number }) => {
+		// Simply confirm — client will handle navigation away
+		socket.emit('tournament:spectator-left', { tournamentId: data.tournamentId });
+
+		// Optionally: track spectators to stop sending them updates (future optimization)
+		console.log(`[Tournament] Player ${userId} left spectator mode for tournament ${data.tournamentId}`);
+	});
+
 	// Cancel a tournament (creator only, before it starts)
 	socket.on('tournament:cancel', async (data: { tournamentId: number }) => {
 		try {
-			const success = await cancelTournament(data.tournamentId, userId);
-			if (!success) {
+			const result = await cancelTournament(data.tournamentId, userId);
+			if (!result.success) {
 				socket.emit('tournament:error', { message: 'Cannot cancel tournament' });
 				return;
 			}
-			// Broadcast to all clients (including the creator)
+
 			const io = getIO();
-			io.emit('tournament:cancelled', {
-				tournamentId: data.tournamentId,
-			});
+
+			// Notify each participant individually so they get the toast
+			// even if they're on a different page
+			for (const participantId of result.participantUserIds) {
+				const participantSockets = userSockets.get(participantId);
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:cancelled', {
+							tournamentId: data.tournamentId,
+							tournamentName: result.tournamentName,
+						});
+					}
+				}
+			}
+
+			// Also broadcast list-updated so tournament list pages refresh
+			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);
 			socket.emit('tournament:error', { message: 'Failed to cancel tournament' });
@@ -116,5 +142,96 @@ export function registerTournamentHandlers(socket: Socket) {
 			tournamentId: data.tournamentId,
 			bracket: tourney.bracket,
 		});
+	});
+
+	// Handle disconnect — graceful cleanup for both creator and participants
+	socket.on('disconnect', async () => {
+		try {
+			// Check if this user was a tournament creator
+			const [creatorTournament] = await db
+				.select({ tournamentId: tournaments.id, status: tournaments.status })
+				.from(tournaments)
+				.where(eq(tournaments.created_by, userId))
+				.limit(1);
+
+			if (creatorTournament && creatorTournament.status === 'scheduled') {
+				// Creator left BEFORE tournament started — cancel and cleanup
+				const tournamentId = creatorTournament.tournamentId;
+				
+				// Get all participants before cleanup
+				const participants = await db
+					.select({ userId: tournamentParticipants.user_id })
+					.from(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+				// Mark tournament as cancelled
+				await db
+					.update(tournaments)
+					.set({ status: 'cancelled' })
+					.where(eq(tournaments.id, tournamentId));
+
+				// Delete participants so cleanup can cascade (FK on delete cascade)
+				await db
+					.delete(tournamentParticipants)
+					.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+				// Notify each participant individually so they get the toast even if on different page
+				const io = getIO();
+
+				for (const participant of participants) {
+					const participantSockets = userSockets.get(participant.userId);
+					if (participantSockets) {
+						for (const sid of participantSockets) {
+							io.to(sid).emit('tournament:abandoned', {
+								tournamentId,
+								reason: 'Creator left - tournament cancelled',
+							});
+						}
+					}
+				}
+
+				// Broadcast list update so tournaments page refreshes
+				io.emit('tournament:list-updated');
+
+				console.log(`[Tournament] Creator ${userId} left scheduled tournament ${tournamentId} - auto-cancelled`);
+			} else if (creatorTournament && creatorTournament.status === 'in_progress') {
+				// Creator disconnected during active tournament
+				// Immediately forfeit them as normal participant (don't wait for reconnect timeout)
+				// This allows tournament to continue and other players to advance
+				const tournamentId = creatorTournament.tournamentId;
+				console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} - queuing forfeit`);
+				
+				// Queue the forfeit immediately instead of waiting for GameRoom timeout
+				await leaveTournament(tournamentId, userId);
+			}
+
+			// Check if this user is a participant in any ACTIVE tournament (regardless of creator)
+			// This handles non-creator participant disconnects in in_progress tournaments
+			const [participantTournament] = await db
+				.select({ tournamentId: tournaments.id })
+				.from(tournaments)
+				.innerJoin(tournamentParticipants, eq(tournaments.id, tournamentParticipants.tournament_id))
+				.where(
+					and(
+						eq(tournamentParticipants.user_id, userId),
+						eq(tournaments.status, 'in_progress'),
+					),
+				)
+				.limit(1);
+
+			if (participantTournament) {
+				// Non-creator participant in active tournament — forfeit them
+				// (If they were the creator, the above logic already handled them)
+				const isCreatorOfThisTournament = creatorTournament?.tournamentId === participantTournament.tournamentId;
+				
+				if (!isCreatorOfThisTournament) {
+					console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} - queuing forfeit`);
+					await leaveTournament(participantTournament.tournamentId, userId);
+				}
+			}
+		} catch (err) {
+			// Silently fail on disconnect cleanup
+			console.error('[Tournament] Disconnect cleanup failed:', err);
+		}
 	});
 }

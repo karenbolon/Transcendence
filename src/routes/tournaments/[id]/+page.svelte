@@ -22,7 +22,11 @@
 		isParticipant?: boolean;
 	} = $state({});
 
-	let tournament = $derived({ ...data.tournament, ...( socketOverrides.status ? { status: socketOverrides.status } : {}), ...( socketOverrides.winnerId !== undefined ? { winnerId: socketOverrides.winnerId } : {}) });
+	let tournament = $derived.by(() => {
+		const t = { ...data.tournament, ...( socketOverrides.status ? { status: socketOverrides.status } : {}), ...( socketOverrides.winnerId !== undefined ? { winnerId: socketOverrides.winnerId } : {}) };
+		console.log('[DEBUG] tournament derived updated — status:', t.status, '| winnerId:', t.winnerId, '| socketOverrides.status:', socketOverrides.status, '| data.tournament.status:', data.tournament.status);
+		return t;
+	});
 	let participants = $derived(data.participants);
 	let bracket = $derived(socketOverrides.bracket ?? data.bracket);
 	let isCreator = $derived(data.isCreator);
@@ -31,6 +35,7 @@
 	// Reset overrides when data changes (e.g. navigation/invalidation)
 	$effect(() => {
 		data; // track
+		console.log('[DEBUG] data changed — resetting socketOverrides. New data.tournament.status:', data.tournament.status, '| winnerId:', data.tournament.winnerId);
 		socketOverrides = {};
 	});
 
@@ -50,34 +55,49 @@
 	function handleLeave() {
 		const socket = getSocket();
 		if (!socket?.connected) return;
+		console.log('[DEBUG] handleLeave called for tournament:', tournament.id);
 		socket.emit('tournament:leave', { tournamentId: tournament.id });
 		socket.once('tournament:left', () => {
+			console.log('[DEBUG] tournament:left received');
 			socketOverrides.isParticipant = false;
 			socketOverrides = { ...socketOverrides };
 			toast.info('Left tournament');
 			invalidateAll();
 		});
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on leave:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	function handleStart() {
 		const socket = getSocket();
 		if (!socket?.connected) return;
+		console.log('[DEBUG] handleStart called for tournament:', tournament.id);
 		socket.emit('tournament:start', { tournamentId: tournament.id });
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on start:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	function handleCancel() {
 		const socket = getSocket();
 		if (!socket?.connected) { toast.error('Not connected'); return; }
+		console.log('[DEBUG] handleCancel called for tournament:', tournament.id);
 		socket.emit('tournament:cancel', { tournamentId: tournament.id });
-		socket.once('tournament:error', (d: { message: string }) => toast.error(d.message));
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on cancel:', d.message);
+			toast.error(d.message);
+		});
 	}
 
 	// Listen for real-time updates
 	onMount(() => {
 		const socket = getSocket();
 		if (!socket) return;
+		console.log('[DEBUG] tournament detail MOUNTED, tournament id:', tournament.id, '| status from server:', data.tournament.status);
+		console.log('[DEBUG] tournament detail MOUNTED, full data.tournament:', JSON.stringify(data.tournament));
 
 		socket.on('tournament:player-joined', (d: any) => {
 			if (d.tournamentId === tournament.id) invalidateAll();
@@ -91,18 +111,30 @@
 				goto('/tournaments');
 			}
 		});
-		socket.on('tournament:started', (d: any) => {
+		socket.on('tournament:abandoned', (d: any) => {
 			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:abandoned received:', d);
+				socketOverrides = { ...socketOverrides, status: 'cancelled' };
+				toast.warning('Tournament Cancelled', `${d.reason}`);
+			}
+		});
+		socket.on('tournament:started', (d: any) => {
+			console.log('[DEBUG] tournament:started received on OVERVIEW PAGE:', d);
+			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:started — setting socketOverrides.status = in_progress');
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
 			}
 		});
 		socket.on('tournament:bracket-update', (d: any) => {
+			console.log('[DEBUG] tournament:bracket-update received on OVERVIEW PAGE:', d.tournamentId, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
 				socketOverrides = { ...socketOverrides, bracket: d.bracket };
 			}
 		});
 		socket.on('tournament:finished', (d: any) => {
+			console.log('[DEBUG] tournament:finished received on OVERVIEW PAGE:', d, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
+				console.log('[DEBUG] tournament:finished — setting socketOverrides.status = finished, calling invalidateAll()');
 				socketOverrides = { ...socketOverrides, status: 'finished', winnerId: d.winnerId, bracket: d.bracket };
 				invalidateAll(); // Reload participants with final placements
 			}
@@ -113,6 +145,7 @@
 		const socket = getSocket();
 		if (!socket) return;
 		socket.off('tournament:cancelled');
+		socket.off('tournament:abandoned');
 		socket.off('tournament:player-joined');
 		socket.off('tournament:player-left');
 		socket.off('tournament:started');
@@ -123,6 +156,7 @@
 	function statusLabel(status: string): string {
 		if (status === 'scheduled') return 'Open';
 		if (status === 'in_progress') return 'In Progress';
+		if (status === 'cancelled') return 'Cancelled';
 		return 'Finished';
 	}
 

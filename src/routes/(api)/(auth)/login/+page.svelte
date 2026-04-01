@@ -57,6 +57,7 @@
 					type="text"
 					id="username"
 					name="username"
+					autocomplete="username"
 					placeholder="Enter your username"
 					required
 					bind:value={username}
@@ -72,6 +73,7 @@
 				<PasswordInput
 					id="password"
 					name="password"
+					autocomplete="current-password"
 					placeholder="Enter your password"
 					bind:value={password}
 					onfocusout={() => touched.password = true}
@@ -91,7 +93,8 @@
 				</a>
 			</div>
 
-			<button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}>
+			<!-- Old: <button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}> -->
+			<button class="btn-signup w-full py-3" type="submit" disabled={loading}>
 				{#if loading}
 					Logging in...
 				{:else}

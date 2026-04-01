@@ -6,16 +6,19 @@
 		isLoadingHistory, loadOlderMessages, hasMore,
 	} from '$lib/stores/chat.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import { sendChallenge as sendChallengeUtil } from '$lib/utils/challenge';
 	import { page } from '$app/stores';
 
+	const MAX_MESSAGE_LENGTH = 500;
+
 	type Props = {
 		user: { id: string; username: string; name: string; avatar_url: string | null };
 	};
 
-	let { user }: Props = $props();
+	let { user }: Props = $props()
 
 	// Friend list from page data (same data the friends page uses)
 	// We get this from the layout's data.friends if available,
@@ -68,6 +71,10 @@
 	function handleSend() {
 		const friendId = getActiveFriendId();
 		if (!friendId || !inputText.trim()) return;
+		if (inputText.trim().length > MAX_MESSAGE_LENGTH) {
+			toast.error('Message too long', `Messages cannot exceed ${MAX_MESSAGE_LENGTH} characters.`);
+			return;
+		}
 		sendMessage(friendId, inputText);
 		inputText = '';
 		// Stop typing indicator
@@ -249,7 +256,6 @@
 							bind:value={inputText}
 							onkeydown={handleKeydown}
 							placeholder="Type a message..."
-							maxlength="500"
 						/>
 						<button
 							class="send-btn"

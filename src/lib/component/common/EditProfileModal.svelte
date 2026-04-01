@@ -181,7 +181,9 @@
 				<label class="field-label" for="edit-name">Display Name</label>
 				<input
 					id="edit-name"
+					name="display-name"
 					type="text"
+					autocomplete="nickname"
 					class="field-input"
 					bind:value={name}
 					maxlength={100}
@@ -194,6 +196,7 @@
 				<label class="field-label" for="edit-bio">Bio</label>
 				<textarea
 					id="edit-bio"
+					name="bio"
 					class="field-input field-textarea"
 					bind:value={bio}
 					maxlength={300}

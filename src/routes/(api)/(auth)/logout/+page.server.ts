@@ -8,7 +8,7 @@ import { eq, lt } from 'drizzle-orm';
 export const actions: Actions = {
 	default: async ({ locals, cookies }) => {
 		if (!locals.session) {
-			redirect(302, '/');
+			redirect(302, '/login');
 		}
 
 		if (locals.user) {
@@ -29,6 +29,6 @@ export const actions: Actions = {
 			...sessionCookie.attributes
 		});
 
-		redirect(302, '/');
+	redirect(302, '/');
 	}
 };

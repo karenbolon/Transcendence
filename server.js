@@ -371,10 +371,17 @@ function resetBall(state, settings) {
 	state.ballX = CANVAS_WIDTH / 2;
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.currentBallSpeed = settings.ballSpeed;
+	// Re-apply any still-active speed modifiers so they persist across the point
+	for (const effect of state.activeEffects) {
+		if (effect.type === 'speedBall') state.currentBallSpeed *= 1.5;
+		if (effect.type === 'slowBall') state.currentBallSpeed *= 0.6;
+	}
 	state.ballSpin = 0;
 	const direction = Math.random() > 0.5 ? 1 : -1;
-	state.ballVX = settings.ballSpeed * direction;
-	state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
+	// state.ballVX = settings.ballSpeed * direction;
+	// state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
+	state.ballVX = state.currentBallSpeed * direction;
+	state.ballVY = state.currentBallSpeed * (Math.random() - 0.5);
 	state.powerUpItem = null;
 	state.powerUpCooldown = POWERUP_COOLDOWN_MIN + Math.random() * (POWERUP_COOLDOWN_MAX - POWERUP_COOLDOWN_MIN);
 }
@@ -2056,9 +2063,25 @@ io.on('connection', (socket) => {
 				return;
 			}
 
+			// Fetch participants before deleting so we can notify them
+			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+
 			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
 			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
-			socket.emit('tournament:cancelled', { tournamentId: data.tournamentId });
+
+			// Notify each participant individually (toast even if on another page)
+			for (const p of participants) {
+				const participantSockets = userSockets.get(Number(p.user_id));
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:cancelled', {
+							tournamentId: data.tournamentId,
+							tournamentName: tournament.name,
+						});
+					}
+				}
+			}
+
 			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);

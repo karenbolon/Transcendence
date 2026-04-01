@@ -73,6 +73,20 @@
       "when": 1774675018987,
       "tag": "0009_lowly_dark_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774882008180,
+      "tag": "0010_flaky_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775110800000,
+      "tag": "0011_add_xp_earned",
+      "breakpoints": true
     }
   ]
 }

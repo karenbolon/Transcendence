@@ -9,6 +9,11 @@
 		items: ActivityItem[];
 		userId: number;
 	} = $props();
+
+	let failedAvatars = $state(new Set<string>());
+	function onAvatarError(url: string) {
+		failedAvatars = new Set(failedAvatars).add(url);
+	}
 </script>
 
 <div class="feed-card">
@@ -23,8 +28,8 @@
 				<div class="feed-item">
 					{#if item.type === 'achievement'}
 						<div class="feed-avatar">
-							{#if item.avatarUrl}
-								<img src={item.avatarUrl} alt="" class="feed-avatar-img" />
+							{#if item.avatarUrl && !failedAvatars.has(item.avatarUrl)}
+								<img src={item.avatarUrl} alt="" class="feed-avatar-img" onerror={() => onAvatarError(item.avatarUrl!)} />
 							{:else}
 								{item.achievementIcon}
 							{/if}

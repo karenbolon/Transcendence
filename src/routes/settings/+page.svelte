@@ -4,6 +4,7 @@
 	import PasswordInput from '$lib/component/common/PasswordInput.svelte';
 	import { validatePassword, validateEmail, validateConfirmPassword } from '$lib/validation/frontend';
 	import { handleFormSubmit, fetchJSON } from '$lib/utils/format_utils';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -81,6 +82,7 @@
 	async function updateNotificationPref(key: string, value: boolean) {
 		try {
 			await fetchJSON('/api/settings/notifications', 'PUT', { [key]: value });
+			await invalidateAll();
 		} catch {
 			// Silently fail
 		}
@@ -144,7 +146,9 @@
 					<label class="field-label" for="new-email">New Email</label>
 					<input 
 						id="new-email" 
+						name="new-email"
 						type="email" 
+						autocomplete="email"
 						class="field-input" 
 						bind:value={newEmail} 
 						disabled={savingEmail} 
@@ -153,7 +157,7 @@
 				<div class="field">
 					<label class="field-label" for="email-password">Password</label>
 					<!-- <input id="email-password" type="password" class="field-input" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" placeholder="Confirm your password" /> -->
-					<PasswordInput id="confirm-password" name="confirm-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
+					<PasswordInput id="email-password" name="email-password" bind:value={emailPassword} disabled={savingEmail} autocomplete="current-password" />
 				</div>
 
 				{#if emailError}

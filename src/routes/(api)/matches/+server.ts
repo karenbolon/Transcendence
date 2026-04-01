@@ -12,7 +12,14 @@ import { apiLogger } from '$lib/server/logger';
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) return json({ error: 'Unauthorized' }, { status: 401 });
 	const userId = Number(locals.user.id);
-	const limit = Math.min(Number(url.searchParams.get('limit')) || 10, 100);
+	const rawLimit = Number(url.searchParams.get('limit'));
+	const limit =
+		Number.isFinite(rawLimit) && rawLimit > 0
+			? Math.min(Math.floor(rawLimit), 100)
+			: 10;
+
+	const rawOffset = Number(url.searchParams.get('offset'));
+	const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
 
 	const rows = await db.select().from(games)
 		.where(and(
@@ -20,10 +27,11 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			eq(games.status, 'finished')
 		))
 		.orderBy(desc(games.finished_at))
+		.offset(offset)
 		.limit(limit + 1);
 
 	const hasMore = rows.length > limit;
-	return json({ matches: rows.slice(0, limit), hasMore, limit });
+	return json({ matches: rows.slice(0, limit), hasMore, limit, offset });
 };
 
 const matchResultSchema = z.object({

@@ -129,6 +129,22 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 	playerRoomMap.delete(result.player1.userId);
 	playerRoomMap.delete(result.player2.userId);
 
+	// Parse tournament info upfront so advanceWinner can run even if the
+	// game-record transaction below fails.
+	let tournamentAdvance: { id: number; round: number; matchIndex: number; winnerScore: number; loserScore: number } | null = null;
+	if (result.roomId.startsWith('tournament-')) {
+		const parts = result.roomId.split('-');
+		const winnerScore = result.player1.userId === result.winnerId ? result.player1.score : result.player2.score;
+		const loserScore  = result.player1.userId === result.loserId  ? result.player1.score : result.player2.score;
+		tournamentAdvance = {
+			id:         Number(parts[1]),
+			round:      Number(parts[2].replace('r', '')),
+			matchIndex: Number(parts[3].replace('m', '')),
+			winnerScore,
+			loserScore,
+		};
+	}
+
 	try {
 		const finishedAt = new Date();
 		const startedAt = new Date(finishedAt.getTime() - result.durationSeconds * 1000);
@@ -220,31 +236,18 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				}
 			}
 
-			// Check if this was a tournament match
-			if (result.roomId.startsWith('tournament-')) {
-				const parts = result.roomId.split('-');
-				// Format: tournament-{id}-r{round}-m{matchIndex}
-				const tournamentId = Number(parts[1]);
-				const round = Number(parts[2].replace('r', ''));
-				const matchIndex = Number(parts[3].replace('m', ''));
-
-				// Accumulate XP earned in this tournament for both players
+			// Accumulate XP earned in this tournament for both players
+			if (tournamentAdvance) {
 				for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]] as const) {
 					if (progression.xpEarned > 0) {
 						await tx.update(tournamentParticipants).set({
 							xp_earned: sql`${tournamentParticipants.xp_earned} + ${progression.xpEarned}`,
 						}).where(and(
-							eq(tournamentParticipants.tournament_id, tournamentId),
+							eq(tournamentParticipants.tournament_id, tournamentAdvance.id),
 							eq(tournamentParticipants.user_id, uid),
 						));
 					}
 				}
-
-				const winnerScore = result.player1.userId === result.winnerId
-				? result.player1.score : result.player2.score;
-			const loserScore = result.player1.userId === result.loserId
-				? result.player1.score : result.player2.score;
-			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
 			}
 
 			const matchContent = `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`;
@@ -279,5 +282,25 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 	} finally {
 		// Always clean up the room, even if DB save fails
 		destroyRoom(result.roomId);
+	}
+
+	// Advance the tournament bracket AFTER the game-record transaction, outside
+	// of it, so it always runs even when the transaction failed (e.g. a DB
+	// constraint error). Without this guard the tournament can stay 'in_progress'
+	// forever when the game-record insert fails for any reason.
+	if (tournamentAdvance) {
+		try {
+			await advanceWinner(
+				tournamentAdvance.id,
+				tournamentAdvance.round,
+				tournamentAdvance.matchIndex,
+				result.winnerId,
+				result.loserId,
+				tournamentAdvance.winnerScore,
+				tournamentAdvance.loserScore,
+			);
+		} catch (err) {
+			console.error('[Tournament] advanceWinner failed in handleGameEnd:', err);
+		}
 	}
 }

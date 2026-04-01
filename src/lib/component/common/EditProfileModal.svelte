@@ -185,6 +185,7 @@
 					autocomplete="nickname"
 					class="field-input"
 					bind:value={name}
+					maxlength={100}
 					disabled={saving}
 					placeholder="Your display name"
 				/>

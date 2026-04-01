@@ -167,8 +167,6 @@
 					uploadedAvatars={uploadedAvatarUrl}
 					defaultAvatars={defaultAvatars}
 					{uploading}
-					unlockedAvatars={[]}
-					lockableAvatars={[]}
 					onselect={(url) => { avatarUrl = url; }}
 					onupload={handleFileUpload}
 					ondelete={handleDeleteUpload}

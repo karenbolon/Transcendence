@@ -18,16 +18,20 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			? Math.min(Math.floor(rawLimit), 100)
 			: 10;
 
+	const rawOffset = Number(url.searchParams.get('offset'));
+	const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
+
 	const rows = await db.select().from(games)
 		.where(and(
 			or(eq(games.player1_id, userId), eq(games.player2_id, userId)),
 			eq(games.status, 'finished')
 		))
 		.orderBy(desc(games.finished_at))
+		.offset(offset)
 		.limit(limit + 1);
 
 	const hasMore = rows.length > limit;
-	return json({ matches: rows.slice(0, limit), hasMore, limit });
+	return json({ matches: rows.slice(0, limit), hasMore, limit, offset });
 };
 
 const matchResultSchema = z.object({

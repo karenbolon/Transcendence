@@ -122,11 +122,14 @@
 		{#if gameMode !== 'online'}
 			{#if gameMode === 'local'}
 				<div class="setting-row">
-					<span class="setting-label">Player 2</span>
+					<label class="setting-label" for="player2-name">Player 2</label>
 					<input
 						class="name-input"
+						id="player2-name"
+						name="player2Name"
 						type="text"
 						placeholder="Guest"
+						autocomplete="off"
 						maxlength="100"
 						value={player2Name}
 						oninput={(e) => onPlayer2NameChange(e.currentTarget.value)}

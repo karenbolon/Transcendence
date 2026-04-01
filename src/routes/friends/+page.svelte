@@ -162,8 +162,12 @@
 		<div class="search-wrapper">
 			<input
 				type="text"
+				id="friends-search"
+				name="friendsSearch"
 				class="search-input"
 				placeholder="Search users..."
+				autocomplete="off"
+				aria-label="Search users"
 				value={searchQuery}
 				oninput={handleSearchInput}
 			/>

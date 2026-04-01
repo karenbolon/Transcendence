@@ -51,10 +51,6 @@
 	}: Props = $props();
 
 	let prog = $derived(progression ?? DEFAULT_PROGRESSION);
-	let profileHandle = $derived.by(() => {
-		const source = (displayName?.trim() || username).toLowerCase();
-		return source.replace(/\s+/g, '_');
-	});
 </script>
 
 <div class="banner">
@@ -74,7 +70,7 @@
 
 		<div class="banner-info">
 			<h1 class="banner-name">{displayName || username}</h1>
-			<p class="banner-handle">@{profileHandle}</p>
+			<p class="banner-handle">@{username}</p>
 
 			{#if bio}
 				<p class="banner-bio">{bio}</p>

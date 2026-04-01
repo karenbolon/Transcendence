@@ -190,10 +190,24 @@
 			}
 		}
 
-		// Layout already calls invalidateAll on friend:online/offline
-		// which updates baseFriends via layoutData — no need to handle here
-		function handleFriendOnline() {}
-		function handleFriendOffline() {}
+		function handleFriendOnline(data: { userId: number }) {
+			onlineFriends = onlineFriends.map((friend) =>
+				friend.id === data.userId ? { ...friend, isOnline: true } : friend
+			);
+			invalidateAll();
+		}
+
+		function handleFriendOffline(data: { userId: number }) {
+			onlineFriends = onlineFriends.map((friend) =>
+				friend.id === data.userId
+					? { ...friend, isOnline: false, inQueue: false, queueSettings: undefined }
+					: friend
+			);
+			const newMap = new Map(friendQueueMap);
+			newMap.delete(data.userId);
+			friendQueueMap = newMap;
+			invalidateAll();
+		}
 
 		function handleQueueFriendUpdate(data: { userId: number; username: string; mode: string | null; action: string }) {
 			if (data.action === 'joined') {

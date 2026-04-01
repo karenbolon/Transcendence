@@ -12,7 +12,11 @@ import { apiLogger } from '$lib/server/logger';
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) return json({ error: 'Unauthorized' }, { status: 401 });
 	const userId = Number(locals.user.id);
-	const limit = Math.min(Number(url.searchParams.get('limit')) || 10, 100);
+	const rawLimit = Number(url.searchParams.get('limit'));
+	const limit =
+		Number.isFinite(rawLimit) && rawLimit > 0
+			? Math.min(Math.floor(rawLimit), 100)
+			: 10;
 
 	const rows = await db.select().from(games)
 		.where(and(

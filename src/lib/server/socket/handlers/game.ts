@@ -1,6 +1,7 @@
 import type { Socket } from 'socket.io';
 import { db } from '$lib/server/db';
-import { messages } from '$lib/server/db/schema';
+import { messages, tournaments, tournamentParticipants } from '$lib/server/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { getIO, userSockets } from '../index';
 import { getFriendIds } from '$lib/server/db/helpers_queries';
 import {
@@ -358,7 +359,25 @@ export function registerGameHandlers(socket: Socket) {
 	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
 	socket.on('game:leave', async () => {
 		const room = getRoomByPlayer(userId);
-		if (!room) return;
+		if (!room) {
+			// Player is not in a game room but may still be in an active tournament
+			// (e.g. they received tournament:match-ready, navigated to the game page,
+			// but left before game:join-room completed). Forfeit them from the tournament
+			// so it doesn't stay stuck in_progress.
+			const [activeTournament] = await db
+				.select({ id: tournaments.id })
+				.from(tournaments)
+				.innerJoin(tournamentParticipants, eq(tournaments.id, tournamentParticipants.tournament_id))
+				.where(and(
+					eq(tournamentParticipants.user_id, userId),
+					eq(tournaments.status, 'in_progress'),
+				))
+				.limit(1);
+			if (activeTournament) {
+				await leaveTournament(activeTournament.id, userId);
+			}
+			return;
+		}
 		const roomId = room.roomId;
 
 		// Guard: if game already ended (e.g., due to disconnect timeout), don't process again

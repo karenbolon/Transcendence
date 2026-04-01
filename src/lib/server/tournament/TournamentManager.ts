@@ -791,8 +791,16 @@ async function startRoundMatches(
 				const p2Joined = room.player2.socketIds.size > 0;
 				if (p1Joined && p2Joined) return; // both present, game running
 				if (!p1Joined && !p2Joined) {
-					// Neither joined — destroy room, advance nobody (both eliminated)
+					// Neither player showed up — destroy room and still advance a winner so
+					// the tournament doesn't stay stuck in_progress forever. Prefer the
+					// tournament creator (host); fall back to player1 if neither slot matches.
 					destroyRoom(roomId);
+					const hostId = tourney.createdBy;
+					const winnerId = capturedP1Id === hostId ? capturedP1Id
+						: capturedP2Id === hostId ? capturedP2Id
+						: capturedP1Id;
+					const loserId = winnerId === capturedP1Id ? capturedP2Id : capturedP1Id;
+					await advanceWinner(tournamentId, round, match.matchIndex, winnerId, loserId, 1, 0);
 					return;
 				}
 

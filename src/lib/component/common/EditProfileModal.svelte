@@ -126,7 +126,9 @@
 			body: { name: name.trim(), bio: bio.trim() || null, avatarUrl },
 			errorMessage: 'Failed to save profile.',
 			validate: () => {
-				if (!name.trim()) return 'Name is required.';
+				const trimmedName = name.trim();
+				if (!trimmedName) return 'Name is required.';
+				if (trimmedName.length > 100) return 'Name must be 100 characters or less.';
 				if (bio.length > 300) return 'Bio must be 300 characters or less.';
 			},
 			onSuccess: (result) => {

@@ -2,7 +2,6 @@
 	import logo from '$lib/assets/favicon.ico';
 	// import Logout from './Logout.svelte'; // OLD (may rely on JS)
 	import UserAvatar from './UserAvatar.svelte';
-	import { afterNavigate } from '$app/navigation';
 	import { isConnected } from '$lib/stores/socket.svelte';
 	import { toggleChat, getTotalUnread } from '$lib/stores/chat.svelte';
 	//chat

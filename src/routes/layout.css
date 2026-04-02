@@ -275,12 +275,15 @@ header {
 /* dropdown */
 .dropdown-wrapper {
 	position: relative;
+	padding-bottom: 0.5rem;
+	margin-bottom: -0.5rem;
 }
 
 .dropdown-menu {
+	display: none;
 	position: absolute;
 	right: 0;
-	top: calc(100% + 0.5rem);
+	top: 100%;
 	width: 220px;
 	background-color: var(--card);
 	border: 1px solid rgba(255, 255, 255, 0.08);
@@ -290,6 +293,19 @@ header {
 	z-index: 50;
 	/* Entrance animation */
 	animation: dropdown-enter 0.15s ease-out;
+}
+
+.dropdown-wrapper:hover .dropdown-menu,
+.dropdown-wrapper:focus-within .dropdown-menu {
+	display: block;
+}
+
+/* Touch/no-hover devices: keep <details> click behavior for no-JS usability. */
+@media (hover: none), (pointer: coarse) {
+	.dropdown-wrapper:focus-within .dropdown-menu,
+	.dropdown-wrapper[open] .dropdown-menu {
+		display: block;
+	}
 }
 
 .dropdown-user-info {
@@ -364,6 +380,11 @@ header {
 	color: #e5e7eb;
 }
 
+.mobile-menu-wrapper {
+	display: none;
+	position: relative;
+}
+
 /* ── Mobile menu ── */
 .mobile-menu {
 	display: none;
@@ -389,6 +410,10 @@ header {
 
 .mobile-menu-link:hover {
 	color: #fff;
+}
+
+.mobile-menu-wrapper[open] .mobile-menu {
+	display: flex;
 }
 
 /* ── Tablet ── */
@@ -424,11 +449,14 @@ header {
 	.nav-links {
 		display: none;
 	}
+	.mobile-menu-wrapper {
+		display: block;
+	}
 	.hamburger-btn {
 		display: flex;
 	}
 	.mobile-menu {
-		display: flex;
+		display: none;
 	}
 	.brand-name {
 		font-size: 1.25rem;
@@ -683,6 +711,17 @@ input.form-fill:-webkit-autofill:active{
 
 .mobile-menu-wrapper > summary::-webkit-details-marker {
 	display: none;
+}
+
+/* force mobile menu to stay hidden unless the details menu is open */
+@media (max-width: 680px) {
+	.mobile-menu {
+		display: none;
+	}
+
+	.mobile-menu-wrapper[open] .mobile-menu {
+		display: flex;
+	}
 }
 
 /* override old mobile-menu styling when used inside details */

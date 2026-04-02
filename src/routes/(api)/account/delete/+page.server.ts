@@ -17,10 +17,6 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const password = formData.get('password')?.toString() ?? '';
 
-		if (!password) {
-			return fail(400, { error: 'Password is required to access your account' });
-		}
-
 		// ── FETCH FULL USER (need password_hash) ───────────────────
 		const [user] = await db
 			.select()
@@ -32,18 +28,17 @@ export const actions: Actions = {
 		}
 
 		// ── VERIFY PASSWORD ────────────────────────────────────────
-		// OAuth-only users cannot delete via password
-		if (!user.password_hash) {
-			return fail(400, { 
-				errorKey: 'errors.oauth_only_account'
-			});
-		}
+		if (user.password_hash) {
+			if (!password) {
+				return fail(400, { error: 'Password is required to access your account' });
+			}
 
-		const valid = await verifyPassword(user.password_hash, password);
-		if (!valid) {
-			return fail(400, { 
-				error: 'Incorrect password'
-			});
+			const valid = await verifyPassword(user.password_hash, password);
+			if (!valid) {
+				return fail(400, {
+					error: 'Incorrect password'
+				});
+			}
 		}
 
 		// ── SOFT DELETE + ANONYMIZE ─────────────────────────────────

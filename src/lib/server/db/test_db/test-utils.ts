@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '../index';
-import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, player_progression, achievements, achievement_definitions } from '../schema';
+import { users, games, friendships, sessions, messages, tournaments, analytics, tournamentParticipants, player_progression, achievements, achievement_definitions, oauthAccounts, oauthStates } from '../schema';
 import type { User } from '../schema';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -30,6 +30,8 @@ export async function cleanDatabase() {
 
 	await db.delete(analytics).execute().catch(() => { });
 	await db.delete(messages).execute().catch(() => { });
+	await db.delete(oauthStates).execute().catch(() => { });
+	await db.delete(oauthAccounts).execute().catch(() => { });
 	await db.delete(sessions).execute().catch(() => { });
 	await db.delete(friendships).execute().catch(() => { });
 	await db.delete(games).execute().catch(() => { });

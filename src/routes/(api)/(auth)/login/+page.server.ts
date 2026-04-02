@@ -2,7 +2,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect, isRedirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
-import { lucia } from '$lib/server/auth/lucia';
 import { verifyPassword } from '$lib/server/auth/password';
 import { redirectIfLoggedIn, createAndSetSession } from '$lib/server/auth/helpers';
 import { generateOAuthState, buildOAuthAuthorizationUrl } from '$lib/server/auth/oauth';
@@ -45,10 +44,6 @@ username
 errorKey: 'errors.oauth_only_account',
 username
 });
-		}
-
-		if (!user.password_hash) {
-			return fail(400, { error: 'This account uses OAuth — please sign in with your provider' });
 		}
 
 		const validPassword = await verifyPassword(

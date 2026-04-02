@@ -18,7 +18,9 @@ import {
 	tournamentParticipants, 
 	achievements, 
 	player_progression, 
-	achievement_definitions 
+	achievement_definitions,
+	oauthAccounts,
+	oauthStates
 } from '../schema';
 import { sql } from 'drizzle-orm';
 
@@ -38,6 +40,18 @@ async function cleanDatabase() {
 
 	try {
 		await db.delete(messages).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(oauthStates).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(oauthAccounts).execute();
 	} catch (e) {
 		// Table might not exist yet, that's fine
 	}
@@ -125,14 +139,12 @@ beforeAll(async () => {
 	console.log('══════════════════════════════════════════════════════════\n');
 
 	await cleanDatabase();
-});
+}, 30000);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Run cleanup AFTER all tests finish
 // ══════════════════════════════════════════════════════════════════════════════
 afterAll(async () => {
-	await cleanDatabase();
-
 	console.log('\n🧪 ══════════════════════════════════════════════════════════');
 	console.log('   TEST SUITE COMPLETE');
 	console.log('══════════════════════════════════════════════════════════\n');

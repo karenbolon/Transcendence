@@ -143,12 +143,12 @@
 			console.log('[DEBUG game:cancelled] tournamentEventData at cancel time:', JSON.stringify(tournamentEventData));
 			console.log('[DEBUG game:cancelled] history.length:', history.length);
 			
-			// For tournament matches, emit game:leave BEFORE navigating
-			// so the server can properly process forfeit logic
-			if (isTournament) {
-				console.log('[DEBUG game:cancelled] emitting game:leave for tournament forfeit processing');
-				socket.emit('game:leave');
-			}
+				// For tournament matches, emit game:leave BEFORE navigating
+				// so the server can properly process forfeit logic
+				if (isTournament) {
+					console.log('[DEBUG game:cancelled] emitting game:leave for tournament forfeit processing');
+					socket?.emit('game:leave');
+				}
 			
 			toast.info(cancelData.reason);
 			if (history.length > 1) {
@@ -291,12 +291,17 @@
 
 		const myPlayer = data.userId === player1.userId ? player1 : player2;
 		const opponentPlayer = data.userId === player1.userId ? player2 : player1;
-		setWaiting({
-			you: { username: data.username, avatarUrl: myPlayer.avatarUrl, displayName: myPlayer.displayName },
-			opponent: { username: opponentName, avatarUrl: opponentPlayer.avatarUrl, displayName: opponentPlayer.displayName },
-			settings: { speedPreset: gameOverResult.settings.speedPreset as 'chill' | 'normal' | 'fast', winScore: gameOverResult.settings.winScore, mode: 'online' },
-			totalTime: 30,
-		});
+			setWaiting({
+				you: { username: data.username, avatarUrl: myPlayer.avatarUrl, displayName: myPlayer.displayName },
+				opponent: { username: opponentName, avatarUrl: opponentPlayer.avatarUrl, displayName: opponentPlayer.displayName },
+				settings: {
+					speedPreset: gameOverResult.settings.speedPreset as 'chill' | 'normal' | 'fast',
+					winScore: gameOverResult.settings.winScore,
+					powerUps: gameOverResult.settings.powerUps ?? false,
+					mode: 'online'
+				},
+				totalTime: 30,
+			});
 		goto('/play/online/waiting');
 	}
 

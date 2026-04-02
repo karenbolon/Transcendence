@@ -54,8 +54,6 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1775000000000,
-      "tag": "0007_oauth_accounts",
       "when": 1775020800000,
       "tag": "0007_add_bracket_data",
       "breakpoints": true
@@ -86,6 +84,13 @@
       "version": "7",
       "when": 1775110800000,
       "tag": "0011_add_xp_earned",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1775160000000,
+      "tag": "0012_add_oauth_auth",
       "breakpoints": true
     }
   ]

@@ -9,20 +9,32 @@
  * - Edge cases
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
 	encryptToken,
 	decryptToken,
 	isTokenEncryptionConfigured,
-	isTokenValid
+	isTokenValid,
+	generateEncryptionKey,
+	initializeEncryptionKey
 } from '../token-encryption';
 
 describe('Token Encryption', () => {
-	beforeAll(() => {
-		// Ensure encryption key is set
-		if (!process.env.OAUTH_ENCRYPTION_KEY) {
-			process.env.OAUTH_ENCRYPTION_KEY = '69ef54fed05fff5ff9ed82f4802c459d442f821849375b2691c13ee01ace67d0';
+	let originalEnv: string | undefined;
+
+	beforeEach(() => {
+		originalEnv = process.env.OAUTH_ENCRYPTION_KEY;
+		process.env.OAUTH_ENCRYPTION_KEY = generateEncryptionKey();
+		initializeEncryptionKey();
+	});
+
+	afterEach(() => {
+		if (originalEnv === undefined) {
+			delete process.env.OAUTH_ENCRYPTION_KEY;
+		} else {
+			process.env.OAUTH_ENCRYPTION_KEY = originalEnv;
 		}
+		initializeEncryptionKey();
 	});
 
 	describe('Configuration', () => {

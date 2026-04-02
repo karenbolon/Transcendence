@@ -29,10 +29,10 @@ describe('Token Encryption', () => {
 	});
 
 	afterEach(() => {
-		if (originalEnv === undefined) {
-			delete process.env.OAUTH_ENCRYPTION_KEY;
-		} else {
+		if (originalEnv !== undefined && /^[0-9a-f]{64}$/i.test(originalEnv)) {
 			process.env.OAUTH_ENCRYPTION_KEY = originalEnv;
+		} else {
+			delete process.env.OAUTH_ENCRYPTION_KEY;
 		}
 		initializeEncryptionKey();
 	});

@@ -62,8 +62,16 @@
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
+		if (file.size === 0) {
+			error = 'Image is invalid or empty.';
+			console.error('Avatar upload rejected: empty file');
+			input.value = '';
+			return;
+		}
 		if (file.size > 2 * 1024 * 1024) {
 			error = 'Image must be 2MB or less.';
+			console.error('Avatar upload rejected: file too large');
+			input.value = '';
 			return;
 		}
 
@@ -85,12 +93,14 @@
 			}
 			if (!res.ok) {
 				error = result.error ?? 'Upload failed.';
+				console.error('Avatar upload failed:', result.error ?? 'Unknown upload error');
 				return;
 			}
 			avatarUrl = result.url;
 			const res2 = await fetch('/api/profile/avatars/uploads');
 			uploadedAvatarUrl = await res2.json();
-		} catch {
+		} catch (err) {
+			console.error('Avatar upload request failed:', err);
 			error = 'Upload failed. Please try again.';
 		} finally {
 			uploading = false;

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import logo from '$lib/assets/favicon.ico';
-	import Logout from './Logout.svelte';
+	// import Logout from './Logout.svelte'; // OLD (may rely on JS)
 	import UserAvatar from './UserAvatar.svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { isConnected } from '$lib/stores/socket.svelte';
 	import { toggleChat, getTotalUnread } from '$lib/stores/chat.svelte';
 	//chat
@@ -20,13 +21,52 @@
 
 	let { user }: Props = $props();
 
+	// OLD (JS-driven menus — no longer needed for no-JS support)
+	/*
+	let dropdownOpen = $state(false);
+	let mobileMenuOpen = $state(false);
+
+	function toggleDropdown() {
+		dropdownOpen = !dropdownOpen;
+	}
+
+	function closeDropdown() {
+		dropdownOpen = false;
+	}
+
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
+	function handleClickOutside(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+		if (!target.closest('.dropdown-wrapper')) {
+			closeDropdown();
+		}
+		if (!target.closest('.mobile-menu') && !target.closest('.hamburger-btn')) {
+			closeMobileMenu();
+		}
+	}
+	*/
+
 	function handleChatClick(e: MouseEvent) {
 		e.preventDefault();
 		toggleChat();
 	}
+
+	// afterNavigate(() => {
+	// 	mobileMenuOpen = false;
+	// });
+
 	// Old behavior:
 	// <button class="chat-trigger" onclick={toggleChat} aria-label="Open chat">...</button>
 </script>
+
+<!-- <svelte:window onclick={handleClickOutside} /> -->
 
 <header>
 	<div class="border-b">
@@ -36,6 +76,14 @@
 				<span class="brand-name">PONG</span>
 			</a>
 
+			<!-- OLD: JS hamburger -->
+			<!--
+			<button class="hamburger-btn" onclick={toggleMobileMenu} aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
+			...
+			</button>
+			-->
+
+			<!-- NEW (no-JS safe mobile menu) -->
 			<details class="mobile-menu-wrapper">
 				<summary class="hamburger-btn" aria-label="Toggle menu">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
@@ -51,7 +99,14 @@
 						<a href="/friends" class="mobile-menu-link">Friends</a>
 						<a href="/profile" class="mobile-menu-link">Profile</a>
 						<a href="/settings" class="mobile-menu-link">Settings</a>
-						<Logout class="mobile-menu-link logout-item">Logout</Logout>
+
+						<!-- NEW (no-JS logout) -->
+						<form method="POST" action="/logout" class="logout-form">
+							<button type="submit" class="mobile-menu-link logout-button">Logout</button>
+						</form>
+
+						<!-- OLD -->
+						<!-- <Logout class="mobile-menu-link logout-item">Logout</Logout> -->
 					{:else}
 						<a href="/instructions" class="mobile-menu-link">Instructions</a>
 						<a href="/about" class="mobile-menu-link">About</a>
@@ -86,8 +141,15 @@
 							<span class="chat-badge">{getTotalUnread()}</span>
 						{/if}
 					</a>
-					<!-- Old: </button> -->
 
+					<!-- OLD (JS dropdown) -->
+					<!--
+					<div class="dropdown-wrapper">
+						<button onclick={toggleDropdown}>...</button>
+					</div>
+					-->
+
+					<!-- NEW (no-JS safe dropdown) -->
 					<details class="dropdown-wrapper">
 						<summary class="avatar-trigger" aria-haspopup="menu">
 							<span class="avatar-name">{user.name || user.username}</span>
@@ -99,41 +161,31 @@
 								status={isConnected() ? 'online' : 'offline'}
 							/>
 						</summary>
+
 						<div class="dropdown-menu" role="menu">
-							<!-- User info at top of dropdown -->
 							<div class="dropdown-user-info">
 								<p class="dropdown-username">{user.name || user.username}</p>
 								<p class="dropdown-email">{user.email}</p>
 							</div>
 
 							<hr class="dropdown-divider" />
-							<a href="/profile" class="dropdown-item" role="menuitem">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-									<circle cx="12" cy="7" r="4" />
-								</svg>
-								Profile
-							</a>
 
-							<a href="/settings" class="dropdown-item" role="menuitem">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<circle cx="12" cy="12" r="3" />
-									<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-								</svg>
-								Settings
-							</a>
+							<a href="/profile" class="dropdown-item">Profile</a>
+							<a href="/settings" class="dropdown-item">Settings</a>
+
 							<hr class="dropdown-divider" />
-							<Logout class="dropdown-item logout-item">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-									<polyline points="16 17 21 12 16 7" />
-									<line x1="21" y1="12" x2="9" y2="12" />
-								</svg>
-								Logout
-							</Logout>
+
+							<!-- NEW (no-JS logout) -->
+							<form method="POST" action="/logout" class="logout-form">
+								<button type="submit" class="dropdown-item logout-button">
+									Logout
+								</button>
+							</form>
+
+							<!-- OLD -->
+							<!-- <Logout class="dropdown-item logout-item">Logout</Logout> -->
 						</div>
 					</details>
-
 				{:else}
 					<a href="/login" class="btn-login">Login</a>
 					<a href="/register" class="btn-signup">Sign Up</a>
@@ -175,5 +227,30 @@
 		font-weight: 700;
 		min-width: 16px;
 		text-align: center;
+	}
+
+	/* NEW helpers for details */
+	.hamburger-btn,
+	.avatar-trigger {
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.hamburger-btn::-webkit-details-marker,
+	.avatar-trigger::-webkit-details-marker {
+		display: none;
+	}
+
+	.logout-form {
+		margin: 0;
+	}
+
+	.logout-button {
+		background: none;
+		border: none;
+		cursor: pointer;
+		font: inherit;
+		text-align: left;
+		width: 100%;
 	}
 </style>

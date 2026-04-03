@@ -11,8 +11,10 @@ import { player_progression } from './player_progression';
 import { achievement_definitions } from './achievement_definitions';
 import { oauthAccounts } from './oauth_accounts';
 import { oauthStates } from './oauth_states';
+import { tournamentMessages } from './tournament_messages';
+import { tournamentInvites } from './tournament_invites';
 
-export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions, oauthAccounts, oauthStates };
+export { users, games, messages, tournaments, analytics, sessions, friendships, tournamentParticipants, achievements, player_progression, achievement_definitions, oauthAccounts, oauthStates, tournamentMessages, tournamentInvites };
 
 export const usersRelations = relations(users, ({ one, many }) => ({
 	gamesAsPlayer1: many(games, { relationName: 'player1' }),

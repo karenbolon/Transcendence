@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants, users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { redirect } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import { getActiveTournament } from '$lib/server/tournament/TournamentManager';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -46,6 +46,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			winScore: tournament.win_score,
 			currentRound: tournament.current_round,
 			createdBy: tournament.created_by,
+			isPrivate: tournament.is_private,
 			winnerId: tournament.winner_id,
 			startedAt: tournament.started_at?.toISOString() ?? null,
 			finishedAt: tournament.finished_at?.toISOString() ?? null,

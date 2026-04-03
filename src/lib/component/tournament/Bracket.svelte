@@ -1,7 +1,7 @@
 <script lang="ts">
 	import MatchCard from './MatchCard.svelte';
 
-	let { bracket, currentUserId, tournamentName = '', currentRound = 1 }: {
+	let { bracket, currentUserId, tournamentName = '', currentRound = 1, tournamentId = 0 }: {
 		bracket: Array<{
 			round: number;
 			matches: Array<{
@@ -19,6 +19,7 @@
 		currentUserId: number;
 		tournamentName?: string;
 		currentRound?: number;
+		tournamentId?: number;
 	} = $props();
 
 	let totalRounds = $derived(bracket.length);
@@ -103,7 +104,7 @@
 				</h3>
 				<div class="round-matches">
 					{#each round.matches as match}
-						<MatchCard {match} {currentUserId} />
+						<MatchCard {match} {currentUserId} {tournamentId} round={round.round} />
 					{/each}
 				</div>
 			</div>

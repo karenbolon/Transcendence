@@ -9,8 +9,8 @@ import {
 	getRoomByPlayer,
 	destroyRoom,
 	isPlayerInGame,
+	removeSpectatorFromAll,
 } from '../game/RoomManager';
-import { advanceWinner, leaveTournament } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -26,32 +26,6 @@ import {
 	type MatchResult,
 } from '../game/MatchmakingQueue';
 
-
-/** Emit a system message into both parties' chat panels in real-time */
-function pushSystemMessage(senderId: number, recipientId: number, content: string, msgId: number, gameId: number | null = null) {
-	const io = getIO();
-	const payload = {
-		id: msgId,
-		senderId,
-		senderUsername: '',
-		senderAvatar: null,
-		recipientId,
-		content,
-		createdAt: new Date().toISOString(),
-		gameId,
-		type: 'system',
-	};
-	// Recipient keyed by senderId in receiveMessage
-	const recipientSockets = userSockets.get(recipientId);
-	if (recipientSockets) {
-		for (const sid of recipientSockets) io.to(sid).emit('chat:message', payload);
-	}
-	// Sender keyed by recipientId in onMessageSent
-	const senderSockets = userSockets.get(senderId);
-	if (senderSockets) {
-		for (const sid of senderSockets) io.to(sid).emit('chat:sent', payload);
-	}
-}
 
 // Track active game invites: inviteId → invite data
 const activeInvites = new Map<string, {
@@ -80,6 +54,10 @@ function broadcastState(roomId: string, state: GameStateSnapshot): void {
 	for (const sid of room.player2.socketIds) {
 		io.to(sid).emit('game:state', state);
 	}
+	// Spectators
+	for (const sid of room.spectators) {
+		io.to(sid).emit('game:state', state);
+	}
 }
 /** Broadcast a game event to all sockets of both players */
 function broadcastEvent(roomId: string, event: string, data: any): void {
@@ -90,6 +68,10 @@ function broadcastEvent(roomId: string, event: string, data: any): void {
 		io.to(sid).emit(event, data);
 	}
 	for (const sid of room.player2.socketIds) {
+		io.to(sid).emit(event, data);
+	}
+	// Spectators
+	for (const sid of room.spectators) {
 		io.to(sid).emit(event, data);
 	}
 }
@@ -173,21 +155,19 @@ export function registerGameHandlers(socket: Socket) {
 				});
 			}
 		}
-		// Save system message and push into both chat panels
+		// Save system message to chat history
 		const speed = resolvedSettings.speedPreset.charAt(0).toUpperCase() + resolvedSettings.speedPreset.slice(1);
 		const pwr = resolvedSettings.powerUps ? 'Power-ups: On' : 'Power-ups: Off';
-		const content = `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore}, ${pwr})`;
-		const [saved] = await db.insert(messages).values({
+		await db.insert(messages).values({
 			sender_id: userId,
 			recipient_id: friendId,
 			type: 'system',
-			content,
-		}).returning({ id: messages.id });
-		pushSystemMessage(userId, friendId, content, saved.id);
+			content: `🎮 Game invite sent (${speed}, first to ${resolvedSettings.winScore}, ${pwr})`,
+		});
 	});
 
 	// Accept an invite
-	socket.on('game:invite-accept', async (data: { inviteId: string }) => {
+	socket.on('game:invite-accept', (data: { inviteId: string }) => {
 		const invite = activeInvites.get(data.inviteId);
 		if (!invite || invite.toUserId !== userId) return;
 
@@ -241,15 +221,6 @@ export function registerGameHandlers(socket: Socket) {
 				io.to(sid).emit('game:start', gameData);
 			}
 		}
-
-		// System message: challenge accepted
-		const [acceptSaved] = await db.insert(messages).values({
-			sender_id: invite.fromUserId,
-			recipient_id: userId,
-			type: 'system',
-			content: '✅ Challenge accepted — match starting!',
-		}).returning({ id: messages.id });
-		pushSystemMessage(invite.fromUserId, userId, '✅ Challenge accepted — match starting!', acceptSaved.id);
 	});
 
 	// ── Join a game room (called when player navigates to game page) ─
@@ -299,8 +270,37 @@ export function registerGameHandlers(socket: Socket) {
 		room.handleInput(userId, data.direction);
 	});
 
+	// ── Spectate a game (read-only) ─────────────────────────
+	socket.on('game:spectate', (data: { roomId: string }) => {
+		const room = getRoom(data.roomId);
+		if (!room) {
+			socket.emit('game:error', { message: 'Game not found' });
+			return;
+		}
+		room.addSpectator(socket.id);
+		socket.emit('game:spectating', {
+			roomId: data.roomId,
+			player1: { userId: room.player1.userId, username: room.player1.username },
+			player2: { userId: room.player2.userId, username: room.player2.username },
+			spectatorCount: room.spectatorCount,
+		});
+		// Notify players and other spectators of new viewer
+		broadcastEvent(data.roomId, 'game:spectator-count', { count: room.spectatorCount });
+		// Send current state immediately
+		socket.emit('game:state', room.getState());
+	});
+
+	// ── Stop spectating ─────────────────────────────────────
+	socket.on('game:stop-spectating', (data: { roomId: string }) => {
+		const room = getRoom(data.roomId);
+		if (room) {
+			room.removeSpectator(socket.id);
+			broadcastEvent(data.roomId, 'game:spectator-count', { count: room.spectatorCount });
+		}
+	});
+
 	// Decline an invite
-	socket.on('game:invite-decline', async (data: { inviteId: string }) => {
+	socket.on('game:invite-decline', (data: { inviteId: string }) => {
 		const invite = activeInvites.get(data.inviteId);
 		if (!invite || invite.toUserId !== userId) return;
 
@@ -315,19 +315,10 @@ export function registerGameHandlers(socket: Socket) {
 				io.to(sid).emit('game:invite-declined', { fromUsername: username });
 			}
 		}
-
-		// System message: challenge declined
-		const [declineSaved] = await db.insert(messages).values({
-			sender_id: invite.fromUserId,
-			recipient_id: userId,
-			type: 'system',
-			content: '❌ Challenge declined',
-		}).returning({ id: messages.id });
-		pushSystemMessage(invite.fromUserId, userId, '❌ Challenge declined', declineSaved.id);
 	});
 
 	// Cancel an invite (challenger changed their mind from waiting room)
-	socket.on('game:invite-cancel', async () => {
+	socket.on('game:invite-cancel', () => {
 		for (const [inviteId, invite] of activeInvites) {
 			if (invite.fromUserId === userId) {
 				clearTimeout(invite.timeout);
@@ -341,31 +332,16 @@ export function registerGameHandlers(socket: Socket) {
 						io.to(sid).emit('game:invite-cancelled', { inviteId });
 					}
 				}
-
-				// System message: invite cancelled
-				const [cancelSaved] = await db.insert(messages).values({
-					sender_id: userId,
-					recipient_id: invite.toUserId,
-					type: 'system',
-					content: '🚫 Game invite cancelled',
-				}).returning({ id: messages.id });
-				pushSystemMessage(userId, invite.toUserId, '🚫 Game invite cancelled', cancelSaved.id);
 				break;
 			}
 		}
 	});
 
 	// ── Leave / forfeit a game (immediate, no reconnect timer) ─
-	socket.on('game:leave', async () => {
+	socket.on('game:leave', () => {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
 		const roomId = room.roomId;
-
-		// Guard: if game already ended (e.g., due to disconnect timeout), don't process again
-		if (room.hasGameEnded) {
-			socket.emit('game:error', { message: 'Game has already ended' });
-			return;
-		}
 
 		// Grab opponent info BEFORE forfeit destroys the room state
 		const opponentUserId = userId === room.player1.userId
@@ -376,33 +352,7 @@ export function registerGameHandlers(socket: Socket) {
 		const snapshot = room.getState();
 		const gameNotStarted = snapshot.phase === 'countdown' || snapshot.phase === 'menu';
 		const isCancellable = gameNotStarted || (snapshot.score1 === 0 && snapshot.score2 === 0);
-		const isTournamentMatch = roomId.startsWith('tournament-');
 
-		// Emit debug info back to the leaving player's browser so it shows in their console
-		socket.emit('debug:server', `[SERVER game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
-
-		// For tournament matches, use full forfeit logic (handles all player's matches + check for winner)
-		if (isTournamentMatch) {
-			try {
-				const parts = roomId.split('-');
-				const tournamentId = Number(parts[1]);
-				socket.emit('debug:server', `[SERVER game:leave] calling leaveTournament(tournamentId=${tournamentId}, userId=${userId})`);
-				// Use leaveTournament to trigger full forfeit queue logic:
-				// - Finds all remaining matches for this player
-				// - Auto-forfeits each match by advancing opponent
-				// - Checks if only 1 active player remains
-				// - If so, declares tournament winner
-				await leaveTournament(tournamentId, userId);
-				socket.emit('debug:server', `[SERVER game:leave] leaveTournament COMPLETED`);
-			} catch (err) {
-				socket.emit('debug:server', `[SERVER game:leave] leaveTournament THREW: ${err}`);
-				console.error('[Tournament] Forfeit handling failed:', err);
-			}
-		} else {
-			socket.emit('debug:server', `[SERVER game:leave] skipping leaveTournament (isTournamentMatch=${isTournamentMatch})`);
-		}
-
-		socket.emit('debug:server', `[SERVER game:leave] calling forfeitByPlayer`);
 		room.forfeitByPlayer(userId);
 
 		// If the game was cancelled (0-0 or not started), onGameEnd wasn't called
@@ -412,8 +362,7 @@ export function registerGameHandlers(socket: Socket) {
 		}
 
 		// Re-queue the remaining player so they don't lose their spot
-		// (Only for non-tournament matches; tournament advancement already handled above)
-		if (isCancellable && !isTournamentMatch && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+		if (isCancellable && !isInQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
 			const opponentSockets = userSockets.get(opponentUserId);
 			if (opponentSockets && opponentSockets.size > 0) {
 				const firstSocketId = opponentSockets.values().next().value;
@@ -453,12 +402,35 @@ export function registerGameHandlers(socket: Socket) {
 				activeInvites.delete(inviteId);
 			}
 		}
+
+		// ── Spectator cleanup on disconnect ──
+		const affected = removeSpectatorFromAll(socket.id);
+		for (const { roomId, count } of affected) {
+			broadcastEvent(roomId, 'game:spectator-count', { count });
+		}
+
 		// Remove socket from active game room (triggers reconnect timer)
 		const room = getRoomByPlayer(userId);
 		if (room) {
 			room.removeSocket(userId, socket.id);
 		}
 	});
+	// ── Tournament pause controls ────────────────────────────
+	socket.on('game:claim-win', () => {
+		const room = getRoomByPlayer(userId);
+		if (!room || !room.isPaused) return;
+		room.claimWin(userId);
+	});
+
+	socket.on('game:extend-pause', () => {
+		const room = getRoomByPlayer(userId);
+		if (!room || !room.isPaused) return;
+		const success = room.extendPause();
+		if (!success) {
+			socket.emit('game:error', { message: 'Cannot extend pause further' });
+		}
+	});
+
 	// ══════════════════════════════════════════════════════════
 	// PUBLIC QUEUE
 	// ══════════════════════════════════════════════════════════

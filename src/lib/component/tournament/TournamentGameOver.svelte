@@ -38,7 +38,6 @@
 		championWins?: number;
 		championTotalTime?: number;
 		championXpEarned?: number;
-		// Badges
 		newBadges?: { emoji: string; name: string }[];
 		// Actions
 		onViewBracket: () => void;

@@ -14,41 +14,6 @@ const activeRooms = new Map<string, GameRoom>();
 // userId → roomId (quick lookup: "is this player in a game?")
 const playerRoomMap = new Map<number, string>();
 
-// roomId → creation timestamp (for TTL cleanup)
-const roomCreatedAt = new Map<string, number>();
-
-// Cleanup interval ID (for memory management)
-let cleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-// ── Room TTL Cleanup (prevent indefinite room accumulation) ──
-const ROOM_TTL_MS = 3600_000; // 1 hour
-const CLEANUP_INTERVAL_MS = 300_000; // Run cleanup every 5 minutes
-
-function startCleanupInterval(): void {
-	if (cleanupInterval) return; // Already running
-	
-	cleanupInterval = setInterval(() => {
-		const now = Date.now();
-		const expiredRoomIds: string[] = [];
-		
-		for (const [roomId, createdAt] of roomCreatedAt) {
-			const age = now - createdAt;
-			if (age > ROOM_TTL_MS) {
-				expiredRoomIds.push(roomId);
-			}
-		}
-		
-		if (expiredRoomIds.length > 0) {
-			console.log(`[RoomManager] Cleanup: Destroying ${expiredRoomIds.length} expired room(s)`);
-			for (const roomId of expiredRoomIds) {
-				destroyRoom(roomId);
-			}
-		}
-	}, CLEANUP_INTERVAL_MS);
-	
-	console.log(`[RoomManager] Room TTL cleanup started (TTL: ${ROOM_TTL_MS/1000}s, interval: ${CLEANUP_INTERVAL_MS/1000}s)`);
-}
-
 // ── Public API ────────────────────────────────────────────────
 export function getRoom(roomId: string): GameRoom | undefined {
 	return activeRooms.get(roomId);
@@ -88,14 +53,18 @@ export function createRoom(
 		activeRooms.set(roomId, room);
 		playerRoomMap.set(player1.userId, roomId);
 		playerRoomMap.set(player2.userId, roomId);
-		
-		// Track creation timestamp for TTL cleanup
-		roomCreatedAt.set(roomId, Date.now());
-		
-		// Start cleanup interval if not already running
-		startCleanupInterval();
-		
 		return room;
+}
+
+export function removeSpectatorFromAll(socketId: string): Array<{ roomId: string; count: number }> {
+	const affected: Array<{ roomId: string; count: number }> = [];
+	for (const [roomId, room] of activeRooms) {
+		if (room.spectators.has(socketId)) {
+			room.removeSpectator(socketId);
+			affected.push({ roomId, count: room.spectatorCount });
+		}
+	}
+	return affected;
 }
 
 /** Remove a room and unregister both players */
@@ -112,8 +81,15 @@ export function destroyRoom(roomId: string): void {
 	if (playerRoomMap.get(room.player2.userId) === roomId) {
 		playerRoomMap.delete(room.player2.userId);
 	}
+	// Notify players the room is gone (clears "Return to Match" pill)
+	const io = getIO();
+	for (const uid of [room.player1.userId, room.player2.userId]) {
+		const sockets = userSockets.get(uid);
+		if (sockets) {
+			for (const sid of sockets) io.to(sid).emit('game:room-destroyed');
+		}
+	}
 	activeRooms.delete(roomId);
-	roomCreatedAt.delete(roomId); // Clean up TTL tracking
 }
 
 // ── Match Saving (called when game ends) ──────────────────────
@@ -124,6 +100,7 @@ export function destroyRoom(roomId: string): void {
  * This runs inside a transaction so everything succeeds or fails together.
  */
 async function handleGameEnd(result: GameResult): Promise<void> {
+	console.log(`[GameRoom] handleGameEnd called for room ${result.roomId}`);
 	// Clear playerRoomMap immediately so players can challenge again
 	// while the async DB save is still running
 	playerRoomMap.delete(result.player1.userId);
@@ -220,13 +197,12 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				}
 			}
 
-			// Check if this was a tournament match
+			// Check if this was a tournament match — accumulate XP inside the transaction,
+			// but call advanceWinner AFTER the transaction commits to avoid deadlocks
+			// (advanceWinner uses the global db connection and updates the same rows)
 			if (result.roomId.startsWith('tournament-')) {
 				const parts = result.roomId.split('-');
-				// Format: tournament-{id}-r{round}-m{matchIndex}
-				const tournamentId = Number(parts[1]);
-				const round = Number(parts[2].replace('r', ''));
-				const matchIndex = Number(parts[3].replace('m', ''));
+				const tId = Number(parts[1]);
 
 				// Accumulate XP earned in this tournament for both players
 				for (const [uid, progression] of [[result.player1.userId, p1Progression], [result.player2.userId, p2Progression]] as const) {
@@ -234,46 +210,36 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 						await tx.update(tournamentParticipants).set({
 							xp_earned: sql`${tournamentParticipants.xp_earned} + ${progression.xpEarned}`,
 						}).where(and(
-							eq(tournamentParticipants.tournament_id, tournamentId),
+							eq(tournamentParticipants.tournament_id, tId),
 							eq(tournamentParticipants.user_id, uid),
 						));
 					}
 				}
-
-				const winnerScore = result.player1.userId === result.winnerId
-				? result.player1.score : result.player2.score;
-			const loserScore = result.player1.userId === result.loserId
-				? result.player1.score : result.player2.score;
-			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
 			}
 
-			const matchContent = `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`;
-			const [msgSaved] = await tx.insert(messages).values({
+			await tx.insert(messages).values({
 				sender_id: result.player1.userId,
 				recipient_id: result.player2.userId,
 				game_id: gameRecord.id, // from the insert returning
 				type: 'system',
-				content: matchContent,
-			}).returning({ id: messages.id });
-
-			// Push match result into both players' chat panels
-			const msgPayload = {
-				id: msgSaved.id,
-				senderId: result.player1.userId,
-				senderUsername: '',
-				senderAvatar: null,
-				recipientId: result.player2.userId,
-				content: matchContent,
-				createdAt: new Date().toISOString(),
-				gameId: gameRecord.id,
-				type: 'system',
-			};
-			const p1Sockets = userSockets.get(result.player1.userId);
-			if (p1Sockets) for (const sid of p1Sockets) io.to(sid).emit('chat:sent', msgPayload);
-			const p2Sockets = userSockets.get(result.player2.userId);
-			if (p2Sockets) for (const sid of p2Sockets) io.to(sid).emit('chat:message', msgPayload);
+				content: `🏆 ${result.winnerUsername} won ${result.player1.score}-${result.player2.score}`,
+			});
 		});
 		console.log(`[GameRoom] Match saved: ${result.winnerUsername} won ${result.roomId}`);
+
+		// Advance tournament AFTER transaction commits — must be outside the
+		// transaction to avoid deadlocking on tournament_participants rows
+		if (result.roomId.startsWith('tournament-')) {
+			const parts = result.roomId.split('-');
+			const tournamentId = Number(parts[1]);
+			const round = Number(parts[2].replace('r', ''));
+			const matchIndex = Number(parts[3].replace('m', ''));
+			const winnerScore = result.player1.userId === result.winnerId
+				? result.player1.score : result.player2.score;
+			const loserScore = result.player1.userId === result.loserId
+				? result.player1.score : result.player2.score;
+			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
+		}
 	} catch (err) {
 		console.error('[GameRoom] Failed to save match:', err);
 	} finally {

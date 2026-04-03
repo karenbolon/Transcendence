@@ -20,7 +20,6 @@
 		socket.on('tournament:player-left', () => invalidateAll());
 		socket.on('tournament:started', () => invalidateAll());
 		socket.on('tournament:finished', () => invalidateAll());
-		// tournament:cancelled is handled globally in +layout.svelte (toast + redirect)
 		socket.on('tournament:list-updated', () => invalidateAll());
 	});
 	onDestroy(() => {
@@ -35,10 +34,12 @@
 
 	// Filter: show open + in_progress together as "Active tournaments"
 	let activeTournaments = $derived(
-		data.tournaments.filter((t: any) => t.status === 'scheduled' || t.status === 'in_progress')
+		data.tournaments.filter(
+			(t: any) => t.status === 'scheduled' || t.status === 'in_progress',
+		),
 	);
 	let finishedTournaments = $derived(
-		data.tournaments.filter((t: any) => t.status === 'finished')
+		data.tournaments.filter((t: any) => t.status === 'finished'),
 	);
 
 	// Create modal state
@@ -48,16 +49,21 @@
 	let newSpeed = $state('normal');
 	let newWinScore = $state(5);
 	let creating = $state(false);
+	let newIsPrivate = $state(false);
 
 	function createTournament() {
 		if (!newName.trim()) return;
 		const socket = getSocket();
-		if (!socket?.connected) { toast.error('Not connected'); return; }
+		if (!socket?.connected) {
+			toast.error('Not connected');
+			return;
+		}
 		creating = true;
 		socket.emit('tournament:create', {
 			name: newName.trim(),
 			maxPlayers: newMaxPlayers,
 			settings: { speedPreset: newSpeed, winScore: newWinScore },
+			isPrivate: newIsPrivate,
 		});
 		socket.once('tournament:created', (d: { tournamentId: number }) => {
 			creating = false;
@@ -74,7 +80,8 @@
 
 	function statusBadge(status: string): { label: string; class: string } {
 		if (status === 'scheduled') return { label: 'OPEN', class: 'badge-open' };
-		if (status === 'in_progress') return { label: 'IN PROGRESS', class: 'badge-active' };
+		if (status === 'in_progress')
+			return { label: 'IN PROGRESS', class: 'badge-active' };
 		return { label: 'FINISHED', class: 'badge-finished' };
 	}
 
@@ -91,6 +98,8 @@
 	];
 	const playerOptions = [
 		{ value: 4, label: '4 players', sub: '2 rounds', emoji: '⚡' },
+		{ value: 8, label: '8 players', sub: '3 rounds', emoji: '🔥' },
+		{ value: 16, label: '16 players', sub: '4 rounds', emoji: '💥' },
 	];
 
 </script>
@@ -105,7 +114,9 @@
 			<h1 class="page-title">Tournaments</h1>
 			<p class="page-sub">Compete in brackets, climb the ranks</p>
 		</div>
-		<button class="btn-create" onclick={() => showCreate = true}>+ Create</button>
+		<button class="btn-create" onclick={() => (showCreate = true)}
+			>+ Create</button
+		>
 	</div>
 
 	<!-- Active tournament banner -->
@@ -130,7 +141,8 @@
 		<section class="section">
 			<div class="section-header">
 				<h2 class="section-title">Active tournaments</h2>
-				<span class="section-count">{activeTournaments.length} tournaments</span>
+				<span class="section-count">{activeTournaments.length} tournaments</span
+				>
 			</div>
 
 			<div class="tournament-list">
@@ -138,12 +150,21 @@
 					<a href="/tournaments/{t.id}" class="tournament-card">
 						<div class="card-top">
 							<h3 class="card-name">{t.name}</h3>
+							{#if t.isPrivate}
+								<span class="private-badge">🔒</span>
+							{/if}
 							<!-- should be add current round like semifinals or like QUARTERFINALS  -->
-							<span class="badge {statusBadge(t.status).class}">{statusBadge(t.status).label}</span>
+							<span class="badge {statusBadge(t.status).class}"
+								>{statusBadge(t.status).label}</span
+							>
 						</div>
 						<div class="card-meta">
-							<span class="meta-item">👥 {t.participantCount}/{t.maxPlayers}</span>
-							<span class="meta-item">{speedEmoji(t.speedPreset)} {capitalize(t.speedPreset)}</span>
+							<span class="meta-item"
+								>👥 {t.participantCount}/{t.maxPlayers}</span
+							>
+							<span class="meta-item"
+								>{speedEmoji(t.speedPreset)} {capitalize(t.speedPreset)}</span
+							>
 							<span class="meta-item">First to {t.winScore}</span>
 							<span class="meta-item creator">
 								<UserAvatar username={t.creatorUsername} size="xs" />
@@ -151,11 +172,25 @@
 							</span>
 						</div>
 						{#if t.status === 'scheduled'}
-							<button class="btn-card-action" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
+							<button
+								class="btn-card-action"
+								onclick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									goto(`/tournaments/${t.id}`);
+								}}
+							>
 								Join
 							</button>
 						{:else}
-							<button class="btn-card-action watch" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
+							<button
+								class="btn-card-action watch"
+								onclick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									goto(`/tournaments/${t.id}`);
+								}}
+							>
 								Watch
 							</button>
 						{/if}
@@ -175,7 +210,11 @@
 						<div class="finished-row">
 							<div class="finished-avatar-wrap">
 								{#if t.winnerUsername}
-									<UserAvatar username={t.winnerUsername} avatarUrl={t.winnerAvatarUrl} size="sm" />
+									<UserAvatar
+										username={t.winnerUsername}
+										avatarUrl={t.winnerAvatarUrl}
+										size="sm"
+									/>
 									<span class="trophy-overlay">🏆</span>
 								{:else}
 									<span class="trophy-solo">🏆</span>
@@ -215,8 +254,11 @@
 		<div class="empty-state">
 			<div class="empty-trophy">🏆</div>
 			<h2 class="empty-title">No tournaments right now</h2>
-			<p class="empty-text">Be the first to create one! Set up a bracket, invite friends, and compete for glory.</p>
-			<button class="btn-create-empty" onclick={() => showCreate = true}>
+			<p class="empty-text">
+				Be the first to create one! Set up a bracket, invite friends, and
+				compete for glory.
+			</p>
+			<button class="btn-create-empty" onclick={() => (showCreate = true)}>
 				🏆 Create your first tournament
 			</button>
 		</div>
@@ -227,11 +269,13 @@
 {#if showCreate}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<div class="modal-overlay" onclick={() => showCreate = false}>
+	<div class="modal-overlay" onclick={() => (showCreate = false)}>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div class="modal" onclick={(e) => e.stopPropagation()}>
-			<button class="modal-close" onclick={() => showCreate = false}>&times;</button>
+			<button class="modal-close" onclick={() => (showCreate = false)}
+				>&times;</button
+			>
 
 			<div class="modal-header">
 				<span class="modal-icon">🏆</span>
@@ -258,10 +302,13 @@
 						<button
 							class="option-card"
 							class:selected={newMaxPlayers === opt.value}
-							onclick={() => newMaxPlayers = opt.value}
+							onclick={() => (newMaxPlayers = opt.value)}
 						>
 							<span class="option-emoji">{opt.emoji}</span>
-							<span class="option-main" class:highlight={newMaxPlayers === opt.value}>{opt.label}</span>
+							<span
+								class="option-main"
+								class:highlight={newMaxPlayers === opt.value}>{opt.label}</span
+							>
 							<span class="option-sub">{opt.sub}</span>
 						</button>
 					{/each}
@@ -276,10 +323,12 @@
 						<button
 							class="option-card"
 							class:selected={newSpeed === opt.value}
-							onclick={() => newSpeed = opt.value}
+							onclick={() => (newSpeed = opt.value)}
 						>
 							<span class="option-emoji">{opt.emoji}</span>
-							<span class="option-main" class:highlight={newSpeed === opt.value}>{opt.label}</span>
+							<span class="option-main" class:highlight={newSpeed === opt.value}
+								>{opt.label}</span
+							>
 						</button>
 					{/each}
 				</div>
@@ -293,9 +342,12 @@
 						<button
 							class="option-card"
 							class:selected={newWinScore === opt.value}
-							onclick={() => newWinScore = opt.value}
+							onclick={() => (newWinScore = opt.value)}
 						>
-							<span class="option-main" class:highlight={newWinScore === opt.value}>{opt.label}</span>
+							<span
+								class="option-main"
+								class:highlight={newWinScore === opt.value}>{opt.label}</span
+							>
 							<span class="option-sub">{opt.sub}</span>
 						</button>
 					{/each}
@@ -303,29 +355,33 @@
 			</div>
 
 			<!-- Visibility private or public -->
-			<!-- <div class="form-section">
+			<div class="form-section">
 				<span class="form-label">VISIBILITY</span>
 				<div class="option-grid cols-2">
 					<button
 						class="option-card"
-						class:selected={newVisibility === 'public'}
-						onclick={() => newVisibility = 'public'}
+						class:selected={!newIsPrivate}
+						onclick={() => (newIsPrivate = false)}
 					>
 						<span class="option-emoji">🌐</span>
-						<span class="option-main" class:highlight={newVisibility === 'public'}>Public</span>
-						<span class="opt-sub">Anyone can join</span>
+						<span class="option-main" class:highlight={!newIsPrivate}
+							>Public</span
+						>
+						<span class="option-sub">Anyone can join</span>
 					</button>
 					<button
 						class="option-card"
-						class:selected={newVisibility === 'private'}
-						onclick={() => newVisibility = 'private'}
+						class:selected={newIsPrivate}
+						onclick={() => (newIsPrivate = true)}
 					>
 						<span class="option-emoji">🔒</span>
-						<span class="option-main" class:highlight={newVisibility === 'private'}>Friends only</span>
-						<span class="opt-sub">Invite required</span>
+						<span class="option-main" class:highlight={newIsPrivate}
+							>Private</span
+						>
+						<span class="option-sub">Invite required</span>
 					</button>
 				</div>
-			</div> -->
+			</div>
 
 			<!-- Create Button -->
 			<button
@@ -336,7 +392,9 @@
 				🏆 {creating ? 'Creating...' : 'Create tournament'}
 			</button>
 
-			<p class="create-note">You'll be automatically added as the first player</p>
+			<p class="create-note">
+				You'll be automatically added as the first player
+			</p>
 		</div>
 	</div>
 {/if}
@@ -385,7 +443,10 @@
 		font-family: inherit;
 		white-space: nowrap;
 	}
-	.btn-create:hover { background: #ff85b1; transform: scale(1.02); }
+	.btn-create:hover {
+		background: #ff85b1;
+		transform: scale(1.02);
+	}
 
 	/* ── Active Banner ──────────────────── */
 	.active-banner {
@@ -401,7 +462,9 @@
 		color: inherit;
 		transition: border-color 0.15s;
 	}
-	.active-banner:hover { border-color: rgba(255, 107, 157, 0.4); }
+	.active-banner:hover {
+		border-color: rgba(255, 107, 157, 0.4);
+	}
 
 	.banner-left {
 		display: flex;
@@ -409,7 +472,9 @@
 		gap: 0.75rem;
 	}
 
-	.banner-icon { font-size: 1.2rem; }
+	.banner-icon {
+		font-size: 1.2rem;
+	}
 
 	.banner-left strong {
 		display: block;
@@ -482,7 +547,9 @@
 		border-radius: 0.75rem;
 		text-decoration: none;
 		color: inherit;
-		transition: border-color 0.15s, background 0.15s;
+		transition:
+			border-color 0.15s,
+			background 0.15s;
 		position: relative;
 	}
 	.tournament-card:hover {
@@ -512,9 +579,23 @@
 		letter-spacing: 0.05em;
 	}
 
-	.badge-open { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-	.badge-active { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-	.badge-finished { background: rgba(255, 255, 255, 0.08); color: #6b7280; }
+	.badge-open {
+		background: rgba(74, 222, 128, 0.15);
+		color: #4ade80;
+	}
+	.badge-active {
+		background: rgba(251, 191, 36, 0.15);
+		color: #fbbf24;
+	}
+	.badge-finished {
+		background: rgba(255, 255, 255, 0.08);
+		color: #6b7280;
+	}
+
+	.private-badge {
+		font-size: 0.75rem;
+		opacity: 0.6;
+	}
 
 	.card-meta {
 		display: flex;
@@ -586,7 +667,7 @@
 		bottom: -4px;
 		right: -6px;
 		font-size: 0.8rem;
-		filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 	}
 
 	.trophy-solo {
@@ -686,7 +767,9 @@
 		transition: all 0.15s;
 		font-family: inherit;
 	}
-	.btn-create-empty:hover { background: #ff85b1; }
+	.btn-create-empty:hover {
+		background: #ff85b1;
+	}
 
 	/* ═══════════════════════════════════════
 	   CREATE MODAL
@@ -726,7 +809,9 @@
 		padding: 0.25rem;
 		line-height: 1;
 	}
-	.modal-close:hover { color: #f3f4f6; }
+	.modal-close:hover {
+		color: #f3f4f6;
+	}
 
 	.modal-header {
 		text-align: center;
@@ -779,17 +864,27 @@
 		outline: none;
 		box-sizing: border-box;
 	}
-	.form-input:focus { border-color: rgba(255, 107, 157, 0.4); }
-	.form-input::placeholder { color: #4b5563; }
+	.form-input:focus {
+		border-color: rgba(255, 107, 157, 0.4);
+	}
+	.form-input::placeholder {
+		color: #4b5563;
+	}
 
 	/* ── Option Grid ────────────────────── */
 	.option-grid {
 		display: grid;
 		gap: 0.5rem;
 	}
-	.option-grid.cols-2 { grid-template-columns: 1fr 1fr; }
-	.option-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-	.option-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+	.option-grid.cols-2 {
+		grid-template-columns: 1fr 1fr;
+	}
+	.option-grid.cols-3 {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
+	.option-grid.cols-4 {
+		grid-template-columns: 1fr 1fr 1fr 1fr;
+	}
 
 	.option-card {
 		display: flex;
@@ -849,8 +944,13 @@
 		font-family: inherit;
 		margin-top: 0.5rem;
 	}
-	.btn-create-tournament:hover:not(:disabled) { background: #ff85b1; }
-	.btn-create-tournament:disabled { opacity: 0.4; cursor: not-allowed; }
+	.btn-create-tournament:hover:not(:disabled) {
+		background: #ff85b1;
+	}
+	.btn-create-tournament:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
 
 	.create-note {
 		text-align: center;
@@ -861,8 +961,16 @@
 
 	/* ── Responsive ──────────────────────── */
 	@media (max-width: 500px) {
-		.active-banner { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
-		.banner-right { align-self: flex-end; }
-		.option-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+		.active-banner {
+			flex-direction: column;
+			gap: 0.75rem;
+			align-items: flex-start;
+		}
+		.banner-right {
+			align-self: flex-end;
+		}
+		.option-grid.cols-4 {
+			grid-template-columns: 1fr 1fr;
+		}
 	}
 </style>

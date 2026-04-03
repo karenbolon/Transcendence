@@ -1,7 +1,7 @@
 <script lang="ts">
 	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 
-	let { match, currentUserId }: {
+	let { match, currentUserId, tournamentId = 0, round = 0 }: {
 		match: {
 			matchIndex: number;
 			player1Id: number | null;
@@ -14,11 +14,14 @@
 			status: 'pending' | 'playing' | 'finished' | 'bye';
 		};
 		currentUserId: number;
+		tournamentId?: number;
+		round?: number;
 	} = $props();
 
 	let isMyMatch = $derived(match.player1Id === currentUserId || match.player2Id === currentUserId);
 	let p1Won = $derived(match.winnerId !== null && match.winnerId === match.player1Id);
 	let p2Won = $derived(match.winnerId !== null && match.winnerId === match.player2Id);
+	let roomId = $derived(`tournament-${tournamentId}-r${round}-m${match.matchIndex}`);
 </script>
 
 <div class="match-card" class:my-match={isMyMatch} class:playing={match.status === 'playing'} class:bye={match.status === 'bye'}>
@@ -52,6 +55,11 @@
 			<span class="player-name tbd">TBD</span>
 		{/if}
 	</div>
+	{#if match.status === 'playing' && tournamentId > 0}
+		<a href="/play/online/{roomId}?spectate=true" class="watch-btn">
+			👁 Watch
+		</a>
+	{/if}
 </div>
 
 <style>
@@ -141,5 +149,21 @@
 
 	.winner .score {
 		color: #4ade80;
+	}
+
+	.watch-btn {
+		display: block;
+		text-align: center;
+		padding: 0.3rem;
+		font-size: 0.65rem;
+		font-weight: 600;
+		color: #fbbf24;
+		background: rgba(251, 191, 36, 0.06);
+		border-top: 1px solid rgba(255, 255, 255, 0.04);
+		text-decoration: none;
+		transition: all 0.15s;
+	}
+	.watch-btn:hover {
+		background: rgba(251, 191, 36, 0.12);
 	}
 </style>

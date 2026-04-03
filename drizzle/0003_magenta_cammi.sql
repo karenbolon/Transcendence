@@ -1,1 +1,0 @@
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "notification_prefs" jsonb DEFAULT '{"friendRequests":true,"gameInvites":true,"matchResults":true}'::jsonb;

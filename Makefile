@@ -38,7 +38,7 @@ DB_CONTAINER		= ft_db
 DB_TEST_CONTAINER	= test_db
 #DB_USER             = postgres
 DB_USER             = root
-DB_NAME             = db_test
+DB_NAME             = pong_db
 
 # ================================================================================
 # SETUP & INSTALLATION

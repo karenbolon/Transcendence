@@ -16,6 +16,8 @@ export type SearchResult = {
 	name: string | null;
 	avatar_url: string | null;
 	is_online: boolean | null;
-	relationship: string | null;
+	relationship: 'accepted' | 'pending' | 'blocked' | null;
+	relationshipDirection: 'incoming' | 'outgoing' | null;
+	blockedByMe: boolean;
 	friendshipId: number | null;
 };

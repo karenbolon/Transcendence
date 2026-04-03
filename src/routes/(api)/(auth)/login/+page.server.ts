@@ -17,7 +17,7 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 
-		const username = formData.get('username')?.toString().trim() ?? '';
+		const username = formData.get('username')?.toString().trim().toLowerCase() ?? '';
 		const password = formData.get('password')?.toString() ?? '';
 
 		if (!username || !password) {

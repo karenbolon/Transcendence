@@ -40,7 +40,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	// Get relationship status for each result
 	const userIds = matchedUsers.map(u => u.id);
-	const relationshipMap: Record<number, { status: string; friendshipId: number; blockedByMe: boolean }> = {};
+	const relationshipMap: Record<number, { status: string; friendshipId: number; blockedByMe: boolean; direction: 'incoming' | 'outgoing' }> = {};
 
 	if (userIds.length > 0) {
 		const rows = await db
@@ -59,7 +59,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 				relationshipMap[otherId] = {
 					status: row.status,
 					friendshipId: row.id,
-					blockedByMe: row.status === 'blocked' && row.user_id === userId, };
+					blockedByMe: row.status === 'blocked' && row.user_id === userId,
+					direction: row.user_id === userId ? 'outgoing' : 'incoming'
+				};
 			}
 		}
 	}
@@ -76,6 +78,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			// If they blocked me: show as offline, show as "friends" (not blocked)
 			is_online: theyBlockedMe ? false : u.is_online,
 			relationship: theyBlockedMe ? 'accepted' : (rel?.status ?? null),
+			relationshipDirection: theyBlockedMe ? null : (rel?.direction ?? null),
+			blockedByMe: rel?.blockedByMe ?? false,
 			friendshipId: theyBlockedMe ? (rel?.friendshipId ?? null) : (rel?.friendshipId ?? null),
 		};
 	});

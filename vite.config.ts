@@ -74,6 +74,11 @@ function socketIODevPlugin() {
 export default defineConfig(({ mode }) => ({
 	plugins: [socketIODevPlugin(), tailwindcss(), sveltekit()],
 
+	server: {
+		host: '0.0.0.0',
+		port: 8080,
+	},
+
 	test: {
 		env: loadEnv('test', process.cwd(), ''),
 		setupFiles: ['src/lib/server/db/test_db/vitest.setup.ts'],

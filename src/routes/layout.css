@@ -275,12 +275,15 @@ header {
 /* dropdown */
 .dropdown-wrapper {
 	position: relative;
+	padding-bottom: 0.5rem;
+	margin-bottom: -0.5rem;
 }
 
 .dropdown-menu {
+	display: none;
 	position: absolute;
 	right: 0;
-	top: calc(100% + 0.5rem);
+	top: 100%;
 	width: 220px;
 	background-color: var(--card);
 	border: 1px solid rgba(255, 255, 255, 0.08);
@@ -290,6 +293,19 @@ header {
 	z-index: 50;
 	/* Entrance animation */
 	animation: dropdown-enter 0.15s ease-out;
+}
+
+.dropdown-wrapper:hover .dropdown-menu,
+.dropdown-wrapper:focus-within .dropdown-menu {
+	display: block;
+}
+
+/* Touch/no-hover devices: keep <details> click behavior for no-JS usability. */
+@media (hover: none), (pointer: coarse) {
+	.dropdown-wrapper:focus-within .dropdown-menu,
+	.dropdown-wrapper[open] .dropdown-menu {
+		display: block;
+	}
 }
 
 .dropdown-user-info {
@@ -364,6 +380,11 @@ header {
 	color: #e5e7eb;
 }
 
+.mobile-menu-wrapper {
+	display: none;
+	position: relative;
+}
+
 /* ── Mobile menu ── */
 .mobile-menu {
 	display: none;
@@ -389,6 +410,10 @@ header {
 
 .mobile-menu-link:hover {
 	color: #fff;
+}
+
+.mobile-menu-wrapper[open] .mobile-menu {
+	display: flex;
 }
 
 /* ── Tablet ── */
@@ -424,11 +449,14 @@ header {
 	.nav-links {
 		display: none;
 	}
+	.mobile-menu-wrapper {
+		display: block;
+	}
 	.hamburger-btn {
 		display: flex;
 	}
 	.mobile-menu {
-		display: flex;
+		display: none;
 	}
 	.brand-name {
 		font-size: 1.25rem;
@@ -651,4 +679,123 @@ input.form-fill:-webkit-autofill:active{
 
 	/* This prevents the browser from flashing its default color */
 	transition: background-color 9999s ease-out 0s;
+}
+
+/* ======================================================== */
+/*                no-JS support overrides                   */
+/*   appended only: keeps existing header CSS untouched     */
+/* ======================================================== */
+
+/* details-based avatar dropdown support */
+.dropdown-wrapper summary {
+	list-style: none;
+}
+
+.dropdown-wrapper summary::-webkit-details-marker {
+	display: none;
+}
+
+/* keep dropdown menu hidden until details is opened */
+.dropdown-wrapper:not([open]) .dropdown-menu {
+	display: none;
+}
+
+/* details-based mobile menu support */
+.mobile-menu-wrapper {
+	display: none;
+}
+
+.mobile-menu-wrapper > summary {
+	list-style: none;
+}
+
+.mobile-menu-wrapper > summary::-webkit-details-marker {
+	display: none;
+}
+
+/* force mobile menu to stay hidden unless the details menu is open */
+@media (max-width: 680px) {
+	.mobile-menu {
+		display: none;
+	}
+
+	.mobile-menu-wrapper[open] .mobile-menu {
+		display: flex;
+	}
+}
+
+/* override old mobile-menu styling when used inside details */
+.mobile-menu-wrapper .mobile-menu {
+	display: none;
+	flex-direction: column;
+	padding: 0.5rem 0 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	background-color: var(--card);
+	position: absolute;
+	top: calc(100% + 0.5rem);
+	right: 0;
+	min-width: 220px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.75rem;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+	z-index: 50;
+}
+
+/* show only when the details element is open */
+.mobile-menu-wrapper[open] .mobile-menu {
+	display: flex;
+}
+
+/* slightly adjust link padding inside dropdown-style mobile menu */
+.mobile-menu-wrapper .mobile-menu-link {
+	padding: 0.65rem 1rem;
+	display: block;
+}
+
+/* no-JS logout button styling */
+.logout-form {
+	margin: 0;
+	padding: 0;
+}
+
+.logout-button {
+	width: 100%;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+}
+
+/* mobile behavior: hide desktop nav, show hamburger/details menu */
+@media (max-width: 680px) {
+	.nav-links {
+		display: none;
+	}
+
+	.header-right {
+		display: none;
+	}
+
+	.mobile-menu-wrapper {
+		display: block;
+		position: relative;
+		margin-left: auto;
+	}
+
+	.hamburger-btn {
+		display: flex;
+	}
+
+	.mobile-menu-wrapper .mobile-menu {
+		width: min(22rem, calc(100vw - 2rem));
+		max-height: calc(100vh - 5rem);
+		overflow-y: auto;
+	}
+}
+
+@media (max-width: 420px) {
+	.mobile-menu-wrapper .mobile-menu {
+		right: -0.25rem;
+	}
 }

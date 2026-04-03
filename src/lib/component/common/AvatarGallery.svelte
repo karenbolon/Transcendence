@@ -14,8 +14,6 @@
 			uploadedAvatars: string[];
 			defaultAvatars: Record<string, string[]>;
 			uploading: boolean;
-			unlockedAvatars: string[];
-			lockableAvatars: { url: string; label: string }[];
 			onselect: (url: string | null) => void;
 			onupload: (e: Event) => void;
 			ondelete: (url: string) => void;
@@ -27,14 +25,12 @@
 			uploadedAvatars,
 			defaultAvatars,
 			uploading,
-			unlockedAvatars,
-			lockableAvatars = [],
 			onselect,
 			onupload,
 			ondelete,
 	}: Props = $props();
 
-	type Tab = 'mine' | 'collection' | 'unlockable';
+	type Tab = 'mine' | 'collection';
 	let activeTab = $state<Tab>('mine');
 
 	let activeCategory = $state('');
@@ -68,13 +64,6 @@
 				onclick={() => { activeTab = 'collection'; }}
 		>
 				Collection
-		</button>
-		<button
-				class="tab"
-				class:active={activeTab === 'unlockable'}
-				onclick={() => { activeTab = 'unlockable'; }}
-		>
-				Unlockable
 		</button>
 	</div>
 
@@ -137,48 +126,6 @@
 						</button>
 					{/each}
 				{/each}
-			</div>
-		{:else if activeTab === 'unlockable'}
-			<div class="grid">
-				<!-- Unlock section -->
-				 {#if unlockedAvatars.length > 0}
-					<!-- how many unlock you have  -->
-					<div class="section-divider">✅ Unlocked ({unlockedAvatars.length})</div>
-					<div class="section-row">
-						{#each lockableAvatars as avatar (avatar.url)}
-							<div class="locked-wrapper" title={avatar.label}>
-								<div class="avatar-option locked-option">
-									<img src={avatar.url} alt="Locked avatar" />
-									<div class="lock-overlay">
-										<span class="lock-icon">&#128274;</span>
-									</div>
-								</div>
-								<span class="lock-hint">{avatar.label}</span>
-							</div>
-						{/each}
-					</div>
-
-				{/if}
-				 <!-- Avatars that can be unlocked (shown locked) -->
-				{#if lockableAvatars.length > 0}
-					<div class="section-divider">🔒 Locked ({lockableAvatars.length})</div>
-					<div class="section-row">
-						{#each lockableAvatars as avatar (avatar.url)}
-							<div class="locked-wrapper" title={avatar.label}>
-								<div class="avatar-option locked-option">
-									<img src={avatar.url} alt="lock-overlay" />
-									<div class="lock-overlay">
-										<span class="lock-icon">🔒</span>
-									</div>
-								</div>
-								<span class="lock-hint">{avatar.label}</span>
-							</div>
-						{/each}
-					</div>
-				{/if}
-				{#if unlockedAvatars.length === 0 && lockableAvatars.length === 0}
-						<p class="tab-hint">Complete achievements to unlock special avatars</p>
-				{/if}
 			</div>
 		{/if}
 	</div>

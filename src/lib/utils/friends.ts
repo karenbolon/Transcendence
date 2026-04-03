@@ -34,13 +34,18 @@ export async function friendAction(action: FriendAction, friendId: number): Prom
 			body: JSON.stringify({ friendId }),
 		});
 
+		const data = await res.json().catch(() => ({}));
+
 		if (res.ok) {
-			toast.success(SUCCESS_MESSAGES[action]);
+			const successMessage = action === 'request' && data.status === 'accepted'
+				? 'Friend added!'
+				: SUCCESS_MESSAGES[action];
+
+			toast.success(successMessage);
 			await invalidateAll();
 			return true;
 		} else {
-			const err = await res.json().catch(() => ({}));
-			toast.error(err.error || `Failed to ${action}`);
+			toast.error(data.error || `Failed to ${action}`);
 			return false;
 		}
 	} catch {

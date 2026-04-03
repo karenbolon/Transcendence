@@ -42,6 +42,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return json({ error: 'File must be PNG, JPEG, or WebP' }, { status: 400 });
 	}
 
+	if (file.size === 0) {
+		return json({ error: 'Image is invalid or empty' }, { status: 400 });
+	}
+
 	if (file.size > MAX_SIZE) {
 		return json({ error: 'File must be 2MB or less' }, { status: 400 });
 	}

@@ -79,6 +79,7 @@
 	// Track what phase we paused from and whether ESC triggered it
 	let pausedFrom = $state<'playing' | 'countdown'>('playing');
 	let escPaused = $state(false);
+	let autoPausedFromVisibility = $state(false);
 
 	export function startGame() {
 		if (game.phase === 'menu' && canStart) {
@@ -91,6 +92,7 @@
 		if (game.phase === 'playing' || game.phase === 'countdown') {
 			pausedFrom = game.phase as 'playing' | 'countdown';
 			escPaused = false;
+			autoPausedFromVisibility = false;
 			pauseGame(game);
 		}
 	}
@@ -99,11 +101,13 @@
 		if (game.phase === 'paused') {
 			game.phase = pausedFrom;
 			escPaused = false;
+			autoPausedFromVisibility = false;
 		}
 	}
 
 	let canvas: HTMLCanvasElement;
 	let lastTime = 0;
+	let animFrame = 0;
 
 	const keysDown = new Set<string>();
 
@@ -159,10 +163,12 @@
 			if (game.phase === 'playing' || game.phase === 'countdown') {
 				pausedFrom = game.phase as 'playing' | 'countdown';
 				escPaused = true;
+				autoPausedFromVisibility = false;
 				pauseGame(game);
 			} else if (game.phase === 'paused') {
 				// Second ESC → quit
 				escPaused = false;
+				autoPausedFromVisibility = false;
 				returnToMenu(game);
 				effects.reset();
 			}
@@ -181,11 +187,14 @@
 			} else if (game.phase === 'playing' || game.phase === 'countdown') {
 				pausedFrom = game.phase as 'playing' | 'countdown';
 				escPaused = false;
+				autoPausedFromVisibility = false;
 				pauseGame(game);
 			} else if (game.phase === 'paused') {
 				game.phase = pausedFrom;
 				escPaused = false;
+				autoPausedFromVisibility = false;
 			} else if (game.phase === 'gameover') {
+				autoPausedFromVisibility = false;
 				returnToMenu(game);
 				effects.reset();
 			}
@@ -197,11 +206,13 @@
 		if (game.phase === 'menu' && canStart) {
 			startGame();
 		} else if (game.phase === 'gameover') {
+			autoPausedFromVisibility = false;
 			returnToMenu(game);
 			effects.reset();
 		} else if (game.phase === 'paused') {
 			game.phase = pausedFrom;
 			escPaused = false;
+			autoPausedFromVisibility = false;
 		}
 	}
 
@@ -216,10 +227,33 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		requestAnimationFrame((timestamp) => {
+		function handleVisibilityChange() {
+			if (document.visibilityState !== 'hidden') return;
+
+			// Stop stuck input when tab is not active.
+			keysDown.clear();
+			touchP1 = 'stop';
+			touchP2 = 'stop';
+
+			if (game.phase === 'playing' || game.phase === 'countdown') {
+				pausedFrom = game.phase as 'playing' | 'countdown';
+				escPaused = false;
+				autoPausedFromVisibility = true;
+				pauseGame(game);
+			}
+		}
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		animFrame = requestAnimationFrame((timestamp) => {
 			lastTime = timestamp;
 			gameLoop(ctx, timestamp);
 		});
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			if (animFrame) cancelAnimationFrame(animFrame);
+		};
 	});
 
 	function gameLoop(ctx: CanvasRenderingContext2D, timestamp: number) {
@@ -289,7 +323,7 @@
 		// Draw
 		draw(ctx);
 
-		requestAnimationFrame((t) => gameLoop(ctx, t));
+		animFrame = requestAnimationFrame((t) => gameLoop(ctx, t));
 	}
 
 	function draw(ctx: CanvasRenderingContext2D) {
@@ -406,6 +440,11 @@
 			ctx.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
 			ctx.font = `${fontSize * 0.7}px 'Press Start 2P', monospace`;
 			ctx.fillStyle = '#9ca3af';
+			if (autoPausedFromVisibility) {
+				ctx.fillText('Paused while tab inactive', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
+				ctx.fillText('SPACE to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+				ctx.fillText('ESC to quit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 65);
+			} else
 			if (escPaused) {
 				ctx.fillText('ESC again to quit', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 25);
 				ctx.fillText('SPACE to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);

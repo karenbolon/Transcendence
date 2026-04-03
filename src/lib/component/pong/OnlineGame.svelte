@@ -42,6 +42,7 @@
 	let prevScore2 = 0;
 	let prevBallVX = 0;
 	let lastRenderTime = 0;
+	let isPageVisible = true;
 
 	$effect(() => {
 		effects.setConfig(effectsConfig ?? { preset: 'arcade', custom: DEFAULT_EFFECTS_CUSTOM });
@@ -92,6 +93,15 @@
 		}
 	}
 
+	function handleVisibilityChange() {
+		isPageVisible = document.visibilityState === 'visible';
+		if (!isPageVisible) {
+			keysDown.clear();
+			touchDirection = 'stop';
+			sendDirection();
+		}
+	}
+
 	function handleKeyDown(e: KeyboardEvent) {
 		// Don't capture game keys when typing in chat input
 		const tag = (e.target as HTMLElement)?.tagName;
@@ -124,6 +134,9 @@
 		const socket = getSocket();
 		if (!socket) return;
 
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		handleVisibilityChange();
+
 		// NOTE: game:join-room is emitted by the parent page component,
 		// not here, to avoid double-emission. This component only listens.
 
@@ -147,13 +160,13 @@
 
 		socket.on('game:over', (result: any) => {
 			const won = result.winnerId === (side === 'left' ? player1.userId : player2.userId);
-			getSoundEngine().gameOver(won);
+			if (isPageVisible) getSoundEngine().gameOver(won);
 			onGameOver?.(result);
 		});
 
 		socket.on('game:forfeit', (result: any) => {
 			const won = result.winnerId === (side === 'left' ? player1.userId : player2.userId);
-			getSoundEngine().gameOver(won);
+			if (isPageVisible) getSoundEngine().gameOver(won);
 			onGameOver?.(result);
 		});
 
@@ -171,6 +184,12 @@
 			const now = performance.now();
 			const dt = lastRenderTime ? Math.min((now - lastRenderTime) / 1000, 0.05) : 0;
 			lastRenderTime = now;
+
+			if (!isPageVisible) {
+				animFrame = requestAnimationFrame(renderLoop);
+				return;
+			}
+
 			gameTime += dt;
 
 			// Compute latestState via interpolation / extrapolation
@@ -218,7 +237,7 @@
 						const hitSide: 'left' | 'right' = latestState.ballVX > 0 ? 'left' : 'right';
 						const hitX = hitSide === 'left' ? PADDLE_OFFSET + PADDLE_WIDTH : CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
 						effects.onPaddleHit(hitX, latestState.ballY, [theme.colors.ball, theme.colors.paddle1, theme.colors.paddle2], hitSide);
-						getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
+						if (isPageVisible) getSoundEngine().paddleHit(Math.abs(latestState.ballVX));
 					}
 
 					// Detect score change
@@ -226,7 +245,7 @@
 						const scoredLeft = latestState.score1 !== prevScore1;
 						const scoreX = scoredLeft ? CANVAS_WIDTH * 0.25 : CANVAS_WIDTH * 0.75;
 						effects.onScore(scoreX, CANVAS_HEIGHT / 2, [theme.colors.ball, '#ffffff']);
-						getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
+						if (isPageVisible) getSoundEngine().score(side === 'left' ? scoredLeft : !scoredLeft);
 						prevScore1 = latestState.score1;
 						prevScore2 = latestState.score2;
 					}
@@ -244,6 +263,7 @@
 		// Cleanup when component is destroyed
 		return () => {
 			cancelAnimationFrame(animFrame);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			socket.off('game:state');
 			socket.off('game:over');
 			socket.off('game:forfeit');

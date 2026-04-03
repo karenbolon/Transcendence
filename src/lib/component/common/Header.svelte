@@ -96,7 +96,7 @@
 						<a href="/leaderboard" class="mobile-menu-link">Leaderboard</a>
 						<a href="/tournaments" class="mobile-menu-link">Tournaments</a>
 						<a href="/friends" class="mobile-menu-link">Friends</a>
-						<a href="/profile" class="mobile-menu-link">Profile</a>
+						<!-- <a href="/profile" class="mobile-menu-link">Profile</a> -->
 						<a href="/settings" class="mobile-menu-link">Settings</a>
 
 						<!-- NEW (no-JS logout) -->

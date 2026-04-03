@@ -10,7 +10,6 @@ import {
 	destroyRoom,
 	isPlayerInGame,
 } from '../game/RoomManager';
-import { advanceWinner, leaveTournament } from '../../tournament/TournamentManager';
 import type { GameStateSnapshot } from '$lib/types/game';
 import {
 	addToQueue,
@@ -381,26 +380,12 @@ export function registerGameHandlers(socket: Socket) {
 		// Emit debug info back to the leaving player's browser so it shows in their console
 		socket.emit('debug:server', `[SERVER game:leave] roomId=${roomId} isTournamentMatch=${isTournamentMatch} isCancellable=${isCancellable} score=${snapshot.score1}-${snapshot.score2} phase=${snapshot.phase}`);
 
-		// For tournament matches, use full forfeit logic (handles all player's matches + check for winner)
-		if (isTournamentMatch) {
-			try {
-				const parts = roomId.split('-');
-				const tournamentId = Number(parts[1]);
-				socket.emit('debug:server', `[SERVER game:leave] calling leaveTournament(tournamentId=${tournamentId}, userId=${userId})`);
-				// Use leaveTournament to trigger full forfeit queue logic:
-				// - Finds all remaining matches for this player
-				// - Auto-forfeits each match by advancing opponent
-				// - Checks if only 1 active player remains
-				// - If so, declares tournament winner
-				await leaveTournament(tournamentId, userId);
-				socket.emit('debug:server', `[SERVER game:leave] leaveTournament COMPLETED`);
-			} catch (err) {
-				socket.emit('debug:server', `[SERVER game:leave] leaveTournament THREW: ${err}`);
-				console.error('[Tournament] Forfeit handling failed:', err);
-			}
-		} else {
-			socket.emit('debug:server', `[SERVER game:leave] skipping leaveTournament (isTournamentMatch=${isTournamentMatch})`);
-		}
+		socket.emit(
+			'debug:server',
+			isTournamentMatch
+				? '[SERVER game:leave] resolving tournament forfeit via current room only'
+				: '[SERVER game:leave] resolving casual leave via current room'
+		);
 
 		socket.emit('debug:server', `[SERVER game:leave] calling forfeitByPlayer`);
 		room.forfeitByPlayer(userId);

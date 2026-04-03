@@ -30,6 +30,7 @@ export interface GameRoomOptions {
 	// Callbacks — the room doesn't know about Socket.IO directly,
 	// it just calls these when it needs to send data
 	onGameEnd: (result: GameResult) => void;
+	onCancelled?: (roomId: string) => void;
 	broadcastState: (roomId: string, state: GameStateSnapshot) => void;
 	broadcastEvent: (roomId: string, event: string, data: any) => void;
 }
@@ -51,6 +52,7 @@ export class GameRoom {
 	private interval: ReturnType<typeof setInterval> | null = null;
 	private lastTick: number = 0;
 	private onGameEnd: GameRoomOptions['onGameEnd'];
+	private onCancelled: GameRoomOptions['onCancelled'];
 	private broadcastState: GameRoomOptions['broadcastState'];
 	private broadcastEvent: GameRoomOptions['broadcastEvent'];
 	private disconnectTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -62,6 +64,7 @@ export class GameRoom {
 		this.roomId = options.roomId;
 		this.rawSettings = options.settings;
 		this.onGameEnd = options.onGameEnd;
+		this.onCancelled = options.onCancelled;
 		this.broadcastState = options.broadcastState;
 		this.broadcastEvent = options.broadcastEvent;
 
@@ -171,18 +174,19 @@ export class GameRoom {
 					// and the remaining player never receiving a navigation event)
 					this.gameEnded = true;
 					this.stop();
-					this.broadcastEvent(this.roomId, 'game:cancelled', {
-						roomId: this.roomId,
-						reason: 'Player disconnected at 0-0',
-						leftUserId: userId,
-						stayedUserId: opponent.userId,
-						stayedUsername: opponent.username,
-						settings: this.rawSettings,
-					});
-				} else {
-					// For casual games, use standard forfeit logic
-					this.handleForfeit(opponent);
-				}
+						this.broadcastEvent(this.roomId, 'game:cancelled', {
+							roomId: this.roomId,
+							reason: 'Player disconnected at 0-0',
+							leftUserId: userId,
+							stayedUserId: opponent.userId,
+							stayedUsername: opponent.username,
+							settings: this.rawSettings,
+						});
+						this.onCancelled?.(this.roomId);
+					} else {
+						// For casual games, use standard forfeit logic
+						this.handleForfeit(opponent);
+					}
 			}, RECONNECT_TIMEOUT);
 
 			this.disconnectTimers.set(userId, timer);

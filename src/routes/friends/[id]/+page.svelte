@@ -11,6 +11,7 @@
 	import Starfield from '$lib/component/effect/Starfield.svelte';
 	import NoiseGrain from '$lib/component/effect/NoiseGrain.svelte';
 	import { openChat } from '$lib/stores/chat.svelte';
+	import { friendAction } from '$lib/utils/friends';
 
 	let { data }: { data: PageData } = $props();
 	let showH2hModal = $state(false);
@@ -20,14 +21,7 @@
 	let ringOffset = $derived(RING_C * (1 - data.stats.winRate / 100));
 
 	async function handleAddFriend() {
-		const res = await fetch('/api/friends/request', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ friendId: data.friend.id }),
-		});
-		if (res.ok) {
-			window.location.reload();
-		}
+		await friendAction('request', data.friend.id);
 	}
 
 	function handleChallenge() {
@@ -45,14 +39,7 @@
 	}
 
 	async function handleUnfriend() {
-		const res = await fetch('/api/friends/remove', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ friendId: data.friend.id }),
-		});
-		if (res.ok) {
-			window.location.reload();
-		}
+		await friendAction('remove', data.friend.id);
 	}
 </script>
 
@@ -70,6 +57,9 @@
 		variant="friend"
 		isFriend={data.isFriend}
 		friendshipStatus={data.friendshipStatus as FriendshipStatus}
+		hasIncomingRequest={data.hasIncomingRequest}
+		hasOutgoingRequest={data.hasOutgoingRequest}
+		blockedByMe={data.blockedByMe}
 		progression={data.progression}
 		onaddfriend={handleAddFriend}
 		onunfriend={handleUnfriend}

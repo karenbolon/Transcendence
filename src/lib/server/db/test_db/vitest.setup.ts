@@ -7,6 +7,21 @@
 
 import { beforeAll, afterAll } from 'vitest';
 import { db } from '../index';
+import { 
+	users, 
+	games, 
+	friendships, 
+	sessions, 
+	messages, 
+	tournaments, 
+	analytics, 
+	tournamentParticipants, 
+	achievements, 
+	player_progression, 
+	achievement_definitions,
+	oauthAccounts,
+	oauthStates
+} from '../schema';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -17,6 +32,87 @@ async function cleanDatabase() {
 
 	// Fast cleanup path: truncate all user tables in one shot.
 	// This is significantly faster than many sequential DELETEs and avoids hook timeouts.
+	// Delete in reverse dependency order
+	// Analytics → Messages → Sessions → Achievements → Player_progression → Friendships → Games → Tournaments → Users → Achievement_definitions
+	try {
+		await db.delete(analytics).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(messages).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(oauthStates).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(oauthAccounts).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(sessions).execute();
+	} catch (e) {
+		// Table might not exist yet, that's fine
+	}
+
+	try {
+		await db.delete(achievements).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(player_progression).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(friendships).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(games).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(tournamentParticipants).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(tournaments).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(users).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	try {
+		await db.delete(achievement_definitions).execute();
+	} catch (e) {
+		// Table might not exist yet
+	}
+
+	// Reset auto-increment sequences so IDs start from 1
 	try {
 		await db.execute(sql`
 			DO $$
@@ -50,14 +146,12 @@ beforeAll(async () => {
 	console.log('══════════════════════════════════════════════════════════\n');
 
 	await cleanDatabase();
-});
+}, 30000);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Run cleanup AFTER all tests finish
 // ══════════════════════════════════════════════════════════════════════════════
 afterAll(async () => {
-	await cleanDatabase();
-
 	console.log('\n🧪 ══════════════════════════════════════════════════════════');
 	console.log('   TEST SUITE COMPLETE');
 	console.log('══════════════════════════════════════════════════════════\n');

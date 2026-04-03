@@ -17,11 +17,6 @@
 		e.preventDefault();
 		deleteError = '';
 
-		if (!deletePassword.trim()) {
-			deleteError = "Password is required to access your account";
-			return;
-		}
-
 		isDeleting = true;
 		try {
 			const formData = new FormData();
@@ -77,7 +72,7 @@
 				type="password"
 				name="password"
 				class="modal-input"
-				placeholder="Your password"
+				placeholder="Your password, or leave blank for OAuth-only accounts"
 				bind:value={deletePassword}
 				disabled={isDeleting}
 				autocomplete="current-password"

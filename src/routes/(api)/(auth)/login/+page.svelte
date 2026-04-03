@@ -38,7 +38,7 @@
 			<p >Welcome back! Ready to play?</p>
 		</div>
 
-		<form method="POST" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
+		<form method="POST" action="?/password" class="w-full max-w-md space-y-4 p-4" use:enhance={() => {
 			loading = true;
 			return async ({ update }) => {
 				loading = false;
@@ -83,17 +83,8 @@
 				{/if}
 			</div>
 
-			<div class="flex items-center justify-between text-sm">
-				<label >
-					<input type="checkbox" name="rememberMe" />
-					Remember Me
-				</label>
-				<a href=/forgot-password class="link text-sm">
-					Forgot password?
-				</a>
-			</div>
 
-			<!-- Old: <button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}> -->
+<!-- Old: <button class="btn-signup w-full py-3" type="submit" disabled={loading || !isFormValid}> -->
 			<button class="btn-signup w-full py-3" type="submit" disabled={loading}>
 				{#if loading}
 					Logging in...
@@ -108,24 +99,27 @@
 			<a href="/register" class="link">Sign up</a>
 		</div>
 
-			<!-- coming soon -->
-		<div class="sep">
+			<div class="sep">
 			<div class="relative flex justify-center text-sm">
 				<span class="px-2 bg-pong-darker text-gray-400">Or continue with</span>
 			</div>
 		</div>
 
 		<div class="grid grid-cols-2 gap-3">
-			<button
-				type="button"
-				class="btn-secondary py-2 text-sm">
-				🔗 42 Intra
-			</button>
-			<button
-			type="button"
-			class="btn-secondary py-2 text-sm">
-				👤 OAuth
-			</button>
+			<form method="POST" action="?/oauth42" class="w-full">
+				<button
+					type="submit"
+					class="btn-secondary w-full py-2 text-sm">
+					🔗 42 Intra
+				</button>
+			</form>
+			<form method="POST" action="?/github" class="w-full">
+				<button
+					type="submit"
+					class="btn-secondary w-full py-2 text-sm">
+					👤 GitHub
+				</button>
+			</form>
 		</div>
 	</div>
 </div>

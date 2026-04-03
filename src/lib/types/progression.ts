@@ -1,6 +1,6 @@
 export type Tier = 'bronze' | 'silver' | 'gold' | 'legendary';
 
-export type FriendshipStatus = 'accepted' | 'pending' | null;
+export type FriendshipStatus = 'accepted' | 'pending' | 'blocked' | null;
 
 export type LevelSizeProps = {
 	level: number;

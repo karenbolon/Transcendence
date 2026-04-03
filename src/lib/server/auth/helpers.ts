@@ -32,7 +32,7 @@ export async function createAndSetSession(userId: number, cookies: Cookies) {
 	const session = await lucia.createSession(String(userId), {});
 	const sessionCookie = lucia.createSessionCookie(session.id);
 	cookies.set(sessionCookie.name, sessionCookie.value, {
-		path: '.',
+		path: '/',
 		...sessionCookie.attributes,
 	});
 	await db.update(users).set({ is_online: true }).where(eq(users.id, userId));
@@ -44,7 +44,7 @@ export async function createAndSetSession(userId: number, cookies: Cookies) {
 export function clearSessionCookie(cookies: Cookies) {
 	const sessionCookie = lucia.createBlankSessionCookie();
 	cookies.set(sessionCookie.name, sessionCookie.value, {
-		path: '.',
+		path: '/',
 		...sessionCookie.attributes,
 	});
 }

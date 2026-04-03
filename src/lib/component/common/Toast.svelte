@@ -57,6 +57,69 @@
 			{/each}
 		</div>
 	{/if}
+{#if toasts.length > 0}
+	<div class="toast-container">
+		{#each toasts as t (t.id) }
+			{#if t.onclick}
+				<div
+					class="toast toast--{t.type} clickable"
+					style="--toast-color: {TOAST_CONFIG[t.type].color};"
+					transition:fly={{ x: 300, duration: 300 }}
+					role="button"
+					tabindex="0"
+					onclick={() => { t.onclick?.(); toast.dismiss(t.id); }}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							t.onclick?.();
+							toast.dismiss(t.id);
+						}
+					}}
+				>
+					<span class="toast-icon">{t.icon}</span>
+					<div class="toast-body">
+						<span class="toast-title">{t.title}</span>
+						{#if t.message}
+							<span class="toast-message">{t.message}</span>
+						{/if}
+					</div>
+					<button class="toast-dismiss" onclick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }}>
+						&times;
+					</button>
+					<div class="toast-progress">
+						<div
+							class="toast-progress-bar"
+							style="animation-duration: {t.duration}ms;"
+						></div>
+					</div>
+				</div>
+			{:else}
+				<div
+					class="toast toast--{t.type}"
+					style="--toast-color: {TOAST_CONFIG[t.type].color};"
+					transition:fly={{ x: 300, duration: 300 }}
+				>
+					<span class="toast-icon">{t.icon}</span>
+					<div class="toast-body">
+						<span class="toast-title">{t.title}</span>
+						{#if t.message}
+							<span class="toast-message">{t.message}</span>
+						{/if}
+					</div>
+					<button class="toast-dismiss" onclick={() => { toast.dismiss(t.id); }}>
+						&times;
+					</button>
+					<div class="toast-progress">
+						<div
+							class="toast-progress-bar"
+							style="animation-duration: {t.duration}ms;"
+						></div>
+					</div>
+				</div>
+			{/if}
+		{/each}
+	</div>
+{/if}
 
 <style>
 	.toast-container {
@@ -88,6 +151,7 @@
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 		pointer-events: all;
 		overflow: hidden;
+		text-align: left;
 	}
 
 	button.toast {

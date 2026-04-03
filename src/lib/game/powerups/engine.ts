@@ -222,7 +222,7 @@ function applyContinuousEffects(state: GameState, dt: number): void {
 					: state.paddle2Y + PADDLE_HEIGHT / 2;
 
 				const dy = paddleCenterY - state.ballY;
-				const ATTRACTION = 250; // px/s²
+				const ATTRACTION = 600; // px/s²
 				state.ballVY += Math.sign(dy) * ATTRACTION * dt;
 			}
 		}

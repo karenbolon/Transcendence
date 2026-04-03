@@ -41,7 +41,7 @@
 					<section class="hero-buttons">
 						<div class="flex justify-center gap-4 mt-8">
 							<a href="/play" class="btn-signup">🎮 Play Now</a>
-							<a href="/register" class="btn-instructions">👤 Create an Account</a>
+							<a href="/register" class="btn-instructions">👤 Sign Up</a>
 							<a href="/instructions" class="btn-login">📖 How to Play</a>
 						</div>
 						<div class="login-link-container">
@@ -106,7 +106,7 @@
 					Earn some achievements and climb the Leaderboard.
 				</p>
 				<div class="flex justify-center gap-4">
-					<a href="/register" class="btn-signup">🕹️ Get Started</a>
+					<a href="/register" class="btn-signup">🕹️ Sign Up</a>
 					<a href="/instructions" class="btn-login">Learn More</a>
 				</div>
 			</section>

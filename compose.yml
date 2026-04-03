@@ -8,7 +8,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      - ${DB_PORT}:5432
+      - 5432:5432
     env_file:
       - .env
     volumes:

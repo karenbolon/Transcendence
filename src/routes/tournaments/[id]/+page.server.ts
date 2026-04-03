@@ -35,6 +35,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const bracket = active?.bracket ?? (tournament.bracket_data as any[] | null) ?? null;
 
 	const userId = Number(locals.user!.id);
+	const myParticipant = participants.find((p) => p.userId === userId) ?? null;
+	const isActiveParticipant = myParticipant
+		? myParticipant.status === 'registered' || myParticipant.status === 'active'
+		: false;
 
 	return {
 		tournament: {
@@ -56,7 +60,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		})),
 		bracket,
 		userId,
+		myParticipantStatus: myParticipant?.status ?? null,
 		isCreator: tournament.created_by === userId,
-		isParticipant: participants.some(p => p.userId === userId),
+		isParticipant: isActiveParticipant,
 	};
 };

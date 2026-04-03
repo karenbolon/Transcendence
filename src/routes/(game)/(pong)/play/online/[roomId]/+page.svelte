@@ -146,6 +146,14 @@
 			console.log('[DEBUG game:cancelled] history.length:', history.length);
 
 			cancellationHandled = true;
+			
+				// For tournament matches, emit game:leave BEFORE navigating
+				// so the server can properly process forfeit logic
+				if (isTournament) {
+					console.log('[DEBUG game:cancelled] emitting game:leave for tournament forfeit processing');
+					socket?.emit('game:leave');
+				}
+			
 			toast.info(cancelData.reason);
 			if (isTournament && tournamentId) {
 				console.log('[DEBUG game:cancelled] calling goto(/tournaments/' + tournamentId + ')');

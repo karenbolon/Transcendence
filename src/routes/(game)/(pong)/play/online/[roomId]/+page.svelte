@@ -297,8 +297,8 @@
 				settings: {
 					speedPreset: gameOverResult.settings.speedPreset as 'chill' | 'normal' | 'fast',
 					winScore: gameOverResult.settings.winScore,
-					powerUps: gameOverResult.settings.powerUps ?? false,
-					mode: 'online'
+					powerUps: gameOverResult.settings.powerUps ?? true,
+					mode: 'online',
 				},
 				totalTime: 30,
 			});

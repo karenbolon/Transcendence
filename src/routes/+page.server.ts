@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { games, users, friendships, tournaments, tournamentParticipants, achievements, achievement_definitions } from '$lib/server/db/schema';
-import { eq, or, desc, and, count, inArray, gte } from 'drizzle-orm';
+import { games, users, tournaments, tournamentParticipants, achievements, achievement_definitions } from '$lib/server/db/schema';
+import { eq, desc, and, count, inArray, gte } from 'drizzle-orm';
 import type { ActivityItem, Tournament } from '$lib/types/dashboard';
 import { getFriendIds } from '$lib/server/db/helpers_queries';
 import { calcWinRate } from '$lib/utils/format_game';
@@ -56,20 +56,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	}
 
+	const mapLeaderboardEntry = (u: typeof allUsers[number]) => ({
+		id: u.id,
+		username: u.username,
+		displayName: u.name,
+		avatarUrl: u.avatar_url ?? null,
+		isOnline: u.is_online,
+		wins: userWins[u.id]?.wins ?? 0,
+		totalGames: userWins[u.id]?.total ?? 0,
+		winRate: calcWinRate(userWins[u.id]?.wins ?? 0, userWins[u.id]?.total ?? 0),
+	});
+
 	const globalLeaderboard = allUsers
-		.map((u) => ({
-			id: u.id,
-			username: u.username,
-			displayName: u.name,
-			avatarUrl: u.avatar_url ?? null,
-			isOnline: u.is_online,
-			wins: userWins[u.id]?.wins ?? 0,
-			totalGames: userWins[u.id]?.total ?? 0,
-			winRate: calcWinRate(userWins[u.id]?.wins ?? 0, userWins[u.id]?.total ?? 0),
-		}))
+		.map(mapLeaderboardEntry)
 		.filter((u) => u.totalGames > 0)
 		.sort((a, b) => b.wins - a.wins)
 		.slice(0, 3);
+
+	// Prepare fast user lookup for feed hydration
+	const usersById = new Map(allUsers.map((u) => [u.id, u] as const));
 
 	// ═══════════════════════════════════════════════════════
 	//  FRIENDS LEADERBOARD — Top 3 friends by wins
@@ -81,20 +86,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		friendIds = [];
 	}
 
-	const friendLeaderboardIds = [userId, ...friendIds];
+	const friendLeaderboardIds = new Set([userId, ...friendIds]);
 
 	const friendsLeaderboard = allUsers
-		.filter((u) => friendLeaderboardIds.includes(u.id))
-		.map((u) => ({
-			id: u.id,
-			username: u.username,
-			displayName: u.name,
-			avatarUrl: u.avatar_url ?? null,
-			isOnline: u.is_online,
-			wins: userWins[u.id]?.wins ?? 0,
-			totalGames: userWins[u.id]?.total ?? 0,
-			winRate: calcWinRate(userWins[u.id]?.wins ?? 0, userWins[u.id]?.total ?? 0),
-		}))
+		.filter((u) => friendLeaderboardIds.has(u.id))
+		.map(mapLeaderboardEntry)
 		.sort((a, b) => b.wins - a.wins)
 		.slice(0, 3);
 
@@ -102,13 +98,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	//  ACTIVITY FEED — Recent match results
 	// ═══════════════════════════════════════════════════════
 	const feedUserIds = [userId, ...friendIds];
+	const feedUserIdSet = new Set(feedUserIds);
 
 	const matchFeed: ActivityItem[] = allGames
 		.filter((g) => {
 			const isRelevant =
-				(g.player1_id && feedUserIds.includes(g.player1_id)) ||
-				(g.player2_id && feedUserIds.includes(g.player2_id));
-			return isRelevant && g.game_mode === 'remote';
+				(g.player1_id && feedUserIdSet.has(g.player1_id)) ||
+				(g.player2_id && feedUserIdSet.has(g.player2_id));
+			return isRelevant && g.game_mode === 'online';
 		})
 		.sort((a, b) => {
 			const aTime = (a.finished_at ?? a.created_at).getTime();
@@ -120,8 +117,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const winnerId = g.winner_id;
 			const winnerIsP1 = winnerId === g.player1_id;
 
-			const p1User = allUsers.find((u) => u.id === g.player1_id);
-			const p2User = allUsers.find((u) => u.id === g.player2_id);
+			const p1User = g.player1_id ? usersById.get(g.player1_id) : undefined;
+			const p2User = g.player2_id ? usersById.get(g.player2_id) : undefined;
 
 			const winnerUser = winnerIsP1 ? p1User : p2User;
 			const loserUser = winnerIsP1 ? p2User : p1User;
@@ -198,7 +195,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// ═══════════════════════════════════════════════════════
 	//  RECENT TOURNAMENTS (mixed: your active, open, finished)
 	// ═══════════════════════════════════════════════════════
-		let openTournaments: Tournament[] = [];
+	let openTournaments: Tournament[] = [];
 
 	try {
 		// Fetch recent tournaments across all statuses

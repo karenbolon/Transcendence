@@ -53,6 +53,7 @@ cache/
 
 # Misc
 *.pdf
+*.md
 .nvmrc
 .nvp*
 RULES.md

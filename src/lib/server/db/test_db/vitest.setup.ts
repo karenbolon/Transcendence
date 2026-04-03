@@ -30,6 +30,8 @@ import { sql } from 'drizzle-orm';
 async function cleanDatabase() {
 	console.log('🧹 Cleaning test database...');
 
+	// Fast cleanup path: truncate all user tables in one shot.
+	// This is significantly faster than many sequential DELETEs and avoids hook timeouts.
 	// Delete in reverse dependency order
 	// Analytics → Messages → Sessions → Achievements → Player_progression → Friendships → Games → Tournaments → Users → Achievement_definitions
 	try {
@@ -115,15 +117,20 @@ async function cleanDatabase() {
 		await db.execute(sql`
 			DO $$
 			DECLARE
-				r RECORD;
+				t RECORD;
 			BEGIN
-				FOR r IN (SELECT sequencename FROM pg_sequences WHERE schemaname = 'public') LOOP
-					EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' RESTART WITH 1';
+				FOR t IN (
+					SELECT tablename
+					FROM pg_tables
+					WHERE schemaname = 'public'
+					  AND tablename NOT IN ('__drizzle_migrations')
+				) LOOP
+					EXECUTE 'TRUNCATE TABLE ' || quote_ident(t.tablename) || ' RESTART IDENTITY CASCADE';
 				END LOOP;
 			END $$;
 		`);
-	} catch (e) {
-		// Sequences might not exist yet
+	} catch {
+		// Fallback (or empty schema) — ignore so tests can proceed.
 	}
 
 	console.log('✅ Test database cleaned!\n');

@@ -99,6 +99,13 @@
       "when": 1775247443312,
       "tag": "0013_bumpy_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775248192475,
+      "tag": "0014_fair_red_ghost",
+      "breakpoints": true
     }
   ]
 }

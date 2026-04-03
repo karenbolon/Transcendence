@@ -95,39 +95,64 @@ All user-facing text is externalized into translation files and can be switched 
 ```
 
 ---
-# Installation & Running the Project
+# Instructions
 
 ## Prerequisites
-- Docker & Docker Compose
-- Make
-- Node.js + npm (required by the Makefile targets)
 
-## Environment Setup (in bash):
-Copy the environment templates and adjust as necessary:
+| Tool | Minimum version |
+|------|----------------|
+| Docker | 20+ |
+| Docker Compose | v2+ |
+| Make | any |
+| Node.js | 20+ |
+| npm | 9+ |
+
+## Configuration
+
+Copy the environment templates:
 
 ```bash
 cp .env.example .env
 cp .env.example .env.test
 ```
 
-## Start the Project (in bash)
-make start
+Edit `.env` and fill in the required values:
 
-## Useful Commands
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` / `DB_URL` | PostgreSQL connection string (default works out of the box) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth app credentials |
+| `FORTYTWO_CLIENT_ID` / `FORTYTWO_CLIENT_SECRET` | 42 School OAuth app credentials |
+| `OAUTH_ENCRYPTION_KEY` | 64-character hex key used to encrypt stored OAuth tokens |
+
+> OAuth credentials are only required if you want to use third-party login. The app works without them using email/password auth.
+
+## Running the Project
+
 ```bash
-make docker-down
-make docker-clean
-make clean
-make test
+make start
 ```
 
-The application startup will:
-- Build the Docker images
-- Start the PostgreSQL production and test databases
-- Start the SvelteKit application (frontend & backend)
-- make down will stop running the containers without removing data
-- make clean will stop containers and remove associated volumes and cached data
-- make test runs automated tests using the dedicated test database to ensure production data is not affected.
+This single command will:
+1. Start the PostgreSQL production and test databases via Docker
+2. Install Node.js dependencies
+3. Push the Drizzle schema to the database
+4. Start the SvelteKit dev server at `http://localhost:5173`
+
+## Useful Commands
+
+```bash
+make test          # Run the full test suite against the isolated test DB
+make re            # Full clean + restart (fclean → start)
+make build         # Build the SvelteKit app for production
+make preview       # Preview the production build locally
+make dev           # Start only the dev server (DBs must already be up)
+make db-push       # Push Drizzle schema changes to the production DB
+make db-studio     # Open Drizzle Studio UI for the production DB
+make db-reset      # Drop and recreate the production DB
+make db-seed       # Seed the production DB with initial data
+make fclean        # Full clean: containers, volumes, and node_modules
+```
 
 ---
 

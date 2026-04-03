@@ -13,6 +13,16 @@
 	import { page } from '$app/stores';
 	import { connectSocket, disconnectSocket, reconnectSocket, getSocket, setOnConnectCallback } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import {
+		syncTournamentContext,
+		markTournamentMatch,
+		markTournamentStarted,
+		markTournamentEliminated,
+		markTournamentAdvanced,
+		markTournamentFinished,
+		markTournamentCancelled,
+		clearActiveTournamentMatch,
+	} from '$lib/stores/tournament.svelte';
 	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
 
@@ -114,6 +124,10 @@
 
 		socket.on('game:start', (evtData: { roomId: string; player1: { userId: number; username: string }; player2: { userId: number; username: string }; settings: any }) => {
 			pendingInvite = null;
+			if (evtData.roomId.startsWith('tournament-')) {
+				const tournamentId = Number(evtData.roomId.split('-')[1]);
+				markTournamentMatch(evtData.roomId, tournamentId);
+			}
 			// Track opponent for chat toast suppression
 			const myId = data?.user?.id;
 			if (myId) {
@@ -176,6 +190,7 @@
 		});
 
 		socket.on('tournament:cancelled', (evtData: { tournamentId: number; tournamentName: string }) => {
+			markTournamentCancelled(evtData.tournamentId);
 			// If we're on this tournament's detail page, redirect to list
 			const path = $page.url.pathname;
 			if (path === `/tournaments/${evtData.tournamentId}`) {
@@ -188,6 +203,9 @@
 		});
 
 		socket.on('tournament:match-ready', (evtData: any) => {
+			if (evtData?.tournamentId) {
+				markTournamentMatch(evtData.roomId, evtData.tournamentId);
+			}
 			if (data?.notificationPrefs?.matchResults !== false) {
 				const myId = Number(data?.user?.id);
 				const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
@@ -196,25 +214,45 @@
 			// game:start is also emitted, so player navigates automatically
 		});
 
+		socket.on('tournament:started', (evtData: any) => {
+			if (evtData?.tournamentId) {
+				markTournamentStarted(evtData.tournamentId);
+			}
+		});
+
 		socket.on('tournament:eliminated', (_evtData: any) => {
+			if (_evtData?.tournamentId) {
+				markTournamentEliminated(_evtData.tournamentId);
+				clearActiveTournamentMatch();
+			}
 			if (data?.notificationPrefs?.matchResults !== false) {
 				toast.info('Tournament', 'You have been eliminated');
 			}
 		});
 
 		socket.on('tournament:finished', (evtData: any) => {
+			if (evtData?.tournamentId) {
+				const myUserId = Number(data?.user?.id);
+				const role = evtData?.winnerId === myUserId ? 'champion' : 'runner-up';
+				markTournamentFinished(evtData.tournamentId, role);
+				clearActiveTournamentMatch();
+			}
 			if (data?.notificationPrefs?.matchResults !== false) {
 				toast.game('Tournament Over', `${evtData.winnerUsername} is the champion!`);
 			}
 		});
 
 		socket.on('tournament:abandoned', (evtData: any) => {
+			if (evtData?.tournamentId) {
+				markTournamentCancelled(evtData.tournamentId);
+			}
 			toast.warning('Tournament Cancelled', `Tournament was cancelled - ${evtData.reason}`);
 			invalidateAll();
 		});
 	}
 
 	onMount(async () => {
+		syncTournamentContext($page.url.pathname);
 		if (data?.user) {
 			// Set up callback to register listeners when socket connects
 			setOnConnectCallback(registerSocketListeners);
@@ -227,8 +265,10 @@
 	afterNavigate(({ to }) => {
 		closeChat();
 		const path = to?.url?.pathname ?? '';
+		syncTournamentContext(path);
 		if (!path.startsWith('/play/online/') || path === '/play/online/waiting') {
 			currentOpponentId = null;
+			clearActiveTournamentMatch();
 		}
 	});
 

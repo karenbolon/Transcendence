@@ -6,6 +6,7 @@
 	import Bracket from '$lib/component/tournament/Bracket.svelte';
 	import TournamentLobby from '$lib/component/tournament/TournamentLobby.svelte';
 	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
+	import { syncTournamentFromPage, markTournamentJoined, markTournamentLeft, markTournamentStarted, markTournamentFinished } from '$lib/stores/tournament.svelte';
 	import { speedEmoji } from '$lib/utils/format_game';
 	import { timeAgo, ordinal } from '$lib/utils/format_date';
 	import Starfield from '$lib/component/effect/Starfield.svelte';
@@ -36,6 +37,12 @@
 	$effect(() => {
 		data; // track
 		console.log('[DEBUG] data changed — resetting socketOverrides. New data.tournament.status:', data.tournament.status, '| winnerId:', data.tournament.winnerId);
+		syncTournamentFromPage({
+			tournamentId: data.tournament.id,
+			status: data.tournament.status,
+			isParticipant: data.isParticipant,
+			myParticipantStatus: data.myParticipantStatus,
+		});
 		socketOverrides = {};
 	});
 
@@ -44,6 +51,7 @@
 		if (!socket?.connected) { toast.error('Not connected'); return; }
 		socket.emit('tournament:join', { tournamentId: tournament.id });
 		socket.once('tournament:joined', () => {
+			markTournamentJoined(tournament.id);
 			socketOverrides.isParticipant = true;
 			socketOverrides = { ...socketOverrides };
 			toast.success('Joined tournament!');
@@ -58,6 +66,7 @@
 		console.log('[DEBUG] handleLeave called for tournament:', tournament.id);
 		socket.emit('tournament:leave', { tournamentId: tournament.id });
 		socket.once('tournament:left', () => {
+			markTournamentLeft(tournament.id);
 			console.log('[DEBUG] tournament:left received');
 			socketOverrides.isParticipant = false;
 			socketOverrides = { ...socketOverrides };
@@ -121,6 +130,7 @@
 		socket.on('tournament:started', (d: any) => {
 			console.log('[DEBUG] tournament:started received on OVERVIEW PAGE:', d);
 			if (d.tournamentId === tournament.id) {
+				markTournamentStarted(tournament.id);
 				console.log('[DEBUG] tournament:started — setting socketOverrides.status = in_progress');
 				socketOverrides = { ...socketOverrides, status: 'in_progress', bracket: d.bracket };
 			}
@@ -134,6 +144,7 @@
 		socket.on('tournament:finished', (d: any) => {
 			console.log('[DEBUG] tournament:finished received on OVERVIEW PAGE:', d, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
+				markTournamentFinished(tournament.id, d.winnerId === data.userId ? 'champion' : 'runner-up');
 				console.log('[DEBUG] tournament:finished — setting socketOverrides.status = finished, calling invalidateAll()');
 				socketOverrides = { ...socketOverrides, status: 'finished', winnerId: d.winnerId, bracket: d.bracket };
 				invalidateAll(); // Reload participants with final placements

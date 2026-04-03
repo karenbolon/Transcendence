@@ -4,6 +4,7 @@
 	import { getSocket } from '$lib/stores/socket.svelte';
 	import { setWaiting, getGameStart, clearGameStart, clearQueuedSettings } from '$lib/stores/matchmaking.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { getTrackedTournamentPath, syncTournamentContext, clearActiveTournamentMatch, markTournamentAdvanced, markTournamentEliminated, markTournamentFinished } from '$lib/stores/tournament.svelte';
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
 	import TournamentGameOver from '$lib/component/tournament/TournamentGameOver.svelte';
@@ -33,6 +34,7 @@
 	// Detect if this is a tournament match from the roomId
 	let isTournament = $derived(data.roomId.startsWith('tournament-'));
 	let tournamentId = $derived(isTournament ? Number(data.roomId.split('-')[1]) : null);
+	let tournamentReturnPath = $derived(getTrackedTournamentPath(tournamentId));
 
 	// State: waiting for room join confirmation → playing → game over
 	let gameReady = $state(false);
@@ -73,6 +75,7 @@
 	// because SvelteKit reuses the component for the same route pattern.
 	$effect(() => {
 		const roomId = data.roomId; // dependency — effect re-runs when this changes
+		syncTournamentContext(`/play/online/${roomId}`);
 
 		// Reset all state for the new room
 		gameReady = false;
@@ -151,7 +154,10 @@
 				}
 			
 			toast.info(cancelData.reason);
-			if (history.length > 1) {
+			if (isTournament && tournamentId) {
+				console.log('[DEBUG game:cancelled] redirecting to tracked tournament path:', tournamentReturnPath);
+				goto(tournamentReturnPath);
+			} else if (history.length > 1) {
 				console.log('[DEBUG game:cancelled] calling history.back()');
 				history.back();
 			} else {
@@ -190,12 +196,14 @@
 		function handleTournamentAdvanced(eventData: any) {
 			console.log('[DEBUG tournament:advanced] received:', eventData, '| this tournamentId:', tournamentId);
 			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:advanced] IGNORED — wrong tournamentId'); return; }
+			markTournamentAdvanced(eventData.tournamentId);
 			tournamentEventData = { type: 'advanced', data: eventData };
 		}
 
 		function handleTournamentEliminated(eventData: any) {
 			console.log('[DEBUG tournament:eliminated] received:', eventData, '| this tournamentId:', tournamentId);
 			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:eliminated] IGNORED — wrong tournamentId'); return; }
+			markTournamentEliminated(eventData.tournamentId);
 			tournamentEventData = { type: 'eliminated', data: eventData };
 		}
 
@@ -203,6 +211,7 @@
 			console.log('[DEBUG tournament:finished] received on GAME PAGE:', eventData, '| this tournamentId:', tournamentId);
 			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:finished] IGNORED — wrong tournamentId'); return; }
 			if (tournamentEventData?.type === 'eliminated') { console.log('[DEBUG tournament:finished] IGNORED — already eliminated'); return; }
+			markTournamentFinished(eventData.tournamentId, eventData.winnerId === data.userId ? 'champion' : 'runner-up');
 			console.log('[DEBUG tournament:finished] setting tournamentEventData to finished');
 			tournamentEventData = { type: 'finished', data: eventData };
 		}
@@ -249,6 +258,7 @@
 				console.log('[DEBUG cleanup] game still active on unmount — emitting game:leave');
 				socket.emit('game:leave');
 			}
+			clearActiveTournamentMatch(roomId);
 		};
 	});
 
@@ -259,7 +269,9 @@
 	function goBack() {
 		const socket = getSocket();
 		socket?.emit('game:leave');
-		if (history.length > 1) {
+		if (isTournament && tournamentId) {
+			goto(tournamentReturnPath);
+		} else if (history.length > 1) {
 			history.back();
 		} else {
 			goto('/play');
@@ -411,18 +423,18 @@
 					emoji: TIER_EMOJIS[a.tier] ?? '🏅',
 					name: a.name,
 				}))}
-				onViewBracket={() => goto(`/tournaments/${tournamentId}`)}
-				onBackToLobby={() => goto('/tournaments')}
-				onWatchFinal={tournamentOutcome === 'eliminated' ? () => goto(`/tournaments/${tournamentId}`) : undefined}
-				onContinue={tournamentOutcome === 'advancing' ? () => goto(`/tournaments/${tournamentId}`) : undefined}
+				onViewBracket={() => goto(tournamentReturnPath)}
+				onBackToLobby={() => goto(tournamentReturnPath)}
+				onWatchFinal={tournamentOutcome === 'eliminated' ? () => goto(tournamentReturnPath) : undefined}
+				onContinue={tournamentOutcome === 'advancing' ? () => goto(tournamentReturnPath) : undefined}
 			/>
 		{:else if isTournament}
 			<!-- Fallback: waiting for tournament event data -->
 			<GameOver
 				{gameOverData}
 				gameMode="tournament"
-				onRematch={() => goto(`/tournaments/${tournamentId}`)}
-				onBackToMenu={() => goto(`/tournaments/${tournamentId}`)}
+				onRematch={() => goto(tournamentReturnPath)}
+				onBackToMenu={() => goto(tournamentReturnPath)}
 			/>
 		{:else}
 			<GameOver

@@ -24,7 +24,7 @@
 	let totalRounds = $derived(bracket.length);
 
 	// Count remaining active players
-	let playersRemaining = $derived(() => {
+	let playersRemaining = $derived.by(() => {
 		// Players who haven't been eliminated yet
 		const eliminated = new Set<number>();
 		for (const round of bracket) {
@@ -88,7 +88,7 @@
 				{#if isFinished}
 					Tournament complete
 				{:else}
-					Round {currentRound} of {totalRounds} · {playersRemaining()} players remaining
+					Round {currentRound} of {totalRounds} · {playersRemaining} players remaining
 				{/if}
 			</p>
 		</div>
@@ -111,7 +111,7 @@
 			{#if roundIdx < bracket.length - 1}
 				<!-- Connector lines between rounds -->
 				<div class="connectors">
-					{#each { length: Math.ceil(bracket[roundIdx].matches.length / 2) } as _, i}
+					{#each Array.from({ length: Math.ceil(bracket[roundIdx].matches.length / 2) }) as _, i}
 						<div class="connector-pair">
 							<div class="connector-line top"></div>
 							<div class="connector-line bottom"></div>

@@ -211,7 +211,12 @@
 			console.log('[DEBUG tournament:finished] received on GAME PAGE:', eventData, '| this tournamentId:', tournamentId);
 			if (eventData.tournamentId !== tournamentId) { console.log('[DEBUG tournament:finished] IGNORED — wrong tournamentId'); return; }
 			if (tournamentEventData?.type === 'eliminated') { console.log('[DEBUG tournament:finished] IGNORED — already eliminated'); return; }
-			markTournamentFinished(eventData.tournamentId, eventData.winnerId === data.userId ? 'champion' : 'runner-up');
+			const role = eventData.winnerId === data.userId
+				? 'champion'
+				: eventData.loserId === data.userId
+					? 'runner-up'
+					: undefined;
+			markTournamentFinished(eventData.tournamentId, role);
 			console.log('[DEBUG tournament:finished] setting tournamentEventData to finished');
 			tournamentEventData = { type: 'finished', data: eventData };
 		}

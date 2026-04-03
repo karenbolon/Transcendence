@@ -129,7 +129,7 @@ export function markTournamentFinished(tournamentId: number, role?: Exclude<Tour
 		tournamentId,
 		returnPath: `/tournaments/${tournamentId}`,
 		status: 'finished',
-		role: role ?? tracking.role,
+		role: role ?? tracking.role ?? 'spectator',
 		activeMatchRoomId: null,
 	};
 }

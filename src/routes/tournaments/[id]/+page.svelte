@@ -144,7 +144,12 @@
 		socket.on('tournament:finished', (d: any) => {
 			console.log('[DEBUG] tournament:finished received on OVERVIEW PAGE:', d, '| this id:', tournament.id);
 			if (d.tournamentId === tournament.id) {
-				markTournamentFinished(tournament.id, d.winnerId === data.userId ? 'champion' : 'runner-up');
+				const role = d.winnerId === data.userId
+					? 'champion'
+					: d.loserId === data.userId
+						? 'runner-up'
+						: undefined;
+				markTournamentFinished(tournament.id, role);
 				console.log('[DEBUG] tournament:finished — setting socketOverrides.status = finished, calling invalidateAll()');
 				socketOverrides = { ...socketOverrides, status: 'finished', winnerId: d.winnerId, bracket: d.bracket };
 				invalidateAll(); // Reload participants with final placements

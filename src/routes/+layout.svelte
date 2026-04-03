@@ -233,7 +233,11 @@
 		socket.on('tournament:finished', (evtData: any) => {
 			if (evtData?.tournamentId) {
 				const myUserId = Number(data?.user?.id);
-				const role = evtData?.winnerId === myUserId ? 'champion' : 'runner-up';
+				const role = evtData?.winnerId === myUserId
+					? 'champion'
+					: evtData?.loserId === myUserId
+						? 'runner-up'
+						: undefined;
 				markTournamentFinished(evtData.tournamentId, role);
 				clearActiveTournamentMatch();
 			}

@@ -40,6 +40,7 @@
 	let player1 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let player2 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let gameOverResult: any = $state(null);
+	let cancellationHandled = $state(false);
 
 	// In-game chat state
 	let gameMessages = $state<Array<{ id?: number; senderId: number; senderUsername: string; content: string }>>([]);
@@ -78,6 +79,7 @@
 		gameReady = false;
 		gameOverResult = null;
 		tournamentEventData = null;
+		cancellationHandled = false;
 
 		const socket = getSocket();
 		if (!socket?.connected) {
@@ -142,16 +144,13 @@
 			console.log('[DEBUG game:cancelled] isTournament:', isTournament, '| tournamentId:', tournamentId);
 			console.log('[DEBUG game:cancelled] tournamentEventData at cancel time:', JSON.stringify(tournamentEventData));
 			console.log('[DEBUG game:cancelled] history.length:', history.length);
-			
-				// For tournament matches, emit game:leave BEFORE navigating
-				// so the server can properly process forfeit logic
-				if (isTournament) {
-					console.log('[DEBUG game:cancelled] emitting game:leave for tournament forfeit processing');
-					socket?.emit('game:leave');
-				}
-			
+
+			cancellationHandled = true;
 			toast.info(cancelData.reason);
-			if (history.length > 1) {
+			if (isTournament && tournamentId) {
+				console.log('[DEBUG game:cancelled] calling goto(/tournaments/' + tournamentId + ')');
+				goto(`/tournaments/${tournamentId}`);
+			} else if (history.length > 1) {
 				console.log('[DEBUG game:cancelled] calling history.back()');
 				history.back();
 			} else {
@@ -245,7 +244,7 @@
 			// and advance the tournament bracket. Without this, the socket stays
 			// connected but the server never receives game:leave or a disconnect,
 			// leaving the tournament stuck as 'in_progress' forever.
-			if (gameReady && !gameOverResult) {
+			if (gameReady && !gameOverResult && !cancellationHandled) {
 				console.log('[DEBUG cleanup] game still active on unmount — emitting game:leave');
 				socket.emit('game:leave');
 			}

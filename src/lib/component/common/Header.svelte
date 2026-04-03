@@ -227,10 +227,9 @@
 		min-width: 16px;
 		text-align: center;
 	}
-
-	/* NEW helpers for details */
-	.hamburger-btn,
-	.avatar-trigger {
+		/* NEW helpers for details */
+		.hamburger-btn,
+		.avatar-trigger {
 		list-style: none;
 		cursor: pointer;
 	}
@@ -244,12 +243,12 @@
 		margin: 0;
 	}
 
-	.logout-button {
-		background: none;
-		border: none;
-		cursor: pointer;
-		font: inherit;
-		text-align: left;
-		width: 100%;
-	}
+		.logout-button {
+			background: none;
+			border: none;
+			cursor: pointer;
+			font: inherit;
+			text-align: left;
+			width: 100%;
+		}
 </style>

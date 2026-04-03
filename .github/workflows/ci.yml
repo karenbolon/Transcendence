@@ -74,3 +74,4 @@ jobs:
         run: npx vitest --run
         env:
           DATABASE_URL: postgres://root:mysecretpassword@localhost:5433/db_test
+          OAUTH_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000001

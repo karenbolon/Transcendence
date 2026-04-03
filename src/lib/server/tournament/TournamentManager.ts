@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
+import { tournaments, tournamentParticipants, tournamentInvites, messages, tournamentMessages } from '$lib/server/db/schema';
 import { users } from '$lib/server/db/schema';
 import { eq, and, count } from 'drizzle-orm';
 import {
@@ -31,72 +31,45 @@ const activeTournaments = new Map<
 	}
 >();
 
-// ── Forfeit Event Queue (serialize disconnect handling) ──
-interface ForfeitEvent {
-	tournamentId: number;
-	userId: number;
-	timestamp: Date;
+// Track pending timeouts per tournament so we can cancel them on cancel/finish
+const tournamentTimeouts = new Map<number, Set<ReturnType<typeof setTimeout>>>();
+
+// Dedup guard: prevent scheduling the same round twice (see Task 5)
+const scheduledRounds = new Set<string>();
+
+function addTrackedTimeout(tournamentId: number, callback: () => void, ms: number): ReturnType<typeof setTimeout> {
+	const timer = setTimeout(() => {
+		tournamentTimeouts.get(tournamentId)?.delete(timer);
+		callback();
+	}, ms);
+	if (!tournamentTimeouts.has(tournamentId)) {
+		tournamentTimeouts.set(tournamentId, new Set());
+	}
+	tournamentTimeouts.get(tournamentId)!.add(timer);
+	return timer;
 }
 
-// tournamentId → queue of forfeit events
-const forfeitQueues = new Map<number, ForfeitEvent[]>();
-
-// tournamentId → whether queue is currently processing
-const processingQueues = new Set<number>();
-
-/**
- * Queue a forfeit event for a tournament.
- * Events are processed serially to prevent race conditions.
- */
-function queueForfeitEvent(tournamentId: number, userId: number): void {
-	if (!forfeitQueues.has(tournamentId)) {
-		forfeitQueues.set(tournamentId, []);
+function clearTournamentTimeouts(tournamentId: number): void {
+	const timeouts = tournamentTimeouts.get(tournamentId);
+	if (timeouts) {
+		for (const timer of timeouts) clearTimeout(timer);
+		timeouts.clear();
+		tournamentTimeouts.delete(tournamentId);
 	}
-	const queue = forfeitQueues.get(tournamentId)!;
-	queue.push({
-		tournamentId,
-		userId,
-		timestamp: new Date(),
-	});
-	
-	// Start processing if not already processing
-	if (!processingQueues.has(tournamentId)) {
-		processForfeitQueue(tournamentId);
-	}
-}
-
-/**
- * Process forfeit events for a tournament serially.
- * Only one event at a time per tournament to prevent race conditions.
- */
-async function processForfeitQueue(tournamentId: number): Promise<void> {
-	if (processingQueues.has(tournamentId)) return; // Already processing
-	
-	const queue = forfeitQueues.get(tournamentId) || [];
-	if (queue.length === 0) return; // Nothing to process
-	
-	processingQueues.add(tournamentId);
-	
-	try {
-		while (queue.length > 0) {
-			const event = queue.shift()!;
-			console.log(`[Tournament] Processing forfeit event: tournament=${event.tournamentId}, player=${event.userId}`);
-			
-			// Process this forfeit (internal function, no recursive queueing)
-			await playerDisconnectedFromTournament(event.tournamentId, event.userId, true);
-			
-			// Small delay to allow state updates to settle
-			await new Promise(resolve => setTimeout(resolve, 100));
+	for (const key of scheduledRounds) {
+		if (key.startsWith(`${tournamentId}-`)) {
+			scheduledRounds.delete(key);
 		}
-	} catch (error) {
-		console.error(`[Tournament] Error processing forfeit queue for tournament ${tournamentId}:`, error);
-	} finally {
-		processingQueues.delete(tournamentId);
-		forfeitQueues.delete(tournamentId);
 	}
 }
 
 // ── Helpers ──────────────────────────────────────────────
+
+/** Check if a tournament participant is a bot (username starts with "[BOT]"). */
+function isBot(playerId: number, playerMap: Map<number, string>): boolean {
+	const username = playerMap.get(playerId);
+	return username != null && username.startsWith('[BOT]');
+}
 
 /** Broadcast to all sockets of both players in a room */
 function tournamentBroadcastState(
@@ -110,6 +83,15 @@ function tournamentBroadcastState(
 		io.to(sid).emit('game:state', state);
 	for (const sid of room.player2.socketIds)
 		io.to(sid).emit('game:state', state);
+	// Spectators
+	for (const sid of room.spectators)
+		io.to(sid).emit('game:state', state);
+}
+
+function ordinal(n: number): string {
+	const s = ['th', 'st', 'nd', 'rd'];
+	const v = n % 100;
+	return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function tournamentBroadcastEvent(
@@ -122,6 +104,8 @@ function tournamentBroadcastEvent(
 	if (!room) return;
 	for (const sid of room.player1.socketIds) io.to(sid).emit(event, data);
 	for (const sid of room.player2.socketIds) io.to(sid).emit(event, data);
+	// Spectators
+	for (const sid of room.spectators) io.to(sid).emit(event, data);
 }
 
 /** Emit event to all participants of a tournament */
@@ -172,6 +156,39 @@ function getRoundName(round: number, totalRounds: number): string {
 	return `Round ${round}`;
 }
 
+/** Insert a system message into tournament chat and broadcast it */
+async function insertTournamentSystemMessage(
+	tournamentId: number,
+	content: string,
+): Promise<void> {
+	const tourney = activeTournaments.get(tournamentId);
+ 	if (!tourney) return;
+	const [msg] = await db.insert(tournamentMessages).values({
+		tournament_id: tournamentId,
+		user_id: tourney.createdBy, // Use creator as the system message author
+		content,
+		type: 'system',
+	}).returning();
+
+	const io = getIO();
+	const payload = {
+		id: msg.id,
+		tournamentId,
+		userId: tourney.createdBy,
+		username: 'System',
+		avatarUrl: null,
+		content,
+		type: 'system',
+		createdAt: msg.created_at instanceof Date ? msg.created_at.toISOString() : String(msg.created_at),
+	};
+	for (const [uid] of tourney.playerMap) {
+		const sockets = userSockets.get(uid);
+		if (sockets) {
+			for (const sid of sockets) io.to(sid).emit('tournament:chat-message', payload);
+		}
+	}
+}
+
 // ── Public API ───────────────────────────────────────────
 
 export async function createTournament(
@@ -179,6 +196,7 @@ export async function createTournament(
 	createdBy: number,
 	maxPlayers: number,
 	settings: { speedPreset: string; winScore: number },
+	isPrivate: boolean = false,
 ): Promise<number> {
 	const [tournament] = await db
 		.insert(tournaments)
@@ -190,6 +208,7 @@ export async function createTournament(
 			max_players: maxPlayers,
 			speed_preset: settings.speedPreset,
 			win_score: settings.winScore,
+			is_private: isPrivate,
 		})
 		.returning();
 	return tournament.id;
@@ -206,6 +225,22 @@ export async function joinTournament(
 	if (!tournament) return { success: false, error: 'Tournament not found' };
 	if (tournament.status !== 'scheduled')
 		return { success: false, error: 'Tournament already started' };
+	// Private tournament — check for invite
+	if (tournament.is_private) {
+		const [invite] = await db
+			.select()
+			.from(tournamentInvites)
+			.where(
+				and(
+					eq(tournamentInvites.tournament_id, tournamentId),
+					eq(tournamentInvites.invited_user_id, userId),
+				),
+			);
+		// Creator can always join (they created it)
+		if (!invite && tournament.created_by !== userId) {
+			return { success: false, error: 'Invite required for private tournament' };
+		}
+	}
 
 	// Check if already joined
 	const [existing] = await db
@@ -244,328 +279,17 @@ export async function leaveTournament(
 		.select()
 		.from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
-	if (!tournament) return false;
+	if (!tournament || tournament.status !== 'scheduled') return false;
 
-	// If scheduled or cancelled (not started), just remove them
-	if (tournament.status === 'scheduled' || tournament.status === 'cancelled') {
-		await db
-			.delete(tournamentParticipants)
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, userId),
-				),
-			);
-		return true;
-	}
-
-	// If in_progress, queue elimination logic (serialize to prevent race conditions)
-	if (tournament.status === 'in_progress') {
-		queueForfeitEvent(tournamentId, userId);
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * Handles a player disconnecting/leaving from an in-progress tournament.
- * 
- * This function:
- * 1. Finds all of the player's remaining matches (pending/playing)
- * 2. Auto-forfeits them by advancing their opponents
- * 3. Checks if only 1 active player remains
- * 4. If so, declares that player tournament winner
- */
-export async function playerDisconnectedFromTournament(
-	tournamentId: number,
-	userId: number,
-	isFromQueue: boolean = false,
-): Promise<void> {
-	// If not called from queue, queue this event to serialize processing
-	if (!isFromQueue) {
-		queueForfeitEvent(tournamentId, userId);
-		return;
-	}
-
-	const tourney = activeTournaments.get(tournamentId);
-	
-	// If tournament not in memory, handle with database-only logic
-	if (!tourney) {
-		console.log(`[Tournament] Tournament ${tournamentId} not in activeTournaments. Using DB-only elimination.`);
-		
-		// Just mark the player as eliminated
-		const totalPlayers = await db
-			.select()
-			.from(tournamentParticipants)
-			.where(eq(tournamentParticipants.tournament_id, tournamentId));
-
-		const [{ value: eliminatedCount }] = await db
-			.select({ value: count() })
-			.from(tournamentParticipants)
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.status, 'eliminated'),
-				),
-			);
-		const placement = totalPlayers.length - Number(eliminatedCount);
-
-		// Mark player as eliminated
-		await db
-			.update(tournamentParticipants)
-			.set({ status: 'eliminated', placement })
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, userId),
-				),
-			);
-
-		// Check if only 1 active player remains
-		const activeParticipants = await db
-			.select({ userId: tournamentParticipants.user_id })
-			.from(tournamentParticipants)
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.status, 'active'),
-				),
-			);
-
-		if (activeParticipants.length === 1) {
-			console.log(
-				`[Tournament] Tournament ${tournamentId}: Only 1 active player left! Declaring winner (no in-memory bracket).`
-			);
-			const winnerId = activeParticipants[0].userId;
-
-			// Mark winner and finish tournament
-			await db.transaction(async (tx) => {
-				await tx
-					.update(tournamentParticipants)
-					.set({ status: 'champion', placement: 1 })
-					.where(
-						and(
-							eq(tournamentParticipants.tournament_id, tournamentId),
-							eq(tournamentParticipants.user_id, winnerId),
-						),
-					);
-
-				await tx
-					.update(tournaments)
-					.set({
-						status: 'finished',
-						winner_id: winnerId,
-						finished_at: new Date(),
-					})
-					.where(eq(tournaments.id, tournamentId));
-			});
-
-			// Emit tournament finished event
-			const podiumParticipants = await db
-				.select({
-					userId: tournamentParticipants.user_id,
-					username: users.username,
-					placement: tournamentParticipants.placement,
-					avatarUrl: users.avatar_url,
-				})
-				.from(tournamentParticipants)
-				.innerJoin(users, eq(users.id, tournamentParticipants.user_id))
-				.where(eq(tournamentParticipants.tournament_id, tournamentId))
-				.orderBy(tournamentParticipants.placement);
-
-			const podium = podiumParticipants
-				.filter((p) => p.placement !== null && p.placement <= 3)
-				.map((p) => ({
-					userId: p.userId,
-					username: p.username,
-					avatarUrl: p.avatarUrl,
-					placement: p.placement!,
-				}));
-
-			emitToParticipants(tournamentId, 'tournament:finished', {
-				tournamentId,
-				winnerId,
-				winnerUsername: (await db.select({ username: users.username }).from(users).where(eq(users.id, winnerId)))[0]
-					?.username,
-				tournamentName: '',
-				podium,
-				championWins: 0,
-				bracket: [],
-			});
-
-			getIO().emit('tournament:list-updated');
-		}
-		return;
-	}
-
-	console.log(`[Tournament] Player ${userId} disconnected from tournament ${tournamentId}`);
-
-	// Find all this player's remaining matches
-	const remainingMatches: Array<{ round: number; matchIndex: number; isPlayer1: boolean; opponent: number | null }> = [];
-	
-	for (const round of tourney.bracket) {
-		for (const match of round.matches) {
-			if (match.status === 'finished' || match.status === 'bye') continue;
-
-			let isPlayer1 = false;
-			let opponent: number | null = null;
-			let isPlayerInMatch = false;
-
-			if (match.player1Id === userId) {
-				isPlayer1 = true;
-				isPlayerInMatch = true;
-				opponent = match.player2Id ?? null;
-			} else if (match.player2Id === userId) {
-				isPlayer1 = false;
-				isPlayerInMatch = true;
-				opponent = match.player1Id ?? null;
-			}
-
-			// Only add if player is actually in this match
-			if (isPlayerInMatch) {
-				remainingMatches.push({
-					round: round.round,
-					matchIndex: match.matchIndex,
-					isPlayer1,
-					opponent,
-				});
-			}
-		}
-	}
-
-	// Auto-forfeit each match by advancing the opponent
-	for (const remaining of remainingMatches) {
-		if (remaining.opponent !== null) {
-			// Opponent exists → advance them
-			await advanceWinner(
-				tournamentId,
-				remaining.round,
-				remaining.matchIndex,
-				remaining.opponent,
-				userId,
-				1,
-				0, // forfeit score: opponent wins 1-0
-			);
-		} else {
-			// No opponent yet (pending match) → mark disconnected player as eliminated
-			const totalPlayers = tourney.playerMap.size;
-			const [{ value: eliminatedCount }] = await db
-				.select({ value: count() })
-				.from(tournamentParticipants)
-				.where(
-					and(
-						eq(tournamentParticipants.tournament_id, tournamentId),
-						eq(tournamentParticipants.status, 'eliminated'),
-					),
-				);
-			const placement = totalPlayers - Number(eliminatedCount);
-
-			await db
-				.update(tournamentParticipants)
-				.set({
-					status: 'eliminated',
-					placement,
-				})
-				.where(
-					and(
-						eq(tournamentParticipants.tournament_id, tournamentId),
-						eq(tournamentParticipants.user_id, userId),
-					),
-				);
-
-			// Mark match as finished  in memory
-			const roundData = tourney.bracket.find(r => r.round === remaining.round);
-			if (roundData) {
-				const match = roundData.matches[remaining.matchIndex];
-				if (match) match.status = 'finished';
-			}
-		}
-	}
-
-	// Check if only 1 active player remains
-	const allParticipants = await db
-		.select({ userId: tournamentParticipants.user_id, status: tournamentParticipants.status })
-		.from(tournamentParticipants)
-		.where(eq(tournamentParticipants.tournament_id, tournamentId));
-
-	const activePlayers = allParticipants.filter(p => p.status === 'active');
-	console.log(`[Tournament] Tournament ${tournamentId}: Found ${activePlayers.length} active players out of ${allParticipants.length} total`);
-	console.log(`[Tournament] All participants statuses:`, allParticipants.map(p => `${p.userId}=${p.status}`).join(', '));
-	
-	if (activePlayers.length === 1) {
-		// Only 1 player left → declare them winner
-		const winnerId = activePlayers[0].userId;
-		console.log(`[Tournament] Tournament ${tournamentId}: WINNER DECLARED - Player ${winnerId}! (Only 1 active player remains)`);
-		const totalRounds = tourney.bracket.length;
-		const finalRound = tourney.bracket[totalRounds - 1];
-		
-		// Mark winner as champion
-		await db
-			.update(tournamentParticipants)
-			.set({ status: 'champion', placement: 1 })
-			.where(
-				and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, winnerId),
-				),
-			);
-
-		// Mark tournament as finished
-		console.log(`[Tournament] Setting tournament ${tournamentId} status to 'finished'`);
-		await db
-			.update(tournaments)
-			.set({ status: 'finished', winner_id: winnerId })
-			.where(eq(tournaments.id, tournamentId));
-
-		// Emit tournament finished to all participants
-		const podiumParticipants = await db
-			.select({
-				userId: tournamentParticipants.user_id,
-				username: users.username,
-				placement: tournamentParticipants.placement,
-				avatarUrl: users.avatar_url,
-			})
-			.from(tournamentParticipants)
-			.innerJoin(users, eq(users.id, tournamentParticipants.user_id))
-			.where(eq(tournamentParticipants.tournament_id, tournamentId))
-			.orderBy(tournamentParticipants.placement);
-
-		const podium = podiumParticipants
-			.filter((p) => p.placement !== null && p.placement <= 3)
-			.map((p) => ({
-				userId: p.userId,
-				username: p.username,
-				avatarUrl: p.avatarUrl,
-				placement: p.placement!,
-			}));
-
-		const winnerWins = tourney.bracket.reduce((count, r) => {
-			return count + r.matches.filter((m) => m.winnerId === winnerId).length;
-		}, 0);
-
-		emitToParticipants(tournamentId, 'tournament:finished', {
-			tournamentId,
-			winnerId,
-			winnerUsername: tourney.playerMap.get(winnerId),
-			tournamentName: tourney.name,
-			podium,
-			championWins: winnerWins,
-			bracket: tourney.bracket,
-		});
-
-		activeTournaments.delete(tournamentId);
-		getIO().emit('tournament:list-updated');
-	} else {
-		// Persist bracket and notify remaining players
-		await saveBracketToDb(tournamentId, tourney.bracket);
-		if (activeTournaments.has(tournamentId)) {
-			emitToParticipants(tournamentId, 'tournament:bracket-update', {
-				tournamentId,
-				bracket: tourney.bracket,
-			});
-		}
-	}
+	await db
+		.delete(tournamentParticipants)
+		.where(
+			and(
+				eq(tournamentParticipants.tournament_id, tournamentId),
+				eq(tournamentParticipants.user_id, userId),
+			),
+		);
+	return true;
 }
 
 export async function cancelTournament(
@@ -577,7 +301,30 @@ export async function cancelTournament(
 		.from(tournaments)
 		.where(eq(tournaments.id, tournamentId));
 	if (!tournament || tournament.created_by !== requestedBy) return { success: false };
-	if (tournament.status !== 'scheduled') return { success: false };
+	if (tournament.status !== 'scheduled' && tournament.status !== 'in_progress') return { success: false };
+
+	// Clean up in-memory state for in-progress tournaments
+	clearTournamentTimeouts(tournamentId);
+
+	const tourney = activeTournaments.get(tournamentId);
+	if (tourney) {
+		for (const roundData of tourney.bracket) {
+			for (const match of roundData.matches) {
+				if (match.status === 'playing') {
+					const roomId = `tournament-${tournamentId}-r${roundData.round}-m${match.matchIndex}`;
+					const room = getRoom(roomId);
+					if (room) {
+						tournamentBroadcastEvent(roomId, 'game:cancelled', {
+							roomId,
+							reason: 'Tournament was cancelled',
+						});
+						destroyRoom(roomId);
+					}
+				}
+			}
+		}
+		activeTournaments.delete(tournamentId);
+	}
 
 	// Fetch participant IDs before deleting so we can notify them
 	const participants = await db
@@ -585,12 +332,30 @@ export async function cancelTournament(
 		.from(tournamentParticipants)
 		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 
-	// Delete participants first (foreign key), then tournament
-	await db
-		.delete(tournamentParticipants)
+	// Delete in correct order to respect FK constraints:
+	// 1. Messages referencing invites (no cascade on tournament_invite_id)
+	// 2. Invites (cascades from tournament delete, but messages block it)
+	// 3. Tournament messages
+	// 4. Participants
+	// 5. Tournament
+	const inviteIds = await db
+		.select({ id: tournamentInvites.id })
+		.from(tournamentInvites)
+		.where(eq(tournamentInvites.tournament_id, tournamentId));
+	if (inviteIds.length > 0) {
+		for (const { id } of inviteIds) {
+			await db.update(messages)
+				.set({ tournament_invite_id: null })
+				.where(eq(messages.tournament_invite_id, id));
+		}
+		await db.delete(tournamentInvites)
+			.where(eq(tournamentInvites.tournament_id, tournamentId));
+	}
+	await db.delete(tournamentMessages)
+		.where(eq(tournamentMessages.tournament_id, tournamentId));
+	await db.delete(tournamentParticipants)
 		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 	await db.delete(tournaments).where(eq(tournaments.id, tournamentId));
-
 	return {
 		success: true,
 		tournamentName: tournament.name,
@@ -647,27 +412,24 @@ export async function startTournament(
 		playerMap,
 	});
 
-	// Update DB in a transaction (bracket + status + participants must be atomic)
-	await db.transaction(async (tx) => {
-		// Update tournament to in_progress with initial bracket
-		await tx
-			.update(tournaments)
-			.set({
-				status: 'in_progress',
-				current_round: 1,
-				started_at: new Date(),
-				bracket_data: JSON.parse(JSON.stringify(bracket)),
-			})
-			.where(eq(tournaments.id, tournamentId));
+	// Update DB (including initial bracket)
+	await db
+		.update(tournaments)
+		.set({
+			status: 'in_progress',
+			current_round: 1,
+			started_at: new Date(),
+			bracket_data: JSON.parse(JSON.stringify(bracket)),
+		})
+		.where(eq(tournaments.id, tournamentId));
 
-		// Update all participants to active
-		await tx
-			.update(tournamentParticipants)
-			.set({
-				status: 'active',
-			})
-			.where(eq(tournamentParticipants.tournament_id, tournamentId));
-	});
+	// Update all participants to active
+	await db
+		.update(tournamentParticipants)
+		.set({
+			status: 'active',
+		})
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
 
 	// Notify all participants
 	emitToParticipants(tournamentId, 'tournament:started', {
@@ -744,6 +506,49 @@ async function startRoundMatches(
 		if (match.status !== 'pending' || !match.player1Id || !match.player2Id)
 			continue;
 
+		const p1IsBot = isBot(match.player1Id, tourney.playerMap);
+		const p2IsBot = isBot(match.player2Id, tourney.playerMap);
+
+		// Auto-resolve matches involving bots
+		if (p1IsBot || p2IsBot) {
+			let winnerId: number;
+			let loserId: number;
+			let winnerScore = tourney.settings.winScore;
+			let loserScore = Math.floor(Math.random() * (tourney.settings.winScore - 1));
+
+			if (p1IsBot && p2IsBot) {
+				// Both bots — random winner
+				if (Math.random() < 0.5) {
+					winnerId = match.player1Id;
+					loserId = match.player2Id;
+				} else {
+					winnerId = match.player2Id;
+					loserId = match.player1Id;
+				}
+			} else {
+				// Human vs bot — human always wins
+				winnerId = p1IsBot ? match.player2Id : match.player1Id;
+				loserId = p1IsBot ? match.player1Id : match.player2Id;
+			}
+
+			match.status = 'finished';
+			match.winnerId = winnerId;
+			if (match.player1Id === winnerId) {
+				match.player1Score = winnerScore;
+				match.player2Score = loserScore;
+			} else {
+				match.player1Score = loserScore;
+				match.player2Score = winnerScore;
+			}
+
+			// Small delay so bracket updates don't all fire at once
+			const capturedMatch = { ...match };
+			setTimeout(async () => {
+				await advanceWinner(tournamentId, round, capturedMatch.matchIndex, winnerId, loserId, winnerScore, loserScore);
+			}, 500 * match.matchIndex);
+			continue;
+		}
+
 		match.status = 'playing';
 
 		const roomId = `tournament-${tournamentId}-r${round}-m${match.matchIndex}`;
@@ -783,16 +588,33 @@ async function startRoundMatches(
 		const capturedP1Id = match.player1Id;
 		const capturedP2Id = match.player2Id;
 
-		setTimeout(async () => {
+		addTrackedTimeout(tournamentId, async () => {
 			try {
+				// If match already finished (game ended normally), skip
+				const currentMatch = tourney.bracket.find((r) => r.round === round)?.matches[match.matchIndex];
+				if (currentMatch?.status === 'finished') return;
+
 				const room = getRoom(roomId);
 				if (!room) return; // already finished or destroyed
 				const p1Joined = room.player1.socketIds.size > 0;
 				const p2Joined = room.player2.socketIds.size > 0;
 				if (p1Joined && p2Joined) return; // both present, game running
 				if (!p1Joined && !p2Joined) {
-					// Neither joined — destroy room, advance nobody (both eliminated)
+					// Neither joined — advance player1 by default (higher seed).
+					// Arbitrary, but tournament MUST advance to avoid stuck state.
 					destroyRoom(roomId);
+					tournamentLogger.warn(
+						`Neither player joined match r${round}-m${match.matchIndex} in tournament ${tournamentId}. Auto-advancing p1 (id=${capturedP1Id}).`,
+					);
+					await advanceWinner(
+						tournamentId,
+						round,
+						match.matchIndex,
+						capturedP1Id,
+						capturedP2Id,
+						0,
+						0,
+					);
 					return;
 				}
 
@@ -817,6 +639,50 @@ async function startRoundMatches(
 				);
 			}
 		}, 60_000);
+
+		// 15-minute safety timeout — force-end stuck games
+		addTrackedTimeout(tournamentId, async () => {
+			try {
+				const room = getRoom(roomId);
+				if (!room) return;
+
+				const rd = tourney.bracket.find((r) => r.round === round);
+				const m = rd?.matches[match.matchIndex];
+				if (m?.status === 'finished') return;
+
+				tournamentLogger.warn(
+					`Match r${round}-m${match.matchIndex} in tournament ${tournamentId} hit 15-minute timeout. Force-ending.`,
+				);
+
+				const state = room.getState();
+				let forceWinnerId: number;
+				let forceLoserId: number;
+				if (state.score1 > state.score2) {
+					forceWinnerId = capturedP1Id;
+					forceLoserId = capturedP2Id;
+				} else if (state.score2 > state.score1) {
+					forceWinnerId = capturedP2Id;
+					forceLoserId = capturedP1Id;
+				} else {
+					// Tied — advance player1 (higher seed)
+					forceWinnerId = capturedP1Id;
+					forceLoserId = capturedP2Id;
+				}
+
+				destroyRoom(roomId);
+				await advanceWinner(
+					tournamentId,
+					round,
+					match.matchIndex,
+					forceWinnerId,
+					forceLoserId,
+					state.score1,
+					state.score2,
+				);
+			} catch (err) {
+				tournamentLogger.error({ err }, 'Failed to handle 15-min match timeout');
+			}
+		}, 15 * 60 * 1000);
 	}
 
 	// Broadcast updated bracket
@@ -824,6 +690,10 @@ async function startRoundMatches(
 		tournamentId,
 		bracket: tourney.bracket,
 	});
+
+	// System message in tournament chat
+	const roundName = getRoundName(round, tourney.bracket.length);
+	await insertTournamentSystemMessage(tournamentId, `${roundName} is starting!`);
 }
 
 /**
@@ -891,97 +761,28 @@ export async function advanceWinner(
 	loserScore: number = 0,
 ): Promise<void> {
 	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) {
-		// Tournament not in memory (e.g., after HMR/server restart).
-		// Fall back to a direct DB update so the tournament doesn't stay 'in_progress' forever.
-		tournamentLogger.warn({ tournamentId, round, matchIndex, winnerId, loserId },
-			'advanceWinner: tournament not in activeTournaments, attempting DB fallback');
-
-		const [tournament] = await db.select().from(tournaments)
-			.where(eq(tournaments.id, tournamentId));
-		if (!tournament || tournament.status !== 'in_progress') return;
-
-		const bracket = tournament.bracket_data as BracketRound[] | null;
-		const totalRounds = bracket?.length ?? 0;
-		const isFinalRound = round === totalRounds;
-
-		if (isFinalRound) {
-			const totalPlayers = await db.select({ value: count() })
-				.from(tournamentParticipants)
-				.where(eq(tournamentParticipants.tournament_id, tournamentId));
-
-			await db.transaction(async (tx) => {
-				await tx.update(tournaments).set({
-					status: 'finished',
-					winner_id: winnerId,
-					finished_at: new Date(),
-				}).where(eq(tournaments.id, tournamentId));
-
-				await tx.update(tournamentParticipants).set({
-					status: 'champion',
-					placement: 1,
-				}).where(and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, winnerId),
-				));
-
-				await tx.update(tournamentParticipants).set({
-					status: 'eliminated',
-					placement: Number(totalPlayers[0].value),
-				}).where(and(
-					eq(tournamentParticipants.tournament_id, tournamentId),
-					eq(tournamentParticipants.user_id, loserId),
-				));
-			});
-
-			emitToUser(winnerId, 'tournament:finished', {
-				tournamentId, winnerId, loserId,
-				winnerUsername: 'Player',
-				tournamentName: tournament.name,
-				round, totalRounds, roundName: 'Final',
-				podium: [], championWins: 0, runnerUpWins: 0,
-				bracket: bracket ?? [],
-			});
-			emitToUser(loserId, 'tournament:finished', {
-				tournamentId, winnerId, loserId,
-				winnerUsername: 'Player',
-				tournamentName: tournament.name,
-				round, totalRounds, roundName: 'Final',
-				podium: [], championWins: 0, runnerUpWins: 0,
-				bracket: bracket ?? [],
-			});
-			getIO().emit('tournament:list-updated');
-			tournamentLogger.info({ tournamentId, winnerId }, 'DB fallback: tournament finished');
-		} else {
-			tournamentLogger.error({ tournamentId, round, totalRounds },
-				'advanceWinner: tournament not in memory and not final round — cannot advance bracket');
-		}
-		return;
-	}
-
-	tournamentLogger.info({ tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore },
-		'[advanceWinner] called — tournament IS in activeTournaments');
+	if (!tourney) return;
 
 	const roundData = tourney.bracket.find((r) => r.round === round);
-	if (!roundData) {
-		tournamentLogger.error({ tournamentId, round, bracketRounds: tourney.bracket.map(r => r.round) }, '[advanceWinner] roundData not found!');
-		return;
-	}
+	if (!roundData) return;
 
 	// Mark match finished with scores
 	const match = roundData.matches[matchIndex];
-	tournamentLogger.info({ matchFound: !!match, matchIndex, matchStatus: match?.status }, '[advanceWinner] match lookup');
-	if (match) {
-		match.winnerId = winnerId;
-		match.status = 'finished';
-		// Map winner/loser scores to player1/player2 slots
-		if (match.player1Id === winnerId) {
-			match.player1Score = winnerScore;
-			match.player2Score = loserScore;
-		} else {
-			match.player1Score = loserScore;
-			match.player2Score = winnerScore;
-		}
+	if (!match || match.status === 'finished') {
+		tournamentLogger.warn(
+			`advanceWinner called for already-finished or missing match r${round}-m${matchIndex} in tournament ${tournamentId}. Ignoring.`,
+		);
+		return;
+	}
+	match.winnerId = winnerId;
+	match.status = 'finished';
+	// Map winner/loser scores to player1/player2 slots
+	if (match.player1Id === winnerId) {
+		match.player1Score = winnerScore;
+		match.player2Score = loserScore;
+	} else {
+		match.player1Score = loserScore;
+		match.player2Score = winnerScore;
 	}
 
 	// Eliminate loser — placement = totalPlayers - alreadyEliminated
@@ -1012,9 +813,15 @@ export async function advanceWinner(
 			),
 		);
 
+	// System message: player eliminated
+	const loserUsername = tourney.playerMap.get(loserId) ?? 'Player';
+	await insertTournamentSystemMessage(
+			tournamentId,
+			`${loserUsername} eliminated (${ordinal(placement)} place)`,
+	);
+
 	// Place winner in next round
 	const nextRound = tourney.bracket.find((r) => r.round === round + 1);
-	tournamentLogger.info({ nextRoundExists: !!nextRound, currentRound: round, totalRounds: tourney.bracket.length, lookingForRound: round + 1 }, '[advanceWinner] nextRound check');
 
 	// Count how many matches this player won in the tournament
 	const loserWins = tourney.bracket.reduce((count, r) => {
@@ -1045,6 +852,7 @@ export async function advanceWinner(
 		}
 	}
 
+	console.log(`[Tournament] advanceWinner: round=${round}, totalRounds=${totalRounds}, nextRound=${!!nextRound}`);
 	if (nextRound) {
 		// Emit tournament:eliminated for non-final rounds only
 		// Final round loser gets tournament:finished instead (shows runner-up screen)
@@ -1123,40 +931,52 @@ export async function advanceWinner(
 			if (nextMatch.player1Id && nextMatch.player2Id) {
 				const capturedTournamentId = tournamentId;
 				const capturedNextRound = round + 1;
-				setTimeout(() => {
-					startRoundMatches(capturedTournamentId, capturedNextRound);
-				}, 10_000);
+				const scheduleKey = `${capturedTournamentId}-${capturedNextRound}`;
+
+				if (!scheduledRounds.has(scheduleKey)) {
+					scheduledRounds.add(scheduleKey);
+					addTrackedTimeout(capturedTournamentId, () => {
+						scheduledRounds.delete(scheduleKey);
+						startRoundMatches(capturedTournamentId, capturedNextRound);
+					}, 10_000);
+				}
 			}
 		}
+
+		// Non-final round: persist bracket and broadcast update
+		await saveBracketToDb(tournamentId, tourney.bracket);
+		emitToParticipants(tournamentId, 'tournament:bracket-update', {
+			tournamentId,
+			bracket: tourney.bracket,
+		});
 	} else {
 		// No next round — tournament is over!
-		tournamentLogger.info({ tournamentId, winnerId, loserId }, '[advanceWinner] NO NEXT ROUND — marking tournament finished, running DB transaction');
-		
-		// Use transaction for finalist updates
-		await db.transaction(async (tx) => {
-			await tx
-				.update(tournaments)
-				.set({
-					status: 'finished',
-					winner_id: winnerId,
-					finished_at: new Date(),
-					bracket_data: JSON.parse(JSON.stringify(tourney.bracket)),
-				})
-				.where(eq(tournaments.id, tournamentId));
+		await db
+			.update(tournaments)
+			.set({
+				status: 'finished',
+				winner_id: winnerId,
+				finished_at: new Date(),
+			})
+			.where(eq(tournaments.id, tournamentId));
 
-			await tx
-				.update(tournamentParticipants)
-				.set({
-					status: 'champion',
-					placement: 1,
-				})
-				.where(
-					and(
-						eq(tournamentParticipants.tournament_id, tournamentId),
-						eq(tournamentParticipants.user_id, winnerId),
-					),
-				);
-		});
+		await db
+			.update(tournamentParticipants)
+			.set({
+				status: 'champion',
+				placement: 1,
+			})
+			.where(
+				and(
+					eq(tournamentParticipants.tournament_id, tournamentId),
+					eq(tournamentParticipants.user_id, winnerId),
+				),
+			);
+		const winnerUsername = tourney.playerMap.get(winnerId) ?? 'Player';
+		await insertTournamentSystemMessage(
+			tournamentId,
+			`${winnerUsername} wins the tournament!`,
+		);
 
 		// Build podium (top 3)
 		const podiumParticipants = await db
@@ -1190,6 +1010,13 @@ export async function advanceWinner(
 			return count + r.matches.filter((m) => m.winnerId === loserId).length;
 		}, 0);
 
+		// Save bracket to DB BEFORE emitting events and deleting from memory.
+		// Otherwise invalidateAll() on the client races with saveBracketToDb:
+		// the page load can't find the in-memory bracket (already deleted) and
+		// reads stale bracket_data from the DB.
+		await saveBracketToDb(tournamentId, tourney.bracket);
+
+		console.log(`[Tournament] Emitting tournament:finished for tournament ${tournamentId}, winner=${winnerId}, loser=${loserId}`);
 		emitToParticipants(tournamentId, 'tournament:finished', {
 			tournamentId,
 			winnerId,
@@ -1205,23 +1032,158 @@ export async function advanceWinner(
 			bracket: tourney.bracket,
 		});
 
-		tournamentLogger.info({ tournamentId, winnerId }, '[advanceWinner] DB transaction done — emitting tournament:finished, deleting from activeTournaments');
+		clearTournamentTimeouts(tournamentId);
 		activeTournaments.delete(tournamentId);
 
 		// Notify ALL clients so tournament list pages refresh
 		getIO().emit('tournament:list-updated');
-		tournamentLogger.info({ tournamentId }, '[advanceWinner] tournament:list-updated emitted');
+	}
+}
+
+// ── Tournament Invites ──────────────────────────────────
+export async function inviteToTournament(
+	tournamentId: number,
+	invitedBy: number,
+	invitedUserId: number,
+): Promise<{ success: boolean; inviteId?: number; error?: string }> {
+	// Validate tournament exists and is scheduled
+	const [tournament] = await db
+		.select()
+		.from(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	if (!tournament) return { success: false, error: 'Tournament not found' };
+	if (tournament.status !== 'scheduled')
+		return { success: false, error: 'Tournament already started' };
+	if (!tournament.is_private)
+		return { success: false, error: 'Tournament is not private' };
+
+	// Only creator can invite
+	if (tournament.created_by !== invitedBy)
+		return { success: false, error: 'Only the creator can invite' };
+
+	// Can't invite yourself
+	if (invitedBy === invitedUserId)
+		return { success: false, error: 'Cannot invite yourself' };
+
+	// Check if already invited
+	const [existing] = await db
+		.select()
+		.from(tournamentInvites)
+		.where(
+			and(
+				eq(tournamentInvites.tournament_id, tournamentId),
+				eq(tournamentInvites.invited_user_id, invitedUserId),
+			),
+		);
+	if (existing) return { success: false, error: 'Already invited' };
+
+	// Check if already a participant
+	const [alreadyJoined] = await db
+		.select()
+		.from(tournamentParticipants)
+		.where(
+			and(
+				eq(tournamentParticipants.tournament_id, tournamentId),
+				eq(tournamentParticipants.user_id, invitedUserId),
+			),
+		);
+	if (alreadyJoined) return { success: false, error: 'Already in tournament' };
+
+	// Insert invite
+	const [invite] = await db
+		.insert(tournamentInvites)
+		.values({
+			tournament_id: tournamentId,
+			invited_by: invitedBy,
+			invited_user_id: invitedUserId,
+		})
+		.returning();
+
+	// Get invite details for the chat message
+	const [inviter] = await db
+		.select({ username: users.username })
+		.from(users)
+		.where(eq(users.id, invitedBy));
+
+	// Get participant count
+	const participantRows = await db
+		.select()
+		.from(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+	// Insert special chat message with the invite card
+	await db.insert(messages).values({
+		sender_id: invitedBy,
+		recipient_id: invitedUserId,
+		type: 'tournament_invite',
+		content: JSON.stringify({
+			tournamentId,
+			tournamentName: tournament.name,
+			maxPlayers: tournament.max_players,
+			participantCount: participantRows.length,
+			speedPreset: tournament.speed_preset,
+			inviterUsername: inviter?.username ?? 'Someone',
+		}),
+		tournament_invite_id: invite.id,
+	});
+
+	// Notify the invited user in real-time
+	emitToUser(invitedUserId, 'tournament:invited', {
+		inviteId: invite.id,
+		tournamentId,
+		tournamentName: tournament.name,
+		invitedBy,
+		inviterUsername: inviter?.username ?? 'Someone',
+		maxPlayers: tournament.max_players,
+		participantCount: participantRows.length,
+		speedPreset: tournament.speed_preset,
+	});
+
+	return { success: true, inviteId: invite.id };
+}
+
+export async function respondToInvite(
+	inviteId: number,
+	userId: number,
+	accept: boolean,
+): Promise<{ success: boolean; tournamentId?: number; error?: string }> {
+	const [invite] = await db
+		.select()
+		.from(tournamentInvites)
+		.where(eq(tournamentInvites.id, inviteId));
+	if (!invite) return { success: false, error: 'Invite not found' };
+	if (invite.invited_user_id !== userId)
+		return { success: false, error: 'Not your invite' };
+	if (invite.status !== 'pending')
+		return { success: false, error: 'Invite already responded' };
+
+	// Update invite status
+	await db
+		.update(tournamentInvites)
+		.set({ status: accept ? 'accepted' : 'declined' })
+		.where(eq(tournamentInvites.id, inviteId));
+
+	if (accept) {
+		// Auto-join the tournament
+		const result = await joinTournament(invite.tournament_id, userId);
+		if (!result.success)
+			return { success: false, error: result.error };
 	}
 
-	// Persist bracket to DB and broadcast to all participants
-	tournamentLogger.info({ tournamentId, stillInMap: activeTournaments.has(tournamentId) }, '[advanceWinner] calling saveBracketToDb');
-	await saveBracketToDb(tournamentId, tourney.bracket);
-	if (activeTournaments.has(tournamentId)) {
-		emitToParticipants(tournamentId, 'tournament:bracket-update', {
-			tournamentId,
-			bracket: tourney.bracket,
-		});
-	}
+	// Notify the inviter
+	const [invitedUser] = await db
+		.select({ username: users.username })
+		.from(users)
+		.where(eq(users.id, userId));
+
+	emitToUser(invite.invited_by, accept ? 'tournament:invite-accepted' : 'tournament:invite-declined', {
+		inviteId,
+		tournamentId: invite.tournament_id,
+		userId,
+		username: invitedUser?.username ?? 'Someone',
+	});
+
+	return { success: true, tournamentId: invite.tournament_id };
 }
 
 export function getActiveTournament(id: number) {

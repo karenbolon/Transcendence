@@ -20,16 +20,18 @@
 		isCreator: boolean;
 		isParticipant: boolean;
 		currentUserId: number;
+		isPrivate?: boolean;
 		onJoin: () => void;
 		onLeave: () => void;
 		onStart: () => void;
 		onCancel: () => void;
+		onInviteFriend?: () => void;
 	};
 
 	let {
 		tournamentName, participants, maxPlayers, speedPreset, winScore,
-		isCreator, isParticipant, currentUserId,
-		onJoin, onLeave, onStart, onCancel,
+		isCreator, isParticipant, currentUserId, isPrivate = false,
+		onJoin, onLeave, onStart, onCancel, onInviteFriend,
 	}: Props = $props();
 
 	let rounds = $derived(Math.log2(maxPlayers));
@@ -144,6 +146,11 @@
 	<div class="lobby-actions">
 		{#if isCreator}
 			<button class="btn btn-cancel" onclick={onCancel}>Cancel</button>
+			{#if isCreator && isPrivate && onInviteFriend && !isFull}
+				<button class="btn btn-invite" onclick={onInviteFriend}>
+					Invite Friends
+				</button>
+			{/if}
 		{:else if isParticipant}
 			<button class="btn btn-leave" onclick={onLeave}>Leave</button>
 		{:else}
@@ -376,6 +383,15 @@
 	.btn-cancel:hover,
 	.btn-leave:hover {
 		background: rgba(248, 113, 113, 0.08);
+	}
+
+	.btn-invite {
+		background: transparent;
+		border: 1px solid rgba(96, 165, 250, 0.3);
+		color: #60a5fa;
+	}
+	.btn-invite:hover {
+		background: rgba(96, 165, 250, 0.08);
 	}
 
 	.btn-start {

@@ -1,32 +1,51 @@
 <script lang="ts">
 	import {
-		isChatOpen, closeChat, getActiveFriendId, selectFriend,
-		getMessages, getUnreadCount, getTotalUnread, isTyping,
-		sendMessage, emitTyping, emitStopTyping,
-		isLoadingHistory, loadOlderMessages, hasMore,
+		isChatOpen,
+		closeChat,
+		getActiveFriendId,
+		selectFriend,
+		getMessages,
+		getUnreadCount,
+		getTotalUnread,
+		isTyping,
+		sendMessage,
+		emitTyping,
+		emitStopTyping,
+		isLoadingHistory,
+		loadOlderMessages,
+		hasMore,
 	} from '$lib/stores/chat.svelte';
 	import { getSocket } from '$lib/stores/socket.svelte';
-	import { toast } from '$lib/stores/toast.svelte';
 	import UserAvatar from '$lib/component/common/UserAvatar.svelte';
 	import ChallengePicker from '$lib/component/common/ChallengePicker.svelte';
 	import { sendChallenge as sendChallengeUtil } from '$lib/utils/challenge';
 	import { page } from '$app/stores';
-
-	const MAX_MESSAGE_LENGTH = 500;
+	import { goto } from '$app/navigation';
 
 	type Props = {
-		user: { id: string; username: string; name: string; avatar_url: string | null };
+		user: {
+			id: string;
+			username: string;
+			name: string;
+			avatar_url: string | null;
+		};
 	};
 
-	let { user }: Props = $props()
+	let { user }: Props = $props();
 
 	// Friend list from page data (same data the friends page uses)
 	// We get this from the layout's data.friends if available,
 	// or fetch it on demand
-	let friends = $state<Array<{
-		id: number; username: string; name: string | null;
-		avatar_url: string | null; is_online: boolean;
-	}>>([]);
+	let friends = $state<
+		Array<{
+			id: number;
+			username: string;
+			name: string | null;
+			avatar_url: string | null;
+			is_online: boolean;
+			is_system: boolean | null;
+		}>
+	>([]);
 
 	let inputText = $state('');
 	let messagesContainer: HTMLDivElement | undefined = $state();
@@ -42,7 +61,9 @@
 				const data = await res.json();
 				friends = data.friends;
 			}
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 	}
 
 	// Load friends when panel opens
@@ -71,10 +92,6 @@
 	function handleSend() {
 		const friendId = getActiveFriendId();
 		if (!friendId || !inputText.trim()) return;
-		if (inputText.trim().length > MAX_MESSAGE_LENGTH) {
-			toast.error('Message too long', `Messages cannot exceed ${MAX_MESSAGE_LENGTH} characters.`);
-			return;
-		}
 		sendMessage(friendId, inputText);
 		inputText = '';
 		// Stop typing indicator
@@ -102,26 +119,52 @@
 		const friendId = getActiveFriendId();
 		if (!friendId || !messagesContainer) return;
 		// Load older messages when scrolled to top
-		if (messagesContainer.scrollTop < 50 && hasMore(friendId) && !isLoadingHistory()) {
+		if (
+			messagesContainer.scrollTop < 50 &&
+			hasMore(friendId) &&
+			!isLoadingHistory()
+		) {
 			loadOlderMessages(friendId);
 		}
 	}
 
 	// Game invite from chat — open ChallengePicker first
-	let challengeTarget = $state<{ id: number; username: string; name: string | null; avatar_url: string | null } | null>(null);
+	let challengeTarget = $state<{
+		id: number;
+		username: string;
+		name: string | null;
+		avatar_url: string | null;
+	} | null>(null);
 
 	function inviteToPlay(friendId: number) {
-		const friend = friends.find(f => f.id === friendId);
+		const friend = friends.find((f) => f.id === friendId);
 		if (!friend) return;
-		challengeTarget = { id: friend.id, username: friend.username, name: friend.name, avatar_url: friend.avatar_url };
+		challengeTarget = {
+			id: friend.id,
+			username: friend.username,
+			name: friend.name,
+			avatar_url: friend.avatar_url,
+		};
 	}
 
-	function onChallengeSend(settings: { speedPreset: string; winScore: number; powerUps: boolean }) {
+	function onChallengeSend(settings: {
+		speedPreset: string;
+		winScore: number;
+		powerUps: boolean;
+	}) {
 		if (!challengeTarget) return;
 		sendChallengeUtil(
 			challengeTarget.id,
-			{ username: user.username, avatarUrl: user.avatar_url, displayName: user.name },
-			{ username: challengeTarget.username, avatarUrl: challengeTarget.avatar_url, displayName: challengeTarget.name },
+			{
+				username: user.username,
+				avatarUrl: user.avatar_url,
+				displayName: user.name,
+			},
+			{
+				username: challengeTarget.username,
+				avatarUrl: challengeTarget.avatar_url,
+				displayName: challengeTarget.name,
+			},
 			settings,
 		);
 		challengeTarget = null;
@@ -140,11 +183,32 @@
 		if (isNaN(d.getTime())) return '';
 		return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 	}
+
+	function joinFromInvite(tournamentId: number) {
+		const socket = getSocket();
+		if (!socket?.connected) return;
+		socket.emit('tournament:join', { tournamentId });
+		socket.once('tournament:joined', () => {
+			closeChat();
+			goto(`/tournaments/${tournamentId}`);
+		});
+		socket.once('tournament:error', () => {
+			closeChat();
+			goto(`/tournaments/${tournamentId}`);
+		});
+	}
+
+	function viewTournament(tournamentId: number) {
+		closeChat();
+		goto(`/tournaments/${tournamentId}`);
+	}
+
 </script>
 
 {#if isChatOpen()}
 	<!-- Backdrop -->
-	<button class="chat-backdrop" onclick={closeChat} aria-label="Close chat"></button>
+	<button class="chat-backdrop" onclick={closeChat} aria-label="Close chat"
+	></button>
 
 	<div class="chat-panel">
 		<!-- Header -->
@@ -171,13 +235,25 @@
 							status={friend.is_online ? 'online' : 'offline'}
 						/>
 						<div class="friend-info">
-							<span class="friend-name">{friend.name || friend.username}</span>
+							<span class="friend-name">
+								{friend.name || friend.username}
+								{#if friend.is_system}
+									<span class="bot-badge-sm">BOT</span>
+								{/if}
+							</span>
 							{#if isTyping(friend.id)}
 								<span class="typing-indicator">typing...</span>
 							{:else}
 								{@const lastMsg = getMessages(friend.id).at(-1)}
 								{#if lastMsg}
-									<span class="last-message">{lastMsg.type === 'system' ? lastMsg.content : lastMsg.content.slice(0, 30)}{lastMsg.content.length > 30 ? '...' : ''}</span>
+									<span class="last-message"
+										>{lastMsg.type === 'system'
+											? lastMsg.content
+											: lastMsg.content.slice(0, 30)}{lastMsg.content.length >
+										30
+											? '...'
+											: ''}</span
+									>
 								{/if}
 							{/if}
 						</div>
@@ -196,22 +272,24 @@
 				{#if getActiveFriendId()}
 					{@const friendId = getActiveFriendId()!}
 					{@const msgs = getMessages(friendId)}
-					{@const activeFriend = friends.find(f => f.id === friendId)}
+					{@const activeFriend = friends.find((f) => f.id === friendId)}
 
 					<!-- Thread header with profile + invite buttons -->
 					<div class="thread-header">
-						<span class="thread-name">{activeFriend?.name || activeFriend?.username}</span>
+						<span class="thread-name"
+							>{activeFriend?.name || activeFriend?.username}</span
+						>
 						<div class="thread-actions">
 							<button
 								class="action-btn"
 								onclick={() => inviteToPlay(friendId)}
-								title="Invite to play"
-							>🎮</button>
+								title="Invite to play">🎮</button
+							>
 							<button
 								class="action-btn"
 								onclick={() => viewProfile(friendId)}
-								title="View profile"
-							>👤</button>
+								title="View profile">👤</button
+							>
 						</div>
 					</div>
 
@@ -229,6 +307,24 @@
 								<div class="system-message">
 									<span>{msg.content}</span>
 								</div>
+							{:else if msg.type === 'tournament_invite'}
+								{@const inviteData = (() => { try { return JSON.parse(msg.content);} catch { return null; } })()}
+								{#if inviteData}
+									<div class="tournament-invite-card">
+										<div class="invite-header">
+											<span class="invite-icon">🏆</span>
+											<span class="invite-label">Tournament Invite</span>
+										</div>
+										<div class="invite-name">{inviteData.tournamentName}</div>
+										<div class="invite-meta">
+											{inviteData.participantCount}/{inviteData.maxPlayers} players · {inviteData.speedPreset}
+										</div>
+										<div class="invite-actions">
+											<button class="invite-join-btn" onclick={() => joinFromInvite(inviteData.tournamentId)}>Join</button>
+											<button class="invite-view-btn" onclick={() => viewTournament(inviteData.tournamentId)}>View</button>
+										</div>
+									</div>
+								{/if}
 							{:else}
 								<div
 									class="message-bubble"
@@ -256,12 +352,13 @@
 							bind:value={inputText}
 							onkeydown={handleKeydown}
 							placeholder="Type a message..."
+							maxlength="500"
 						/>
 						<button
 							class="send-btn"
 							onclick={handleSend}
-							disabled={!inputText.trim()}
-						>Send</button>
+							disabled={!inputText.trim()}>Send</button
+						>
 					</div>
 				{:else}
 					<div class="no-conversation">
@@ -275,9 +372,13 @@
 
 {#if challengeTarget}
 	<ChallengePicker
-		targetName={{ username: challengeTarget.username, displayName: challengeTarget.name, avatarUrl: challengeTarget.avatar_url }}
+		targetName={{
+			username: challengeTarget.username,
+			displayName: challengeTarget.name,
+			avatarUrl: challengeTarget.avatar_url,
+		}}
 		onSend={onChallengeSend}
-		onCancel={() => challengeTarget = null}
+		onCancel={() => (challengeTarget = null)}
 	/>
 {/if}
 
@@ -306,8 +407,12 @@
 	}
 
 	@keyframes slideIn {
-		from { transform: translateX(100%); }
-		to { transform: translateX(0); }
+		from {
+			transform: translateX(100%);
+		}
+		to {
+			transform: translateX(0);
+		}
 	}
 
 	.chat-header {
@@ -361,7 +466,8 @@
 		transition: background 0.15s;
 	}
 
-	.friend-row:hover, .friend-row.active {
+	.friend-row:hover,
+	.friend-row.active {
 		background: rgba(255, 255, 255, 0.05);
 	}
 
@@ -539,12 +645,21 @@
 		animation: dotPulse 1.2s infinite;
 	}
 
-	.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-	.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+	.typing-dots span:nth-child(2) {
+		animation-delay: 0.2s;
+	}
+	.typing-dots span:nth-child(3) {
+		animation-delay: 0.4s;
+	}
 
 	@keyframes dotPulse {
-		0%, 100% { opacity: 0.3; }
-		50% { opacity: 1; }
+		0%,
+		100% {
+			opacity: 0.3;
+		}
+		50% {
+			opacity: 1;
+		}
 	}
 
 	.no-conversation {
@@ -599,6 +714,20 @@
 		cursor: default;
 	}
 
+	/* ── BOT badge ── */
+	.bot-badge-sm {
+		display: inline-block;
+		background: rgba(124, 58, 237, 0.2);
+		color: #a78bfa;
+		font-size: 0.5rem;
+		padding: 0.05rem 0.25rem;
+		border-radius: 0.2rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		margin-left: 0.25rem;
+		vertical-align: middle;
+	}
+
 	/* ── Mobile ── */
 	@media (max-width: 600px) {
 		.chat-panel {
@@ -608,4 +737,78 @@
 			width: 180px;
 		}
 	}
+
+	/* ── Tournament Invite Card ── */
+	.tournament-invite-card {
+		align-self: flex-start;
+		background: rgba(255, 107, 157, 0.06);
+		border: 1px solid rgba(255, 107, 157, 0.2);
+		border-radius: 0.75rem;
+		padding: 0.75rem 1rem;
+		max-width: 280px;
+	}
+
+	.invite-header {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-bottom: 0.4rem;
+	}
+
+	.invite-icon { font-size: 1rem; }
+	.invite-label {
+		font-size: 0.7rem;
+		font-weight: 700;
+		color: #ff6b9d;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.invite-name {
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: #f3f4f6;
+		margin-bottom: 0.2rem;
+	}
+
+	.invite-meta {
+		font-size: 0.72rem;
+		color: #6b7280;
+		margin-bottom: 0.6rem;
+	}
+
+	.invite-actions {
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	.invite-join-btn {
+		flex: 1;
+		padding: 0.35rem 0.5rem;
+		background: #ff6b9d;
+		color: #fff;
+		border: none;
+		border-radius: 0.4rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s;
+	}
+	.invite-join-btn:hover { background: #ff85b1; }
+
+	.invite-view-btn {
+		flex: 1;
+		padding: 0.35rem 0.5rem;
+		background: transparent;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		color: #9ca3af;
+		border-radius: 0.4rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s;
+	}
+	.invite-view-btn:hover { background: rgba(255, 255, 255, 0.05); }
 </style>

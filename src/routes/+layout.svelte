@@ -6,15 +6,19 @@
 	import InviteModal from '$lib/component/common/InviteModal.svelte';
 	import Toast from '$lib/component/common/Toast.svelte';
 	import ChatPanel from '$lib/component/chat/ChatPanel.svelte';
+	import ReturnToMatchPill from '$lib/component/common/ReturnToMatchPill.svelte';
 	import { receiveMessage, onMessageSent, setTyping, clearTyping, loadUnreadCounts, resetChat, isChatOpen, getActiveFriendId, openChat, closeChat } from '$lib/stores/chat.svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { connectSocket, disconnectSocket, reconnectSocket, getSocket, setOnConnectCallback } from '$lib/stores/socket.svelte';
+	import { connectSocket, disconnectSocket, reconnectSocket, getSocket } from '$lib/stores/socket.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onDestroy } from 'svelte';
 	import { onMount } from 'svelte';
+
+	let activeRoomId = $state<string | null>(null);
+	const destroyedRooms = new Set<string>();
 
 	let pendingInvite: {
 		inviteId: string;
@@ -36,6 +40,11 @@
 
 	// Track current game opponent to suppress their chat toasts during the match
 	let currentOpponentId: number | null = $state(null);
+
+	/** Check if a notification type is enabled. Defaults to true if prefs not loaded. */
+	function isNotifEnabled(key: 'friendRequests' | 'gameInvites' | 'matchResults'): boolean {
+		return data?.notificationPrefs?.[key] ?? true;
+	}
 
 	/** Register all global socket listeners (notifications, invites, game start). */
 	function registerSocketListeners() {
@@ -61,21 +70,24 @@
 		socket.off('chat:read-receipt');
 		socket.off('chat:error');
 		//tournament
+		socket.off('game:active-room');
+		socket.off('game:room-destroyed');
+		socket.off('game:paused');
 		socket.off('tournament:cancelled');
+		socket.off('tournament:invited');
 		socket.off('tournament:match-ready');
 		socket.off('tournament:started');
 		socket.off('tournament:eliminated');
 		socket.off('tournament:finished');
-		socket.off('tournament:abandoned');
 
 		socket.on('friend:request', (evtData: { fromUsername: string }) => {
-			if (data?.notificationPrefs?.friendRequests !== false) {
+			if (isNotifEnabled('friendRequests')) {
 				toast.friend('Friend Request', `${evtData.fromUsername} sent you a friend request`);
 			}
 			invalidateAll();
 		});
 		socket.on('friend:accepted', (evtData: { fromUsername: string }) => {
-			if (data?.notificationPrefs?.friendRequests !== false) {
+			if (isNotifEnabled('friendRequests')) {
 				toast.friend('Request Accepted', `${evtData.fromUsername} accepted your friend request`);
 			}
 			invalidateAll();
@@ -86,7 +98,6 @@
 
 		socket.on('game:invite', (evtData: { inviteId: string; fromUsername: string; fromUserId: number; fromDisplayName: string | null; fromAvatarUrl: string | null; settings: { speedPreset: string; winScore: number; powerUps: boolean }
 		}) => {
-			if (data?.notificationPrefs?.gameInvites === false) return;
 			pendingInvite = {
 				inviteId: evtData.inviteId,
 				challenger: { username: evtData.fromUsername, displayName: evtData.fromDisplayName ?? null, avatarUrl: evtData.fromAvatarUrl ?? null },
@@ -96,7 +107,7 @@
 
 		socket.on('game:invite-expired', () => {
 			pendingInvite = null;
-			if (data?.notificationPrefs?.gameInvites !== false) {
+			if (isNotifEnabled('gameInvites')) {
 				toast.warning('Game invite expired');
 			}
 		});
@@ -107,7 +118,7 @@
 
 		socket.on('game:invite-declined', () => {
 			if ($page.url.pathname.includes('/play/online/waiting')) return;
-			if (data?.notificationPrefs?.gameInvites !== false) {
+			if (isNotifEnabled('gameInvites')) {
 				toast.game('Challenge Declined');
 			}
 		});
@@ -131,9 +142,6 @@
 		// Chat: incoming message
 		socket.on('chat:message', (msg: any) => {
 			receiveMessage(msg);
-
-			// System messages (game/match notifications) show inline in the chat panel — no toast
-			if (msg.type === 'system') return;
 
 			// During online games, skip toast for the opponent (in-game chat shows it)
 			// Still show toasts for other friends messaging you
@@ -175,6 +183,11 @@
 			toast.error(data.message);
 		});
 
+		// Tournament: someone invited you
+		socket.on('tournament:invited', (evtData: any) => {
+			toast.game('Tournament Invite', `${evtData.inviterUsername} invited you to "${evtData.tournamentName}"`);
+		});
+
 		socket.on('tournament:cancelled', (evtData: { tournamentId: number; tournamentName: string }) => {
 			// If we're on this tournament's detail page, redirect to list
 			const path = $page.url.pathname;
@@ -187,48 +200,78 @@
 			}
 		});
 
+		socket.on('game:active-room', (evtData: { roomId: string }) => {
+			// Don't auto-navigate — just show the "Return to Match" pill.
+			// The user clicks it when they're ready.
+			// If already on the game page, no pill needed.
+			const path = $page.url.pathname;
+			if (path === `/play/online/${evtData.roomId}`) return;
+			destroyedRooms.clear();
+			activeRoomId = evtData.roomId;
+		});
+
+		socket.on('game:room-destroyed', () => {
+			// Track which room was destroyed so afterNavigate won't re-set the pill
+			const currentRoom = activeRoomId ?? $page.url.pathname.split('/play/online/')[1];
+			if (currentRoom) destroyedRooms.add(currentRoom);
+			activeRoomId = null;
+		});
+
+		// Track paused game room so pill shows even if user navigates away during pause
+		socket.on('game:paused', (evtData: { disconnectedUserId: number; remaining: number }) => {
+			// We need the roomId — get it from the current page if on a game page
+			const path = $page.url.pathname;
+			if (path.startsWith('/play/online/') && path !== '/play/online/waiting') {
+				const roomId = path.split('/play/online/')[1];
+				if (roomId) activeRoomId = roomId;
+			}
+		});
+
 		socket.on('tournament:match-ready', (evtData: any) => {
-			if (data?.notificationPrefs?.matchResults !== false) {
-				const myId = Number(data?.user?.id);
-				const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
+			const myId = Number(data?.user?.id);
+			const opponent = evtData.player1.userId === myId ? evtData.player2.username : evtData.player1.username;
+			if (isNotifEnabled('matchResults')) {
 				toast.game('Tournament Match', `Your match is ready! vs ${opponent}`);
 			}
 			// game:start is also emitted, so player navigates automatically
 		});
 
-		socket.on('tournament:eliminated', (_evtData: any) => {
-			if (data?.notificationPrefs?.matchResults !== false) {
+		socket.on('tournament:eliminated', (data: any) => {
+			if (isNotifEnabled('matchResults')) {
 				toast.info('Tournament', 'You have been eliminated');
 			}
 		});
 
-		socket.on('tournament:finished', (evtData: any) => {
-			if (data?.notificationPrefs?.matchResults !== false) {
-				toast.game('Tournament Over', `${evtData.winnerUsername} is the champion!`);
+		socket.on('tournament:finished', (data: any) => {
+			if (isNotifEnabled('matchResults')) {
+				toast.game('Tournament Over', `${data.winnerUsername} is the champion!`);
 			}
-		});
-
-		socket.on('tournament:abandoned', (evtData: any) => {
-			toast.warning('Tournament Cancelled', `Tournament was cancelled - ${evtData.reason}`);
-			invalidateAll();
 		});
 	}
 
 	onMount(async () => {
 		if (data?.user) {
-			// Set up callback to register listeners when socket connects
-			setOnConnectCallback(registerSocketListeners);
 			connectSocket();
+			registerSocketListeners();
 			loadUnreadCounts();
 		}
 	});
 
 	// Close chat panel on page navigation + clear game opponent tracking
-	afterNavigate(({ to }) => {
+	afterNavigate(({ from, to }) => {
 		closeChat();
 		const path = to?.url?.pathname ?? '';
 		if (!path.startsWith('/play/online/') || path === '/play/online/waiting') {
 			currentOpponentId = null;
+		}
+		// Track active game room for "Return to Match" pill
+		if (path.startsWith('/play/online/') && path !== '/play/online/waiting') {
+			// Arrived at game page — clear pill
+			activeRoomId = null;
+		} else if (from?.url?.pathname.startsWith('/play/online/') && from?.url?.pathname !== '/play/online/waiting') {
+			// Left a game page — remember the room so pill shows (unless room was destroyed)
+			const roomId = from.url.pathname.split('/play/online/')[1];
+			if (roomId && !destroyedRooms.has(roomId)) activeRoomId = roomId;
 		}
 	});
 
@@ -256,8 +299,8 @@
 		if (currentUserId !== lastUserId) {
 			lastUserId = currentUserId;
 			if (currentUserId) {
-				setOnConnectCallback(registerSocketListeners);
 				reconnectSocket();
+				registerSocketListeners();
 				loadUnreadCounts();
 			} else {
 				disconnectSocket();
@@ -273,7 +316,7 @@
 </script>
 
 <svelte:head>
-	<title>PONG - ft_transcendence</title>
+	<title>PONG - Pixie_pong</title>
 	<meta name="description" content="Play the classic Pong game online!" />
 	<link rel="icon" href={favicon} />
 </svelte:head>
@@ -296,6 +339,10 @@
 {/if}
 
 <Toast />
+
+{#if activeRoomId && !$page.url.pathname.startsWith('/play/online/')}
+	<ReturnToMatchPill onReturn={() => goto(`/play/online/${activeRoomId}`)} />
+{/if}
 
 {#if data?.user}
 	<ChatPanel user={data.user} />

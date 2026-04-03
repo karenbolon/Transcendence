@@ -153,6 +153,61 @@ async function notifyFriends(userId, event, data) {
 	}
 }
 
+// ── Helper: Pixie system bot ─────────────────────────────────────
+let cachedPixieId = null;
+
+async function getPixieId() {
+	if (cachedPixieId) return cachedPixieId;
+	const rows = await sql`SELECT id FROM users WHERE username = 'pixie' LIMIT 1`;
+	if (rows.length > 0) {
+		cachedPixieId = Number(rows[0].id);
+		return cachedPixieId;
+	}
+	// Auto-create if not found
+	const created = await sql`
+		INSERT INTO users (username, name, email, password_hash, avatar_url, is_online, is_system)
+		VALUES ('pixie', 'Pixie', 'pixie@system.local',
+			'$argon2id$v=19$m=65536,t=3,p=4$SYSTEM_BOT_NO_LOGIN$0000000000000000000000000000000000000000000',
+			'/avatars/pixie.svg', true, true)
+		ON CONFLICT (username) DO UPDATE SET is_system = true
+		RETURNING id
+	`;
+	cachedPixieId = Number(created[0].id);
+	return cachedPixieId;
+}
+
+async function sendPixieMsg(recipientId, content) {
+	try {
+		const pixieId = await getPixieId();
+		const rows = await sql`
+			INSERT INTO messages (sender_id, recipient_id, type, content)
+			VALUES (${pixieId}, ${recipientId}, 'chat', ${content})
+			RETURNING id, created_at
+		`;
+		const msg = rows[0];
+		const recipientSockets = userSockets.get(recipientId);
+		if (recipientSockets) {
+			for (const sid of recipientSockets) {
+				io.to(sid).emit('chat:message', {
+					id: msg.id,
+					senderId: pixieId,
+					senderUsername: 'pixie',
+					senderAvatar: '/avatars/pixie.svg',
+					recipientId,
+					content,
+					createdAt:
+						msg.created_at instanceof Date
+							? msg.created_at.toISOString()
+							: String(msg.created_at),
+					gameId: null,
+				});
+			}
+		}
+	} catch (err) {
+		socketLog.error({ err: err.message }, 'Failed to send Pixie message');
+	}
+}
+
 // ── Game Engine (inline copy of gameEngine.ts — plain JS) ────────
 // Must stay in sync with src/lib/component/pong/gameEngine.ts
 
@@ -243,6 +298,9 @@ function onEffectExpired(state, effect, settings) {
 	if (effect.type === 'speedBall' || effect.type === 'slowBall') {
 		const multiplier = effect.type === 'speedBall' ? 1.5 : 0.6;
 		state.currentBallSpeed /= multiplier;
+		if (effect.type === 'slowBall') {
+			state.currentBallSpeed = Math.min(state.currentBallSpeed, settings.maxBallSpeed);
+		}
 		const currentSpeed = Math.sqrt(state.ballVX ** 2 + state.ballVY ** 2);
 		if (currentSpeed > 0) {
 			const scale = state.currentBallSpeed / currentSpeed;
@@ -259,7 +317,11 @@ function applyContinuousEffects(state, dt) {
 				? PADDLE_OFFSET + PADDLE_WIDTH + 60
 				: CANVAS_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - 68;
 			const wallY = CANVAS_HEIGHT / 2 - WALL_HEIGHT / 2;
+			const movingTowardWall =
+				(effect.target === 'player1' && state.ballVX < 0) ||
+				(effect.target === 'player2' && state.ballVX > 0);
 			if (
+				movingTowardWall &&
 				state.ballX + BALL_RADIUS >= wallX &&
 				state.ballX - BALL_RADIUS <= wallX + WALL_WIDTH &&
 				state.ballY + BALL_RADIUS >= wallY &&
@@ -275,11 +337,12 @@ function applyContinuousEffects(state, dt) {
 				(effect.target === 'player1' && state.ballVX < 0) ||
 				(effect.target === 'player2' && state.ballVX > 0);
 			if (approaching) {
+				const paddleHeight = getEffectivePaddleHeight(state, effect.target);
 				const paddleCenterY = effect.target === 'player1'
-					? state.paddle1Y + PADDLE_HEIGHT / 2
-					: state.paddle2Y + PADDLE_HEIGHT / 2;
+					? state.paddle1Y + paddleHeight / 2
+					: state.paddle2Y + paddleHeight / 2;
 				const dy = paddleCenterY - state.ballY;
-				state.ballVY += Math.sign(dy) * 250 * dt;
+				state.ballVY += Math.sign(dy) * 200 * dt;
 			}
 		}
 	}
@@ -371,15 +434,13 @@ function resetBall(state, settings) {
 	state.ballX = CANVAS_WIDTH / 2;
 	state.ballY = CANVAS_HEIGHT / 2;
 	state.currentBallSpeed = settings.ballSpeed;
-	// Re-apply any still-active speed modifiers so they persist across the point
+	state.ballSpin = 0;
+	// Reapply active speed effects so the multiplier isn't lost
 	for (const effect of state.activeEffects) {
 		if (effect.type === 'speedBall') state.currentBallSpeed *= 1.5;
 		if (effect.type === 'slowBall') state.currentBallSpeed *= 0.6;
 	}
-	state.ballSpin = 0;
 	const direction = Math.random() > 0.5 ? 1 : -1;
-	// state.ballVX = settings.ballSpeed * direction;
-	// state.ballVY = settings.ballSpeed * (Math.random() - 0.5);
 	state.ballVX = state.currentBallSpeed * direction;
 	state.ballVY = state.currentBallSpeed * (Math.random() - 0.5);
 	state.powerUpItem = null;
@@ -407,6 +468,8 @@ function endGameState(state, winnerName) {
 	state.winner = winnerName;
 	state.ballVX = 0;
 	state.ballVY = 0;
+	state.activeEffects = [];
+	state.powerUpItem = null;
 }
 
 function movePaddles(state, dt, input) {
@@ -552,6 +615,10 @@ function updateGame(state, dt, input, settings) {
 const TICK_RATE = 60;
 const TICK_INTERVAL = 1000 / TICK_RATE;
 const RECONNECT_TIMEOUT = 15000;
+const TOURNAMENT_PAUSE_TIMEOUT = 45000;
+const PAUSE_EXTENSION_MS = 10000;
+const MAX_PAUSE_EXTENSIONS = 3;
+const PAUSE_BUTTONS_DELAY = 15000;
 
 // Room storage
 const activeRooms = new Map();      // roomId → room
@@ -577,6 +644,13 @@ function destroyGameRoom(roomId) {
 	if (playerRoomMap.get(room.player2.userId) === roomId) {
 		playerRoomMap.delete(room.player2.userId);
 	}
+	// Notify players the room is gone (clears "Return to Match" pill)
+	for (const uid of [room.player1.userId, room.player2.userId]) {
+		const sockets = userSockets.get(uid);
+		if (sockets) {
+			for (const sid of sockets) io.to(sid).emit('game:room-destroyed');
+		}
+	}
 	activeRooms.delete(roomId);
 }
 
@@ -585,6 +659,10 @@ function broadcastRoomState(roomId, state) {
 	if (!room) return;
 	for (const sid of room.player1.socketIds) { io.to(sid).emit('game:state', state); }
 	for (const sid of room.player2.socketIds) { io.to(sid).emit('game:state', state); }
+	// Spectators
+	if (room.spectatorSockets) {
+		for (const sid of room.spectatorSockets) { io.to(sid).emit('game:state', state); }
+	}
 }
 
 function broadcastRoomEvent(roomId, event, data) {
@@ -592,6 +670,10 @@ function broadcastRoomEvent(roomId, event, data) {
 	if (!room) return;
 	for (const sid of room.player1.socketIds) { io.to(sid).emit(event, data); }
 	for (const sid of room.player2.socketIds) { io.to(sid).emit(event, data); }
+	// Spectators
+	if (room.spectatorSockets) {
+		for (const sid of room.spectatorSockets) { io.to(sid).emit(event, data); }
+	}
 }
 
 class ServerGameRoom {
@@ -603,6 +685,15 @@ class ServerGameRoom {
 		this.interval = null;
 		this.lastTick = 0;
 		this.disconnectTimers = new Map();
+		this.spectatorSockets = new Set();
+
+		// Tournament pause state
+		this.paused = false;
+		this.pauseTimer = null;
+		this.pauseRemaining = 0;
+		this.pausedAt = 0;
+		this.pauseExtensions = 0;
+		this.disconnectedUserId = null;
 
 		const speedConfig = SPEED_CONFIGS[settings.speedPreset] ?? SPEED_CONFIGS.normal;
 		this.settings = {
@@ -629,6 +720,11 @@ class ServerGameRoom {
 			this.disconnectTimers.delete(userId);
 			broadcastRoomEvent(this.roomId, 'game:player-reconnected', { userId });
 		}
+		// If game was paused (tournament), resume it
+		if (this.paused && userId === this.disconnectedUserId) {
+			broadcastRoomEvent(this.roomId, 'game:player-reconnected', { userId });
+			this.resume();
+		}
 		return true;
 	}
 
@@ -637,6 +733,13 @@ class ServerGameRoom {
 		if (!player) return;
 		player.socketIds.delete(socketId);
 		if (player.socketIds.size === 0 && (this.state.phase === 'playing' || this.state.phase === 'countdown')) {
+			// Tournament matches: pause instead of immediate forfeit
+			if (this.roomId.startsWith('tournament-')) {
+				broadcastRoomEvent(this.roomId, 'game:player-disconnected', { userId, timeout: TOURNAMENT_PAUSE_TIMEOUT });
+				this.pause(userId);
+				return;
+			}
+			// Non-tournament: existing 15-second forfeit timer
 			broadcastRoomEvent(this.roomId, 'game:player-disconnected', { userId, timeout: RECONNECT_TIMEOUT });
 			const timer = setTimeout(() => {
 				this.disconnectTimers.delete(userId);
@@ -669,6 +772,7 @@ class ServerGameRoom {
 
 	_tick() {
 		if (this.destroyed) return;
+		if (this.paused) return;
 		const now = Date.now();
 		const dt = (now - this.lastTick) / 1000;
 		this.lastTick = now;
@@ -761,6 +865,36 @@ class ServerGameRoom {
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
 
 		if (gameNotStarted || bothZero) {
+			// Tournament matches MUST produce a winner
+			if (this.roomId.startsWith('tournament-')) {
+				if (winner === this.player1) {
+					this.state.score1 = 1;
+					this.state.score2 = 0;
+				} else {
+					this.state.score1 = 0;
+					this.state.score2 = 1;
+				}
+				endGameState(this.state, winner.username);
+				const result = {
+					roomId: this.roomId,
+					player1: { userId: this.player1.userId, username: this.player1.username, score: this.state.score1 },
+					player2: { userId: this.player2.userId, username: this.player2.username, score: this.state.score2 },
+					winnerId: winner.userId, winnerUsername: winner.username,
+					loserId: loser.userId, loserUsername: loser.username,
+					durationSeconds: Math.round(this.state.playTime),
+					settings: this.rawSettings,
+					ballReturns: this.state.ballReturns ?? 0,
+					maxDeficit: this.state.maxDeficit ?? 0,
+					reachedDeuce: this.state.reachedDeuce ?? false,
+				};
+				broadcastRoomEvent(this.roomId, 'game:forfeit', result);
+				playerRoomMap.delete(this.player1.userId);
+				playerRoomMap.delete(this.player2.userId);
+				saveOnlineMatch(result);
+				return;
+			}
+
+			// Non-tournament: cancel with no winner
 			const reason = gameNotStarted ? 'Player left before game started' : 'Player disconnected at 0-0';
 			broadcastRoomEvent(this.roomId, 'game:cancelled', {
 				roomId: this.roomId, reason,
@@ -803,18 +937,121 @@ class ServerGameRoom {
 	destroy() {
 		this.destroyed = true;
 		this.stop();
+		if (this.pauseTimer) { clearTimeout(this.pauseTimer); this.pauseTimer = null; }
 		for (const timer of this.disconnectTimers.values()) clearTimeout(timer);
 		this.disconnectTimers.clear();
+		this.spectatorSockets.clear();
 	}
 
 	hasPlayer(userId) {
 		return userId === this.player1.userId || userId === this.player2.userId;
 	}
 
+	addSpectator(socketId) { this.spectatorSockets.add(socketId); }
+	removeSpectator(socketId) { this.spectatorSockets.delete(socketId); }
+	get spectatorCount() { return this.spectatorSockets.size; }
+
 	_getPlayer(userId) {
 		if (userId === this.player1.userId) return this.player1;
 		if (userId === this.player2.userId) return this.player2;
 		return null;
+	}
+
+	// ── Tournament Pause ─────────────────────────────────────
+
+	pause(disconnectedUserId) {
+		if (this.paused || this.gameEnded || this.destroyed) return;
+		if (!this.roomId.startsWith('tournament-')) return;
+
+		this.paused = true;
+		this.pausedAt = Date.now();
+		this.pauseRemaining = TOURNAMENT_PAUSE_TIMEOUT;
+		this.pauseExtensions = 0;
+		this.disconnectedUserId = disconnectedUserId;
+
+		this.stop();
+
+		broadcastRoomEvent(this.roomId, 'game:paused', {
+			disconnectedUserId,
+			remaining: this.pauseRemaining,
+			buttonsDelay: PAUSE_BUTTONS_DELAY,
+		});
+
+		this.pauseTimer = setTimeout(() => {
+			this.pauseTimer = null;
+			if (!this.paused || this.gameEnded) return;
+			const opponent = disconnectedUserId === this.player1.userId ? this.player2 : this.player1;
+			this.paused = false;
+			this._handleForfeit(opponent);
+		}, this.pauseRemaining);
+
+		console.log(`[GameRoom] Tournament match ${this.roomId} PAUSED. Player ${disconnectedUserId} disconnected. Timeout: ${this.pauseRemaining / 1000}s`);
+	}
+
+	resume() {
+		if (!this.paused || this.gameEnded || this.destroyed) return;
+
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
+
+		this.paused = false;
+		this.disconnectedUserId = null;
+
+		broadcastRoomEvent(this.roomId, 'game:resumed', {});
+
+		startCountdown(this.state, this.settings);
+		this.lastTick = Date.now();
+		this.interval = setInterval(() => this._tick(), TICK_INTERVAL);
+
+		console.log(`[GameRoom] Tournament match ${this.roomId} RESUMED with countdown.`);
+	}
+
+	extendPause() {
+		if (!this.paused || this.gameEnded) return false;
+		if (this.pauseExtensions >= MAX_PAUSE_EXTENSIONS) return false;
+
+		this.pauseExtensions++;
+
+		if (this.pauseTimer) clearTimeout(this.pauseTimer);
+
+		const elapsed = Date.now() - this.pausedAt;
+		this.pauseRemaining = Math.max(0, this.pauseRemaining - elapsed) + PAUSE_EXTENSION_MS;
+		this.pausedAt = Date.now();
+
+		this.pauseTimer = setTimeout(() => {
+			this.pauseTimer = null;
+			if (!this.paused || this.gameEnded) return;
+			const opponent = this.disconnectedUserId === this.player1.userId ? this.player2 : this.player1;
+			this.paused = false;
+			this._handleForfeit(opponent);
+		}, this.pauseRemaining);
+
+		broadcastRoomEvent(this.roomId, 'game:pause-extended', {
+			remaining: this.pauseRemaining,
+			extensionsLeft: MAX_PAUSE_EXTENSIONS - this.pauseExtensions,
+		});
+
+		return true;
+	}
+
+	claimWin(claimingUserId) {
+		if (!this.paused || this.gameEnded) return;
+		if (claimingUserId === this.disconnectedUserId) return;
+
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
+
+		this.paused = false;
+		const winner = this._getPlayer(claimingUserId);
+		if (winner) this._handleForfeit(winner);
+	}
+
+	get isPaused() {
+		return this.paused;
 	}
 }
 
@@ -1668,6 +1905,16 @@ io.on('connection', (socket) => {
 	// These constants and functions are copied from src/lib/component/pong/gameEngine.ts
 	// because server.js can't import TypeScript/$lib modules.
 
+	// Notify client if they have an active game (reconnection support)
+	const existingRoom = getRoomByPlayerId(userId);
+	if (existingRoom) {
+		socket.emit('game:active-room', {
+			roomId: existingRoom.roomId,
+			player1: { userId: existingRoom.player1.userId, username: existingRoom.player1.username },
+			player2: { userId: existingRoom.player2.userId, username: existingRoom.player2.username },
+		});
+	}
+
 	// ── Game handlers ─────────────────────────────────────────────
 	const activeInvites = globalThis.__activeInvites || (globalThis.__activeInvites = new Map());
 
@@ -1712,6 +1959,7 @@ io.on('connection', (socket) => {
 					io.to(sid).emit('game:invite-expired', { inviteId });
 				}
 			}
+			sendPixieMsg(userId, `Your game invite to a friend has expired.`);
 		}, 30000);
 
 		activeInvites.set(inviteId, {
@@ -1735,6 +1983,7 @@ io.on('connection', (socket) => {
 				});
 			}
 		}
+		sendPixieMsg(friendId, `${username} has challenged you to a game of Pong!`);
 	});
 
 	socket.on('game:invite-accept', (data) => {
@@ -1788,6 +2037,7 @@ io.on('connection', (socket) => {
 				io.to(sid).emit('game:invite-declined', { fromUsername: username });
 			}
 		}
+		sendPixieMsg(invite.fromUserId, `${username} declined your game invite.`);
 	});
 
 	// ── Join a game room ──────────────────────────────────────────
@@ -1820,6 +2070,46 @@ io.on('connection', (socket) => {
 		const room = getRoomByPlayerId(userId);
 		if (!room) return;
 		room.handleInput(userId, data.direction);
+	});
+
+	// ── Spectate a game (read-only) ──────────────────────────────
+	socket.on('game:spectate', (data) => {
+		const room = getGameRoom(data.roomId);
+		if (!room) { socket.emit('game:error', { message: 'Game not found' }); return; }
+		room.addSpectator(socket.id);
+		socket.emit('game:spectating', {
+			roomId: data.roomId,
+			player1: { userId: room.player1.userId, username: room.player1.username },
+			player2: { userId: room.player2.userId, username: room.player2.username },
+			spectatorCount: room.spectatorCount,
+		});
+		broadcastRoomEvent(data.roomId, 'game:spectator-count', { count: room.spectatorCount });
+		socket.emit('game:state', room._getSnapshot());
+	});
+
+	// ── Stop spectating ──────────────────────────────────────────
+	socket.on('game:stop-spectating', (data) => {
+		const room = getGameRoom(data.roomId);
+		if (room) {
+			room.removeSpectator(socket.id);
+			broadcastRoomEvent(data.roomId, 'game:spectator-count', { count: room.spectatorCount });
+		}
+	});
+
+	// ── Tournament pause controls ────────────────────────────
+	socket.on('game:claim-win', () => {
+		const room = getRoomByPlayerId(userId);
+		if (!room || !room.isPaused) return;
+		room.claimWin(userId);
+	});
+
+	socket.on('game:extend-pause', () => {
+		const room = getRoomByPlayerId(userId);
+		if (!room || !room.isPaused) return;
+		const success = room.extendPause();
+		if (!success) {
+			socket.emit('game:error', { message: 'Cannot extend pause further' });
+		}
 	});
 
 	// ── Leave / forfeit ───────────────────────────────────────────
@@ -2006,9 +2296,10 @@ io.on('connection', (socket) => {
 		if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
 
 		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+		const isPrivate = data.isPrivate ?? false;
 		const [tournament] = await sql`
-			INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
-			VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
+			INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score, is_private)
+			VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore}, ${isPrivate})
 			RETURNING id
 		`;
 
@@ -2026,6 +2317,12 @@ io.on('connection', (socket) => {
 		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
 		if (!tournament) { socket.emit('tournament:error', { message: 'Tournament not found' }); return; }
 		if (tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Tournament already started' }); return; }
+
+		// Private tournament — check for invite
+		if (tournament.is_private && tournament.created_by !== userId) {
+			const invite = await sql`SELECT id FROM tournament_invites WHERE tournament_id = ${data.tournamentId} AND invited_user_id = ${userId}`;
+			if (invite.length === 0) { socket.emit('tournament:error', { message: 'Invite required for private tournament' }); return; }
+		}
 
 		const existing = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
 		if (existing.length > 0) { socket.emit('tournament:error', { message: 'Already joined' }); return; }
@@ -2063,15 +2360,22 @@ io.on('connection', (socket) => {
 				return;
 			}
 
-			// Fetch participants before deleting so we can notify them
+			// Fetch participant IDs before deleting so we can notify them
 			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
 
+			// Clear messages referencing invites (FK blocks cascade)
+			const inviteIds = await sql`SELECT id FROM tournament_invites WHERE tournament_id = ${data.tournamentId}`;
+			for (const inv of inviteIds) {
+				await sql`UPDATE messages SET tournament_invite_id = NULL WHERE tournament_invite_id = ${inv.id}`;
+			}
+			await sql`DELETE FROM tournament_invites WHERE tournament_id = ${data.tournamentId}`;
+			await sql`DELETE FROM tournament_messages WHERE tournament_id = ${data.tournamentId}`;
 			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
 			await sql`DELETE FROM tournaments WHERE id = ${data.tournamentId}`;
 
-			// Notify each participant individually (toast even if on another page)
+			// Notify each participant individually
 			for (const p of participants) {
-				const participantSockets = userSockets.get(Number(p.user_id));
+				const participantSockets = userSockets.get(p.user_id);
 				if (participantSockets) {
 					for (const sid of participantSockets) {
 						io.to(sid).emit('tournament:cancelled', {
@@ -2081,7 +2385,6 @@ io.on('connection', (socket) => {
 					}
 				}
 			}
-
 			io.emit('tournament:list-updated');
 		} catch (err) {
 			console.error('[Tournament] Cancel failed:', err);
@@ -2128,6 +2431,188 @@ io.on('connection', (socket) => {
 		socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
 	});
 
+	// ── Invite a friend to a private tournament ───────────────────
+	socket.on('tournament:invite', async (data) => {
+		try {
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
+			if (!tournament) { socket.emit('tournament:error', { message: 'Tournament not found' }); return; }
+			if (tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Tournament already started' }); return; }
+			if (!tournament.is_private) { socket.emit('tournament:error', { message: 'Tournament is not private' }); return; }
+			if (tournament.created_by !== userId) { socket.emit('tournament:error', { message: 'Only the creator can invite' }); return; }
+			if (data.userId === userId) { socket.emit('tournament:error', { message: 'Cannot invite yourself' }); return; }
+
+			const existing = await sql`SELECT id FROM tournament_invites WHERE tournament_id = ${data.tournamentId} AND invited_user_id = ${data.userId}`;
+			if (existing.length > 0) { socket.emit('tournament:error', { message: 'Already invited' }); return; }
+
+			const alreadyJoined = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${data.userId}`;
+			if (alreadyJoined.length > 0) { socket.emit('tournament:error', { message: 'Already in tournament' }); return; }
+
+			const [invite] = await sql`
+				INSERT INTO tournament_invites (tournament_id, invited_by, invited_user_id)
+				VALUES (${data.tournamentId}, ${userId}, ${data.userId})
+				RETURNING id
+			`;
+
+			const [inviter] = await sql`SELECT username FROM users WHERE id = ${userId}`;
+			const participants = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+
+			// Insert chat message with invite card
+			await sql`
+				INSERT INTO messages (sender_id, recipient_id, type, content, tournament_invite_id)
+				VALUES (${userId}, ${data.userId}, 'tournament_invite', ${JSON.stringify({
+					tournamentId: data.tournamentId,
+					tournamentName: tournament.name,
+					maxPlayers: tournament.max_players,
+					participantCount: participants.length,
+					speedPreset: tournament.speed_preset,
+					inviterUsername: inviter?.username ?? 'Someone',
+				})}, ${invite.id})
+			`;
+
+			// Notify invited user
+			emitToTournamentUser(data.userId, 'tournament:invited', {
+				inviteId: invite.id,
+				tournamentId: data.tournamentId,
+				tournamentName: tournament.name,
+				invitedBy: userId,
+				inviterUsername: inviter?.username ?? 'Someone',
+				maxPlayers: tournament.max_players,
+				participantCount: participants.length,
+				speedPreset: tournament.speed_preset,
+			});
+
+			socket.emit('tournament:invite-sent', {
+				inviteId: invite.id,
+				tournamentId: data.tournamentId,
+				invitedUserId: data.userId,
+			});
+		} catch (err) {
+			console.error('[Tournament] Invite failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to send invite' });
+		}
+	});
+
+	// ── Accept a tournament invite ────────────────────────────────
+	socket.on('tournament:invite-accept', async (data) => {
+		try {
+			const [invite] = await sql`SELECT * FROM tournament_invites WHERE id = ${data.inviteId}`;
+			if (!invite) { socket.emit('tournament:error', { message: 'Invite not found' }); return; }
+			if (invite.invited_user_id !== userId) { socket.emit('tournament:error', { message: 'Not your invite' }); return; }
+			if (invite.status !== 'pending') { socket.emit('tournament:error', { message: 'Invite already responded' }); return; }
+
+			await sql`UPDATE tournament_invites SET status = 'accepted' WHERE id = ${data.inviteId}`;
+
+			// Auto-join the tournament
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${invite.tournament_id}`;
+			if (!tournament || tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Tournament no longer available' }); return; }
+
+			const participants = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${invite.tournament_id}`;
+			if (participants.length >= tournament.max_players) { socket.emit('tournament:error', { message: 'Tournament is full' }); return; }
+
+			await sql`
+				INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
+				VALUES (${invite.tournament_id}, ${userId}, ${participants.length + 1}, 'registered')
+			`;
+
+			socket.emit('tournament:joined', { tournamentId: invite.tournament_id });
+			io.emit('tournament:player-joined', { tournamentId: invite.tournament_id, userId, username });
+
+			// Notify inviter
+			const [invitedUser] = await sql`SELECT username FROM users WHERE id = ${userId}`;
+			emitToTournamentUser(invite.invited_by, 'tournament:invite-accepted', {
+				inviteId: data.inviteId, tournamentId: invite.tournament_id, userId, username: invitedUser?.username ?? 'Someone',
+			});
+		} catch (err) {
+			console.error('[Tournament] Accept invite failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to accept invite' });
+		}
+	});
+
+	// ── Decline a tournament invite ───────────────────────────────
+	socket.on('tournament:invite-decline', async (data) => {
+		try {
+			const [invite] = await sql`SELECT * FROM tournament_invites WHERE id = ${data.inviteId}`;
+			if (!invite || invite.invited_user_id !== userId || invite.status !== 'pending') {
+				socket.emit('tournament:error', { message: 'Cannot decline' }); return;
+			}
+			await sql`UPDATE tournament_invites SET status = 'declined' WHERE id = ${data.inviteId}`;
+
+			const [invitedUser] = await sql`SELECT username FROM users WHERE id = ${userId}`;
+			emitToTournamentUser(invite.invited_by, 'tournament:invite-declined', {
+				inviteId: data.inviteId, tournamentId: invite.tournament_id, userId, username: invitedUser?.username ?? 'Someone',
+			});
+		} catch (err) {
+			console.error('[Tournament] Decline invite failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to decline invite' });
+		}
+	});
+
+	// ── Tournament Chat: send message ─────────────────────────────
+	socket.on('tournament:chat-send', async (data) => {
+		const { tournamentId, content } = data;
+		if (!content || content.trim().length === 0) return;
+		if (content.length > 500) return;
+
+		const participant = await sql`SELECT id FROM tournament_participants WHERE tournament_id = ${tournamentId} AND user_id = ${userId}`;
+		if (participant.length === 0) { socket.emit('tournament:error', { message: 'Only participants can chat' }); return; }
+
+		const [msg] = await sql`
+			INSERT INTO tournament_messages (tournament_id, user_id, content, type)
+			VALUES (${tournamentId}, ${userId}, ${content.trim()}, 'chat')
+			RETURNING id, created_at
+		`;
+
+		const payload = {
+			id: msg.id, tournamentId, userId, username,
+			avatarUrl: socket.data?.avatarUrl ?? null,
+			content: content.trim(), type: 'chat',
+			createdAt: msg.created_at instanceof Date ? msg.created_at.toISOString() : String(msg.created_at),
+		};
+
+		const allParticipants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${tournamentId}`;
+		for (const p of allParticipants) {
+			const sockets = userSockets.get(Number(p.user_id));
+			if (sockets) { for (const sid of sockets) io.to(sid).emit('tournament:chat-message', payload); }
+		}
+	});
+
+	// ── Tournament Chat: load history ─────────────────────────────
+	socket.on('tournament:chat-history', async (data, callback) => {
+		const { tournamentId, before } = data;
+
+		let rows;
+		if (before) {
+			rows = await sql`
+				SELECT tm.id, tm.tournament_id, tm.user_id, u.username, u.avatar_url, tm.content, tm.type, tm.created_at
+				FROM tournament_messages tm
+				JOIN users u ON u.id = tm.user_id
+				WHERE tm.tournament_id = ${tournamentId} AND tm.id < ${before}
+				ORDER BY tm.id DESC
+				LIMIT 50
+			`;
+		} else {
+			rows = await sql`
+				SELECT tm.id, tm.tournament_id, tm.user_id, u.username, u.avatar_url, tm.content, tm.type, tm.created_at
+				FROM tournament_messages tm
+				JOIN users u ON u.id = tm.user_id
+				WHERE tm.tournament_id = ${tournamentId}
+				ORDER BY tm.id DESC
+				LIMIT 50
+			`;
+		}
+
+		const messages = rows.reverse().map(r => ({
+			id: r.id, tournamentId: Number(r.tournament_id), userId: Number(r.user_id),
+			username: r.username, avatarUrl: r.avatar_url,
+			content: r.content, type: r.type,
+			createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+		}));
+
+		const result = { messages, hasMore: rows.length === 50 };
+		if (typeof callback === 'function') { callback(result); }
+		else { socket.emit('tournament:chat-history', result); }
+	});
+
 	// ── Disconnect ────────────────────────────────────────────────
 	socket.on('disconnect', () => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
@@ -2151,6 +2636,14 @@ io.on('connection', (socket) => {
 			if (invite.fromUserId === userId || invite.toUserId === userId) {
 				clearTimeout(invite.timeout);
 				activeInvites.delete(inviteId);
+			}
+		}
+
+		// Spectator cleanup on disconnect
+		for (const [roomId, room] of activeRooms) {
+			if (room.spectatorSockets && room.spectatorSockets.has(socket.id)) {
+				room.removeSpectator(socket.id);
+				broadcastRoomEvent(roomId, 'game:spectator-count', { count: room.spectatorCount });
 			}
 		}
 

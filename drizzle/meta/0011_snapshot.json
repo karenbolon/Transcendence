@@ -1,6 +1,6 @@
 {
-  "id": "8e82b552-a411-4b17-b639-a68cf39e6075",
-  "prevId": "b3ecb71b-259e-4379-ac1d-f70a4032a773",
+  "id": "9cc922ed-1d24-4474-a694-ae9883647da3",
+  "prevId": "4281d77f-d166-4264-9077-03793907db1e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -44,7 +44,7 @@
           "type": "varchar(10)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'🏆'"
+          "default": "'\ud83c\udfc6'"
         },
         "created_at": {
           "name": "created_at",
@@ -1164,7 +1164,7 @@
           "name": "password_hash",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "avatar_url": {
           "name": "avatar_url",

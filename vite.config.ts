@@ -27,6 +27,7 @@ function socketIODevPlugin() {
 						const { registerFriendHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/friends.ts');
 						const { registerGameHandlers, startGameFromMatch, notifyExpiredPlayers } = await server.ssrLoadModule('$lib/server/socket/handlers/game.ts');
 						const { scanForMatches, removeExpired } = await server.ssrLoadModule('$lib/server/socket/game/MatchmakingQueue.ts');
+						const { getRoomByPlayer } = await server.ssrLoadModule('$lib/server/socket/game/RoomManager.ts');
 						const { registerChatHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/chat.ts');
 						const { registerTournamentHandlers } = await server.ssrLoadModule('$lib/server/socket/handlers/tournament.ts');
 
@@ -40,6 +41,16 @@ function socketIODevPlugin() {
 							registerGameHandlers(socket);
 							registerChatHandlers(socket);
 							registerTournamentHandlers(socket);
+
+							// Notify client if they have an active game (reconnection support)
+							const existingRoom = getRoomByPlayer(socket.data.userId);
+							if (existingRoom) {
+								socket.emit('game:active-room', {
+									roomId: existingRoom.roomId,
+									player1: { userId: existingRoom.player1.userId, username: existingRoom.player1.username },
+									player2: { userId: existingRoom.player2.userId, username: existingRoom.player2.username },
+								});
+							}
 
 							socket.on('disconnect', () => {
 								socketLog.info({ userId: socket.data.userId, socketId: socket.id }, 'User disconnected');
@@ -73,11 +84,6 @@ function socketIODevPlugin() {
 
 export default defineConfig(({ mode }) => ({
 	plugins: [socketIODevPlugin(), tailwindcss(), sveltekit()],
-
-	server: {
-		host: '0.0.0.0',
-		port: 8080,
-	},
 
 	test: {
 		env: loadEnv('test', process.cwd(), ''),

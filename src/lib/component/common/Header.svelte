@@ -187,7 +187,7 @@
 					</details>
 				{:else}
 					<a href="/login" class="btn-login">Login</a>
-					<a href="/register" class="btn-signup">OAuth</a>
+					<a href="/register" class="btn-signup">Sign Up</a>
 				{/if}
 			</div>
 		</nav>

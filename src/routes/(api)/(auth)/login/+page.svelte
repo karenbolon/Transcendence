@@ -95,8 +95,8 @@
 		</form>
 
 		<div class="text-center text-sm text-gray-400">
-			Need OAuth access?
-			<a href="/register" class="link">OAuth</a>
+			Don't have an account?
+			<a href="/register" class="link">Sign up</a>
 		</div>
 
 			<div class="sep">

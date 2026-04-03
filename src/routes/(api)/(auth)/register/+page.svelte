@@ -194,7 +194,7 @@
 		<!-- OAuth Section -->
 		<div class="sep">
 			<div class="relative flex justify-center text-sm">
-				<span class="px-2 bg-pong-darker text-gray-400">Or sign up with</span>
+				<span class="px-2 bg-pong-darker text-gray-400">OAuth</span>
 			</div>
 		</div>
 

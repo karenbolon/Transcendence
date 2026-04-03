@@ -55,7 +55,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			avatarUrl: p.avatarUrl,
 		})),
 		bracket,
-		myParticipantStatus: participants.find(p => p.userId === userId)?.status ?? null,
 		userId,
 		isCreator: tournament.created_by === userId,
 		isParticipant: participants.some(p => p.userId === userId),

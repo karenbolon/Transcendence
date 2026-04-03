@@ -36,9 +36,9 @@ COMPOSE := docker compose -f $(COMPOSE_FILE)
 # DB container
 DB_CONTAINER		= ft_db
 DB_TEST_CONTAINER	= test_db
-DB_USER             ?= postgres
-#DB_USER             = root
-DB_NAME             = pong_db
+#DB_USER             = postgres
+DB_USER             = root
+DB_NAME             = db_test
 
 # ================================================================================
 # SETUP & INSTALLATION
@@ -54,7 +54,7 @@ up:
 	@echo "$(ROCKET) $(LAVENDER)Starting Setup and development environment...$(NC)"
 
 
-start: up docker-up install db-push db-seed-achievements dev
+start: up docker-up db-ready install db-push db-seed-achievements dev
 
 # Complete reset
 re: fclean start
@@ -179,7 +179,7 @@ db-reset:
 ## Start development server
 dev:
 	@echo "$(ROCKET) $(PINK)Starting development server...$(NC)"
-	@npm run dev | npx pino-pretty --colorize --levelFirst --translateTime "HH:MM:ss"
+	@npm run dev -- --host | npx pino-pretty --colorize --levelFirst --translateTime "HH:MM:ss"
 
 ## Start dev server on specific port
 dev-port:

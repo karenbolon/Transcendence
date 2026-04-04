@@ -149,10 +149,15 @@ export class GameRoom {
 		if (!player) return;
 		player.socketIds.delete(socketId);
 
-		// If player has NO sockets left and game is active → start reconnect handling
-		if (player.socketIds.size === 0 &&
-			(this.state.phase === 'playing' || this.state.phase === 'countdown')) {
-			if (this.roomId.startsWith('tournament-')) {
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
+		const isLivePhase = this.state.phase === 'playing' || this.state.phase === 'countdown';
+		const isTournamentPreStartDisconnect = isTournamentMatch && this.state.phase === 'menu';
+
+		// Tournament finals can be forfeited before countdown ever begins.
+		// Without this, a player can join and leave in a 2-player final while the
+		// room is still in `menu`, and the tournament remains stuck in progress.
+		if (player.socketIds.size === 0 && (isLivePhase || isTournamentPreStartDisconnect)) {
+			if (isTournamentMatch) {
 				const parts = this.roomId.split('-');
 				const tournamentId = Number(parts[1]);
 				const round = Number(parts[2]?.replace('r', ''));
@@ -160,10 +165,16 @@ export class GameRoom {
 				const isFinalRound = tournament ? round === tournament.bracket.length : false;
 
 				// In a final, a disconnect/leave should resolve the tournament immediately
-				// instead of leaving the survivor stuck in a paused room.
+				// instead of leaving the survivor stuck in a paused room or menu room.
 				if (isFinalRound) {
 					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
 					this.handleForfeit(opponent);
+					return;
+				}
+
+				// Pre-start disconnects in earlier rounds should fall back to the existing
+				// join-timeout handling instead of entering the live-match pause flow.
+				if (this.state.phase === 'menu') {
 					return;
 				}
 

@@ -24,26 +24,35 @@ export function registerTournamentHandlers(socket: Socket) {
 		maxPlayers: number;  // 4, 8, or 16
 		settings?: { speedPreset: string; winScore: number };
 	}) => {
-		if (!data.name?.trim()) {
-			socket.emit('tournament:error', { message: 'Tournament name is required' });
-			return;
+		try {
+			if (!data.name?.trim()) {
+				socket.emit('tournament:error', { message: 'Tournament name is required' });
+				return;
+			}
+			if (![4, 8, 16].includes(data.maxPlayers)) {
+				socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' });
+				return;
+			}
+
+			const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+			const id = await createTournament(data.name.trim(), userId, data.maxPlayers, settings);
+
+			// Auto-join the creator
+			const joinResult = await joinTournament(id, userId);
+			if (!joinResult.success) {
+				socket.emit('tournament:error', { message: joinResult.error ?? 'Failed to join created tournament' });
+				return;
+			}
+
+			socket.emit('tournament:created', { tournamentId: id });
+
+			// Broadcast to all clients so tournament list pages refresh
+			const io = getIO();
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Create failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to create tournament' });
 		}
-		if (![4, 8, 16].includes(data.maxPlayers)) {
-			socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' });
-			return;
-		}
-
-		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
-		const id = await createTournament(data.name.trim(), userId, data.maxPlayers, settings);
-
-		// Auto-join the creator
-		await joinTournament(id, userId);
-
-		socket.emit('tournament:created', { tournamentId: id });
-
-		// Broadcast to all clients so tournament list pages refresh
-		const io = getIO();
-		io.emit('tournament:list-updated');
 	});
 
 	// Join a tournament

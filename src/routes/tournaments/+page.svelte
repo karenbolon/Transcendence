@@ -56,12 +56,17 @@
 		const socket = getSocket();
 		if (!socket?.connected) { toast.error('Not connected'); return; }
 		creating = true;
+		const timeout = setTimeout(() => {
+			creating = false;
+			toast.error('Tournament creation timed out');
+		}, 8000);
 		socket.emit('tournament:create', {
 			name: newName.trim(),
 			maxPlayers: newMaxPlayers,
 			settings: { speedPreset: newSpeed, winScore: newWinScore },
 		});
 		socket.once('tournament:created', (d: { tournamentId: number }) => {
+			clearTimeout(timeout);
 			creating = false;
 			showCreate = false;
 			newName = '';
@@ -69,6 +74,7 @@
 			goto(`/tournaments/${d.tournamentId}`);
 		});
 		socket.once('tournament:error', (d: { message: string }) => {
+			clearTimeout(timeout);
 			creating = false;
 			toast.error(d.message);
 		});

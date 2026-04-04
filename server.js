@@ -1403,6 +1403,33 @@ function emitToTournamentUser(userId, event, data) {
 	if (sockets) { for (const sid of sockets) io.to(sid).emit(event, data); }
 }
 
+async function emitToTournamentParticipantsDb(tournamentId, event, data) {
+	const participants = await sql`
+		SELECT user_id FROM tournament_participants
+		WHERE tournament_id = ${tournamentId}
+	`;
+	for (const p of participants) {
+		const sockets = userSockets.get(Number(p.user_id));
+		if (sockets) {
+			for (const sid of sockets) io.to(sid).emit(event, data);
+		}
+	}
+}
+
+async function computeEliminationPlacement(tournamentId) {
+	const [totals] = await sql`
+		SELECT COUNT(*)::int AS total_players
+		FROM tournament_participants
+		WHERE tournament_id = ${tournamentId}
+	`;
+	const [eliminated] = await sql`
+		SELECT COUNT(*)::int AS eliminated_count
+		FROM tournament_participants
+		WHERE tournament_id = ${tournamentId} AND status = 'eliminated'
+	`;
+	return Number(totals?.total_players ?? 0) - Number(eliminated?.eliminated_count ?? 0);
+}
+
 // Bracket generation (mirrors bracket.ts)
 function nextPowerOf2(n) { let p = 1; while (p < n) p *= 2; return p; }
 function seedPairingArr(players) {
@@ -1745,6 +1772,139 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 		await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
 		emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
 	}
+}
+
+async function resolveTournamentForfeitByUser(tournamentId, userId) {
+	const [tournament] = await sql`
+		SELECT id, name, status, bracket_data
+		FROM tournaments
+		WHERE id = ${tournamentId}
+	`;
+	if (!tournament || tournament.status !== 'in_progress') return false;
+
+	const inMemory = activeTournaments.get(tournamentId);
+	if (!inMemory) {
+		// DB-only fallback if process memory does not have this tournament.
+		const placement = await computeEliminationPlacement(tournamentId);
+		await sql`
+			UPDATE tournament_participants
+			SET status = 'eliminated', placement = ${placement}
+			WHERE tournament_id = ${tournamentId}
+			  AND user_id = ${userId}
+			  AND status IN ('registered', 'active')
+		`;
+
+		const activeParticipants = await sql`
+			SELECT user_id FROM tournament_participants
+			WHERE tournament_id = ${tournamentId} AND status = 'active'
+		`;
+		if (activeParticipants.length === 1) {
+			const winnerId = Number(activeParticipants[0].user_id);
+			await sql.begin(async (tx) => {
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'champion', placement = 1
+					WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+				`;
+				await tx`
+					UPDATE tournaments
+					SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
+					WHERE id = ${tournamentId}
+				`;
+			});
+
+			await emitToTournamentParticipantsDb(tournamentId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				tournamentName: tournament.name,
+				podium: [],
+				championWins: 0,
+				bracket: Array.isArray(tournament.bracket_data) ? tournament.bracket_data : [],
+			});
+		}
+
+		io.emit('tournament:list-updated');
+		return true;
+	}
+
+	const remainingMatches = [];
+	for (const round of inMemory.bracket) {
+		for (const match of round.matches) {
+			if (match.status === 'finished' || match.status === 'bye') continue;
+			if (match.player1Id === userId || match.player2Id === userId) {
+				const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id;
+				remainingMatches.push({
+					round: round.round,
+					matchIndex: match.matchIndex,
+					opponentId: opponentId ?? null,
+				});
+			}
+		}
+	}
+
+	for (const rem of remainingMatches) {
+		if (rem.opponentId) {
+			await advanceTournamentWinner(tournamentId, rem.round, rem.matchIndex, rem.opponentId, userId, 1, 0);
+		} else {
+			const placement = await computeEliminationPlacement(tournamentId);
+			await sql`
+				UPDATE tournament_participants
+				SET status = 'eliminated', placement = ${placement}
+				WHERE tournament_id = ${tournamentId}
+				  AND user_id = ${userId}
+				  AND status IN ('registered', 'active')
+			`;
+			const roundData = inMemory.bracket.find((r) => r.round === rem.round);
+			if (roundData) {
+				const m = roundData.matches[rem.matchIndex];
+				if (m) m.status = 'finished';
+			}
+		}
+	}
+
+	const activeParticipants = await sql`
+		SELECT user_id FROM tournament_participants
+		WHERE tournament_id = ${tournamentId} AND status = 'active'
+	`;
+	if (activeParticipants.length === 1) {
+		const winnerId = Number(activeParticipants[0].user_id);
+
+		await sql`
+			UPDATE tournament_participants
+			SET status = 'champion', placement = 1
+			WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+		`;
+		await sql`
+			UPDATE tournaments
+			SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW(), bracket_data = ${JSON.stringify(inMemory.bracket)}
+			WHERE id = ${tournamentId}
+		`;
+
+		const winnerWins = inMemory.bracket.reduce((count, r) => {
+			return count + r.matches.filter((m) => m.winnerId === winnerId).length;
+		}, 0);
+
+		emitToTournamentParticipants(tournamentId, 'tournament:finished', {
+			tournamentId,
+			winnerId,
+			winnerUsername: inMemory.playerMap.get(winnerId),
+			tournamentName: inMemory.name,
+			podium: [],
+			championWins: winnerWins,
+			bracket: inMemory.bracket,
+		});
+		activeTournaments.delete(tournamentId);
+		io.emit('tournament:list-updated');
+		return true;
+	}
+
+	await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(inMemory.bracket)} WHERE id = ${tournamentId}`;
+	emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', {
+		tournamentId,
+		bracket: inMemory.bracket,
+	});
+	io.emit('tournament:list-updated');
+	return true;
 }
 
 // ── Socket.IO connection handler ──────────────────────────────────
@@ -2159,11 +2319,26 @@ io.on('connection', (socket) => {
 
 	socket.on('tournament:leave', async (data) => {
 		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament || tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Cannot leave tournament' }); return; }
+		if (!tournament) { socket.emit('tournament:error', { message: 'Cannot leave tournament' }); return; }
 
-		await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
-		socket.emit('tournament:left', { tournamentId: data.tournamentId });
-		io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+		if (tournament.status === 'scheduled' || tournament.status === 'cancelled') {
+			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
+			socket.emit('tournament:left', { tournamentId: data.tournamentId });
+			io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+			return;
+		}
+
+		if (tournament.status === 'in_progress') {
+			const room = getRoomByPlayerId(userId);
+			if (!room || !room.roomId.startsWith(`tournament-${data.tournamentId}-`)) {
+				await resolveTournamentForfeitByUser(data.tournamentId, userId);
+				socket.emit('tournament:left', { tournamentId: data.tournamentId });
+				io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+				return;
+			}
+		}
+
+		socket.emit('tournament:error', { message: 'Cannot leave tournament' });
 	});
 
 	socket.on('tournament:cancel', async (data) => {
@@ -2289,14 +2464,31 @@ io.on('connection', (socket) => {
 		}
 	});
 
-	socket.on('tournament:status', (data) => {
+	socket.on('tournament:status', async (data) => {
 		const tourney = activeTournaments.get(data.tournamentId);
-		if (!tourney) { socket.emit('tournament:error', { message: 'Tournament not active' }); return; }
-		socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
+		if (tourney) {
+			socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
+			return;
+		}
+
+		const [tournament] = await sql`
+			SELECT status, bracket_data
+			FROM tournaments
+			WHERE id = ${data.tournamentId}
+		`;
+		if (!tournament) {
+			socket.emit('tournament:error', { message: 'Tournament not active' });
+			return;
+		}
+
+		socket.emit('tournament:status', {
+			tournamentId: data.tournamentId,
+			bracket: Array.isArray(tournament.bracket_data) ? tournament.bracket_data : [],
+		});
 	});
 
 	// ── Disconnect ────────────────────────────────────────────────
-	socket.on('disconnect', () => {
+	socket.on('disconnect', async () => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
 
 		const sockets = userSockets.get(userId);
@@ -2325,6 +2517,23 @@ io.on('connection', (socket) => {
 		const room = getRoomByPlayerId(userId);
 		if (room) {
 			room.removeSocket(userId, socket.id);
+		}
+
+		// If user disconnected outside a live tournament room, process tournament forfeit.
+		const [participantTournament] = await sql`
+			SELECT t.id AS tournament_id
+			FROM tournaments t
+			JOIN tournament_participants tp ON tp.tournament_id = t.id
+			WHERE tp.user_id = ${userId}
+			  AND t.status = 'in_progress'
+			LIMIT 1
+		`;
+		if (participantTournament) {
+			const tournamentId = Number(participantTournament.tournament_id);
+			const activeRoom = getRoomByPlayerId(userId);
+			if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${tournamentId}-`)) {
+				await resolveTournamentForfeitByUser(tournamentId, userId);
+			}
 		}
 
 		// Grace period before marking offline

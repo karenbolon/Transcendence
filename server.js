@@ -2526,11 +2526,27 @@ io.on('connection', (socket) => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
 
 		const sockets = userSockets.get(userId);
+		let remainingAfterThisDisconnect = 0;
 		if (sockets) {
 			sockets.delete(socket.id);
-			if (sockets.size === 0) {
+			remainingAfterThisDisconnect = sockets.size;
+			if (remainingAfterThisDisconnect === 0) {
 				userSockets.delete(userId);
 			}
+		}
+
+		// Remove only this socket from the active game room first.
+		// This is per-socket cleanup and must always run.
+		const room = getRoomByPlayerId(userId);
+		const roomIdBeforeDisconnect = room?.roomId ?? null;
+		if (room) {
+			room.removeSocket(userId, socket.id);
+		}
+
+		// If the user still has at least one connected socket/tab, skip user-level
+		// disconnect behavior (queue removal, invite cleanup, tournament forfeits).
+		if (remainingAfterThisDisconnect > 0) {
+			return;
 		}
 
 		// Queue cleanup
@@ -2545,13 +2561,6 @@ io.on('connection', (socket) => {
 				clearTimeout(invite.timeout);
 				activeInvites.delete(inviteId);
 			}
-		}
-
-		// Remove socket from active game room (triggers reconnect timer)
-		const room = getRoomByPlayerId(userId);
-		const roomIdBeforeDisconnect = room?.roomId ?? null;
-		if (room) {
-			room.removeSocket(userId, socket.id);
 		}
 
 		// If user disconnected outside a live tournament room, process tournament forfeit.

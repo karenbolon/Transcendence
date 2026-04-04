@@ -186,6 +186,17 @@ export function registerTournamentHandlers(socket: Socket) {
 	// Handle disconnect — graceful cleanup for both creator and participants
 	socket.on('disconnect', async () => {
 		try {
+			const userSocketSet = userSockets.get(userId);
+			const remainingAfterThisDisconnect = userSocketSet
+				? (userSocketSet.has(socket.id) ? userSocketSet.size - 1 : userSocketSet.size)
+				: 0;
+
+			// Only process tournament-level disconnect behavior when the user's last
+			// socket disconnects. Page/tab switches should not forfeit/cancel tournaments.
+			if (remainingAfterThisDisconnect > 0) {
+				return;
+			}
+
 			// Check if this user was a tournament creator
 			const [creatorTournament] = await db
 				.select({ tournamentId: tournaments.id, status: tournaments.status })

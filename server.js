@@ -636,7 +636,30 @@ class ServerGameRoom {
 		const player = this._getPlayer(userId);
 		if (!player) return;
 		player.socketIds.delete(socketId);
-		if (player.socketIds.size === 0 && (this.state.phase === 'playing' || this.state.phase === 'countdown')) {
+
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
+		const isLivePhase = this.state.phase === 'playing' || this.state.phase === 'countdown';
+		const isTournamentPreStartDisconnect = isTournamentMatch && this.state.phase === 'menu';
+
+		if (player.socketIds.size === 0 && (isLivePhase || isTournamentPreStartDisconnect)) {
+			if (isTournamentMatch) {
+				const parts = this.roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2]?.replace('r', ''));
+				const tournament = activeTournaments.get(tournamentId);
+				const isFinalRound = tournament ? round === tournament.bracket.length : false;
+
+				// In finals, disconnects should resolve immediately to avoid stuck in-progress tournaments.
+				if (isFinalRound) {
+					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+					this._handleForfeit(opponent);
+					return;
+				}
+
+				// Non-final pre-start disconnects are handled by join-timeout logic.
+				if (this.state.phase === 'menu') return;
+			}
+
 			broadcastRoomEvent(this.roomId, 'game:player-disconnected', { userId, timeout: RECONNECT_TIMEOUT });
 			const timer = setTimeout(() => {
 				this.disconnectTimers.delete(userId);
@@ -759,8 +782,9 @@ class ServerGameRoom {
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
-		if (gameNotStarted || bothZero) {
+		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted ? 'Player left before game started' : 'Player disconnected at 0-0';
 			broadcastRoomEvent(this.roomId, 'game:cancelled', {
 				roomId: this.roomId, reason,
@@ -768,6 +792,17 @@ class ServerGameRoom {
 				stayedUsername: winner.username, settings: this.rawSettings,
 			});
 			return;
+		}
+
+		// Tournament matches must always produce a winner so bracket progression can continue.
+		if (isTournamentMatch && (gameNotStarted || bothZero)) {
+			if (winner === this.player1) {
+				this.state.score1 = 1;
+				this.state.score2 = 0;
+			} else {
+				this.state.score1 = 0;
+				this.state.score2 = 1;
+			}
 		}
 
 		endGameState(this.state, winner.username);
@@ -1827,6 +1862,7 @@ io.on('connection', (socket) => {
 		const room = getRoomByPlayerId(userId);
 		if (!room) return;
 		const roomId = room.roomId;
+		const isTournamentMatch = roomId.startsWith('tournament-');
 		const opponentUserId = userId === room.player1.userId ? room.player2.userId : room.player1.userId;
 		const opponentUsername = userId === room.player1.userId ? room.player2.username : room.player1.username;
 		const settings = room.rawSettings;
@@ -1838,7 +1874,7 @@ io.on('connection', (socket) => {
 		if (activeRooms.has(roomId)) destroyGameRoom(roomId);
 
 		// Re-queue the remaining player if game was cancelled
-		if (isCancellable && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+		if (isCancellable && !isTournamentMatch && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
 			const opponentSockets = userSockets.get(opponentUserId);
 			if (opponentSockets && opponentSockets.size > 0) {
 				const firstSocketId = opponentSockets.values().next().value;
@@ -2002,24 +2038,29 @@ io.on('connection', (socket) => {
 	// ═══════════════════════════════════════════════════════════════
 
 	socket.on('tournament:create', async (data) => {
-		if (!data.name?.trim()) { socket.emit('tournament:error', { message: 'Tournament name is required' }); return; }
-		if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
+		try {
+			if (!data.name?.trim()) { socket.emit('tournament:error', { message: 'Tournament name is required' }); return; }
+			if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
 
-		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
-		const [tournament] = await sql`
-			INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
-			VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
-			RETURNING id
-		`;
+			const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+			const [tournament] = await sql`
+				INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
+				VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
+				RETURNING id
+			`;
 
-		// Auto-join creator
-		await sql`
-			INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
-			VALUES (${tournament.id}, ${userId}, 1, 'registered')
-		`;
+			// Auto-join creator
+			await sql`
+				INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
+				VALUES (${tournament.id}, ${userId}, 1, 'registered')
+			`;
 
-		socket.emit('tournament:created', { tournamentId: tournament.id });
-		io.emit('tournament:list-updated');
+			socket.emit('tournament:created', { tournamentId: tournament.id });
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Create failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to create tournament' });
+		}
 	});
 
 	socket.on('tournament:join', async (data) => {

@@ -1521,7 +1521,81 @@ function getRoundName(round, totalRounds) {
 
 async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
 	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
+	if (!tourney) {
+		console.warn('[Tournament] advanceTournamentWinner: tournament not in memory, trying DB fallback', {
+			tournamentId, round, matchIndex, winnerId, loserId,
+		});
+
+		const [tournament] = await sql`
+			SELECT id, name, status, bracket_data
+			FROM tournaments
+			WHERE id = ${tournamentId}
+		`;
+		if (!tournament || tournament.status !== 'in_progress') return;
+
+		const bracket = Array.isArray(tournament.bracket_data)
+			? tournament.bracket_data
+			: (typeof tournament.bracket_data === 'string' ? JSON.parse(tournament.bracket_data) : null);
+		const totalRounds = Array.isArray(bracket) ? bracket.length : 0;
+		const isFinalRound = round === totalRounds;
+
+		// If we can't recover in-memory state, we can still safely finish a final.
+		if (!isFinalRound) {
+			console.error('[Tournament] advanceTournamentWinner: non-final round cannot be advanced without in-memory bracket', {
+				tournamentId, round, totalRounds,
+			});
+			return;
+		}
+
+		await sql.begin(async (tx) => {
+			await tx`
+				UPDATE tournaments
+				SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
+				WHERE id = ${tournamentId}
+			`;
+			await tx`
+				UPDATE tournament_participants
+				SET status = 'champion', placement = 1
+				WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+			`;
+			await tx`
+				UPDATE tournament_participants
+				SET status = 'eliminated', placement = 2
+				WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}
+			`;
+		});
+
+		emitToTournamentUser(winnerId, 'tournament:finished', {
+			tournamentId,
+			winnerId,
+			loserId,
+			winnerUsername: 'Player',
+			tournamentName: tournament.name,
+			round,
+			totalRounds,
+			roundName: 'Final',
+			podium: [],
+			championWins: 0,
+			runnerUpWins: 0,
+			bracket: bracket ?? [],
+		});
+		emitToTournamentUser(loserId, 'tournament:finished', {
+			tournamentId,
+			winnerId,
+			loserId,
+			winnerUsername: 'Player',
+			tournamentName: tournament.name,
+			round,
+			totalRounds,
+			roundName: 'Final',
+			podium: [],
+			championWins: 0,
+			runnerUpWins: 0,
+			bracket: bracket ?? [],
+		});
+		io.emit('tournament:list-updated');
+		return;
+	}
 
 	const roundData = tourney.bracket.find(r => r.round === round);
 	if (!roundData) return;
@@ -2161,6 +2235,58 @@ io.on('connection', (socket) => {
 		emitToTournamentParticipants(data.tournamentId, 'tournament:started', { tournamentId: data.tournamentId, bracket });
 		io.emit('tournament:list-updated');
 		await startTournamentRoundMatches(data.tournamentId, 1);
+	});
+
+	socket.on('tournament:close-active', async (data) => {
+		try {
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
+			if (!tournament || Number(tournament.created_by) !== userId) {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+			if (tournament.status !== 'in_progress') {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+
+			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+
+			const active = activeTournaments.get(data.tournamentId);
+			if (active) {
+				for (const round of active.bracket) {
+					for (const match of round.matches) {
+						if (match.status === 'playing') {
+							destroyGameRoom(`tournament-${data.tournamentId}-r${round.round}-m${match.matchIndex}`);
+						}
+					}
+				}
+				activeTournaments.delete(data.tournamentId);
+			}
+
+			const bracketToPersist = active ? active.bracket : tournament.bracket_data;
+			await sql`
+				UPDATE tournaments
+				SET status = 'cancelled', finished_at = NOW(), bracket_data = ${JSON.stringify(bracketToPersist)}
+				WHERE id = ${data.tournamentId}
+			`;
+
+			for (const p of participants) {
+				const participantSockets = userSockets.get(Number(p.user_id));
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:abandoned', {
+							tournamentId: data.tournamentId,
+							reason: 'Tournament closed by creator',
+						});
+					}
+				}
+			}
+
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Active close failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to close active tournament' });
+		}
 	});
 
 	socket.on('tournament:status', (data) => {

@@ -934,6 +934,10 @@ export async function advanceWinner(
 	winnerScore: number = 0,
 	loserScore: number = 0,
 ): Promise<void> {
+	tournamentLogger.info(
+		{ tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore },
+		'[advanceWinner] entry',
+	);
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) {
 		// Tournament not in memory (e.g., after HMR/server restart).
@@ -1260,6 +1264,14 @@ export async function advanceWinner(
 	// Persist bracket to DB and broadcast to all participants
 	tournamentLogger.info({ tournamentId, stillInMap: activeTournaments.has(tournamentId) }, '[advanceWinner] calling saveBracketToDb');
 	await saveBracketToDb(tournamentId, tourney.bracket);
+	tournamentLogger.info(
+		{
+			tournamentId,
+			status: activeTournaments.has(tournamentId) ? 'in_progress' : 'finished',
+			finalWinnerId: winnerId,
+		},
+		'[advanceWinner] completed',
+	);
 	if (activeTournaments.has(tournamentId)) {
 		emitToParticipants(tournamentId, 'tournament:bracket-update', {
 			tournamentId,

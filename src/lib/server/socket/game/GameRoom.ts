@@ -164,10 +164,29 @@ export class GameRoom {
 				const tournament = getActiveTournament(tournamentId);
 				const isFinalRound = tournament ? round === tournament.bracket.length : false;
 
+				console.log('[GameRoom] tournament disconnect evaluation', {
+					roomId: this.roomId,
+					userId,
+					phase: this.state.phase,
+					tournamentId,
+					round,
+					hasActiveTournament: !!tournament,
+					totalRounds: tournament?.bracket.length ?? null,
+					isFinalRound,
+					player1Sockets: this.player1.socketIds.size,
+					player2Sockets: this.player2.socketIds.size,
+				});
+
 				// In a final, a disconnect/leave should resolve the tournament immediately
 				// instead of leaving the survivor stuck in a paused room or menu room.
 				if (isFinalRound) {
 					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+					console.log('[GameRoom] final-round disconnect -> handleForfeit', {
+						roomId: this.roomId,
+						loserId: userId,
+						winnerId: opponent.userId,
+						phase: this.state.phase,
+					});
 					this.handleForfeit(opponent);
 					return;
 				}
@@ -175,9 +194,21 @@ export class GameRoom {
 				// Pre-start disconnects in earlier rounds should fall back to the existing
 				// join-timeout handling instead of entering the live-match pause flow.
 				if (this.state.phase === 'menu') {
+					console.log('[GameRoom] pre-start non-final disconnect -> waiting for join timeout', {
+						roomId: this.roomId,
+						userId,
+						tournamentId,
+						round,
+					});
 					return;
 				}
 
+				console.log('[GameRoom] non-final live disconnect -> pause flow', {
+					roomId: this.roomId,
+					userId,
+					tournamentId,
+					round,
+				});
 				this.pause(userId);
 				return;
 			}
@@ -472,6 +503,18 @@ export class GameRoom {
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
 		const isTournamentMatch = this.roomId.startsWith('tournament-');
+
+		console.log('[GameRoom] handleForfeit', {
+			roomId: this.roomId,
+			winnerId: winner.userId,
+			loserId: loser.userId,
+			phase: this.state.phase,
+			score1: this.state.score1,
+			score2: this.state.score2,
+			gameNotStarted,
+			bothZero,
+			isTournamentMatch,
+		});
 
 		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted

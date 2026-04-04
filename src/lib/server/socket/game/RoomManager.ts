@@ -244,6 +244,16 @@ async function handleGameEnd(result: GameResult): Promise<void> {
 				? result.player1.score : result.player2.score;
 			const loserScore = result.player1.userId === result.loserId
 				? result.player1.score : result.player2.score;
+			console.log('[RoomManager] tournament result -> advanceWinner', {
+				roomId: result.roomId,
+				tournamentId,
+				round,
+				matchIndex,
+				winnerId: result.winnerId,
+				loserId: result.loserId,
+				winnerScore,
+				loserScore,
+			});
 			await advanceWinner(tournamentId, round, matchIndex, result.winnerId, result.loserId, winnerScore, loserScore);
 			}
 

@@ -4,7 +4,7 @@
  * Generates authorization URL and redirects to GitHub
  */
 
-import { redirect } from '@sveltejs/kit';
+import { redirect, isRedirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 
@@ -18,6 +18,16 @@ function generateState(): string {
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
 	}
 	return result;
+}
+
+function buildGithubRedirectUri(): string {
+	const rawBase = process.env.PUBLIC_OAUTH_REDIRECT_URI || 'http://localhost:5173';
+	const url = new URL(rawBase);
+	const basePath = url.pathname.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+	url.pathname = basePath.endsWith('/auth/callback')
+		? `${basePath}/github`
+		: `${basePath}/auth/callback/github`;
+	return url.toString();
 }
 
 /**
@@ -41,7 +51,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		// Build GitHub authorization URL
 		const params = new URLSearchParams({
 			client_id: process.env.GITHUB_CLIENT_ID || '',
-			redirect_uri: (process.env.PUBLIC_OAUTH_REDIRECT_URI || 'http://localhost:5173') + '/auth/callback/github',
+			redirect_uri: buildGithubRedirectUri(),
 			scope: 'user:email,read:user', // Requested permissions
 			state
 		});
@@ -51,6 +61,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		console.log('🔐 Redirecting to GitHub OAuth...');
 		redirect(302, githubAuthUrl);
 	} catch (err) {
+		if (isRedirect(err)) throw err;
 		console.error('GitHub login initialization failed:', err);
 		throw new Error('Failed to initiate GitHub login');
 	}

@@ -259,6 +259,16 @@ function getProviderEnvKey(provider: string): string {
 	return provider === '42' ? 'FORTYTWO' : provider.toUpperCase();
 }
 
+/**
+ * Normalize callback URL path to avoid accidental double slashes
+ * (e.g. https://pong.walt3r.dev//auth/callback/github).
+ */
+function normalizeCallbackUrl(rawUrl: string): string {
+	const parsed = new URL(rawUrl);
+	parsed.pathname = parsed.pathname.replace(/\/{2,}/g, '/');
+	return parsed.toString();
+}
+
 export async function exchangeCodeForToken(
 	provider: string,
 	code: string
@@ -267,11 +277,12 @@ export async function exchangeCodeForToken(
 	const clientId = process.env[`${envKey}_CLIENT_ID`];
 	const clientSecret = process.env[`${envKey}_CLIENT_SECRET`];
 	const tokenUrl = process.env[`${envKey}_TOKEN_URL`];
-	const redirectUri = process.env[`${envKey}_CALLBACK_URL`];
+	const redirectUriRaw = process.env[`${envKey}_CALLBACK_URL`];
 
-	if (!clientId || !clientSecret || !tokenUrl || !redirectUri) {
+	if (!clientId || !clientSecret || !tokenUrl || !redirectUriRaw) {
 		throw new Error(`Missing OAuth configuration for provider: ${provider}`);
 	}
+	const redirectUri = normalizeCallbackUrl(redirectUriRaw);
 
 	const response = await fetch(tokenUrl, {
 		method: 'POST',
@@ -423,11 +434,12 @@ export function buildOAuthAuthorizationUrl(provider: string, state: string): str
 	const envKey = getProviderEnvKey(provider);
 	const authorizeUrl = process.env[`${envKey}_AUTHORIZE_URL`];
 	const clientId = process.env[`${envKey}_CLIENT_ID`];
-	const callbackUrl = process.env[`${envKey}_CALLBACK_URL`];
+	const callbackUrlRaw = process.env[`${envKey}_CALLBACK_URL`];
 
-	if (!authorizeUrl || !clientId || !callbackUrl) {
+	if (!authorizeUrl || !clientId || !callbackUrlRaw) {
 		throw new Error(`Missing OAuth configuration for provider: ${provider}`);
 	}
+	const callbackUrl = normalizeCallbackUrl(callbackUrlRaw);
 
 	const params = new URLSearchParams({
 		client_id: clientId,
@@ -440,5 +452,4 @@ export function buildOAuthAuthorizationUrl(provider: string, state: string): str
 
 	return `${authorizeUrl}?${params.toString()}`;
 }
-
 

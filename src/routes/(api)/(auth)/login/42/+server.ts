@@ -4,7 +4,7 @@
  * Generates authorization URL and redirects to 42 Intra
  */
 
-import { redirect } from '@sveltejs/kit';
+import { redirect, isRedirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 
@@ -18,6 +18,16 @@ function generateState(): string {
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
 	}
 	return result;
+}
+
+function buildFortyTwoRedirectUri(): string {
+	const rawBase = process.env.PUBLIC_OAUTH_REDIRECT_URI || 'http://localhost:5173';
+	const url = new URL(rawBase);
+	const basePath = url.pathname.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+	url.pathname = basePath.endsWith('/auth/callback')
+		? `${basePath}/42`
+		: `${basePath}/auth/callback/42`;
+	return url.toString();
 }
 
 /**
@@ -41,7 +51,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		// Build 42 Intra authorization URL
 		const params = new URLSearchParams({
 			client_id: process.env.FORTYTWO_CLIENT_ID || '',
-			redirect_uri: (process.env.PUBLIC_OAUTH_REDIRECT_URI || 'http://localhost:5173') + '/auth/callback/42',
+			redirect_uri: buildFortyTwoRedirectUri(),
 			response_type: 'code',
 			scope: 'public projects',
 			state
@@ -52,6 +62,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		console.log('🔐 Redirecting to 42 Intra OAuth...');
 		redirect(302, intraAuthUrl);
 	} catch (err) {
+		if (isRedirect(err)) throw err;
 		console.error('42 Intra login initialization failed:', err);
 		throw new Error('Failed to initiate 42 Intra login');
 	}

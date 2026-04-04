@@ -228,6 +228,9 @@ test: test-setup
 	 npx vitest --run
 	@echo "$(CHECK) Tests complete!"
 
+git-logs:
+	@echo ":clipboard: $(LAVENDER)Viewing Git logs...$(NC)"
+	@git log --graph --all --decorate --format="%C(auto)%h %C(blue)%an %C(green)%ar %C(auto)%d %s"
 # ================================================================================
 # Clean
 # ================================================================================

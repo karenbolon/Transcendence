@@ -598,6 +598,50 @@ export async function cancelTournament(
 	};
 }
 
+export async function abandonTournament(
+	tournamentId: number,
+	requestedBy: number,
+): Promise<{ success: false } | { success: true; tournamentName: string; participantUserIds: number[] }> {
+	const [tournament] = await db
+		.select()
+		.from(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	if (!tournament || tournament.created_by !== requestedBy) return { success: false };
+	if (tournament.status !== 'in_progress') return { success: false };
+
+	const participants = await db
+		.select({ userId: tournamentParticipants.user_id })
+		.from(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+	const active = activeTournaments.get(tournamentId);
+	if (active) {
+		for (const round of active.bracket) {
+			for (const match of round.matches) {
+				if (match.status === 'playing') {
+					destroyRoom(`tournament-${tournamentId}-r${round.round}-m${match.matchIndex}`);
+				}
+			}
+		}
+		activeTournaments.delete(tournamentId);
+	}
+
+	await db
+		.update(tournaments)
+		.set({
+			status: 'cancelled',
+			finished_at: new Date(),
+			bracket_data: active ? JSON.parse(JSON.stringify(active.bracket)) : tournament.bracket_data,
+		})
+		.where(eq(tournaments.id, tournamentId));
+
+	return {
+		success: true,
+		tournamentName: tournament.name,
+		participantUserIds: participants.map((p) => p.userId),
+	};
+}
+
 export async function startTournament(
 	tournamentId: number,
 	requestedBy: number,

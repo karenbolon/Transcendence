@@ -92,6 +92,17 @@
 		});
 	}
 
+	function handleCloseActive() {
+		const socket = getSocket();
+		if (!socket?.connected) { toast.error('Not connected'); return; }
+		console.log('[DEBUG] handleCloseActive called for tournament:', tournament.id);
+		socket.emit('tournament:close-active', { tournamentId: tournament.id });
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on close-active:', d.message);
+			toast.error(d.message);
+		});
+	}
+
 	// Listen for real-time updates
 	onMount(() => {
 		const socket = getSocket();
@@ -239,6 +250,13 @@
 				<span class={`status ${userStatusBadge.className}`}>{userStatusBadge.label}</span>
 			{/if}
 		</div>
+		{#if isCreator && tournament.status === 'in_progress'}
+			<div class="header-actions">
+				<button class="close-active-btn" onclick={handleCloseActive}>
+					Close Tournament
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if tournament.speedPreset}
@@ -450,10 +468,32 @@
 		margin-bottom: 24px;
 	}
 
+	.header-actions {
+		margin-top: 0.85rem;
+	}
+
 	.title-row {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
+	}
+
+	.close-active-btn {
+		padding: 0.55rem 0.9rem;
+		border-radius: 0.55rem;
+		border: 1px solid rgba(239, 68, 68, 0.28);
+		background: rgba(239, 68, 68, 0.08);
+		color: #fca5a5;
+		font: inherit;
+		font-size: 0.82rem;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s, color 0.15s;
+	}
+
+	.close-active-btn:hover {
+		background: rgba(239, 68, 68, 0.14);
+		border-color: rgba(239, 68, 68, 0.4);
+		color: #fecaca;
 	}
 
 	.title {

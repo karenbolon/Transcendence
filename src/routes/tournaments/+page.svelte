@@ -33,9 +33,11 @@
 		socket.off('tournament:list-updated');
 	});
 
-	// Filter: show open + in_progress together as "Active tournaments"
-	let activeTournaments = $derived(
-		data.tournaments.filter((t: any) => t.status === 'scheduled' || t.status === 'in_progress')
+	let openTournaments = $derived(
+		data.tournaments.filter((t: any) => t.status === 'scheduled')
+	);
+	let liveTournaments = $derived(
+		data.tournaments.filter((t: any) => t.status === 'in_progress')
 	);
 	let finishedTournaments = $derived(
 		data.tournaments.filter((t: any) => t.status === 'finished')
@@ -120,21 +122,21 @@
 			</div>
 			<div class="banner-right">
 				<span class="badge badge-active">IN PROGRESS</span>
-				<button class="btn-go">Go to match</button>
+				<button class="btn-go">Return to tournament</button>
 			</div>
 		</a>
 	{/if}
 
-	<!-- Active tournaments -->
-	{#if activeTournaments.length > 0}
+	<!-- Open tournaments -->
+	{#if openTournaments.length > 0}
 		<section class="section">
 			<div class="section-header">
-				<h2 class="section-title">Active tournaments</h2>
-				<span class="section-count">{activeTournaments.length} tournaments</span>
+				<h2 class="section-title">Open tournaments</h2>
+				<span class="section-count">{openTournaments.length} tournaments</span>
 			</div>
 
 			<div class="tournament-list">
-				{#each activeTournaments as t}
+				{#each openTournaments as t}
 					<a href="/tournaments/{t.id}" class="tournament-card">
 						<div class="card-top">
 							<h3 class="card-name">{t.name}</h3>
@@ -150,15 +152,42 @@
 								{t.creatorUsername}
 							</span>
 						</div>
-						{#if t.status === 'scheduled'}
-							<button class="btn-card-action" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
-								Join
-							</button>
-						{:else}
-							<button class="btn-card-action watch" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
-								Watch
-							</button>
-						{/if}
+						<button class="btn-card-action" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
+							Join
+						</button>
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/if}
+
+	<!-- Live tournaments -->
+	{#if liveTournaments.length > 0}
+		<section class="section">
+			<div class="section-header">
+				<h2 class="section-title">Live tournaments</h2>
+				<span class="section-count">{liveTournaments.length} tournaments</span>
+			</div>
+
+			<div class="tournament-list">
+				{#each liveTournaments as t}
+					<a href="/tournaments/{t.id}" class="tournament-card">
+						<div class="card-top">
+							<h3 class="card-name">{t.name}</h3>
+							<span class="badge {statusBadge(t.status).class}">{statusBadge(t.status).label}</span>
+						</div>
+						<div class="card-meta">
+							<span class="meta-item">👥 {t.participantCount}/{t.maxPlayers}</span>
+							<span class="meta-item">{speedEmoji(t.speedPreset)} {capitalize(t.speedPreset)}</span>
+							<span class="meta-item">First to {t.winScore}</span>
+							<span class="meta-item creator">
+								<UserAvatar username={t.creatorUsername} size="xs" />
+								{t.creatorUsername}
+							</span>
+						</div>
+						<button class="btn-card-action watch" onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(`/tournaments/${t.id}`); }}>
+							View Bracket
+						</button>
 					</a>
 				{/each}
 			</div>
@@ -211,7 +240,7 @@
 	{/if}
 
 	<!-- Empty state -->
-	{#if activeTournaments.length === 0 && finishedTournaments.length === 0}
+	{#if openTournaments.length === 0 && liveTournaments.length === 0 && finishedTournaments.length === 0}
 		<div class="empty-state">
 			<div class="empty-trophy">🏆</div>
 			<h2 class="empty-title">No tournaments right now</h2>

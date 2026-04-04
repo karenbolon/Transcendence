@@ -9,6 +9,7 @@ import {
 	joinTournament,
 	leaveTournament,
 	cancelTournament,
+	abandonTournament,
 	startTournament,
 	getActiveTournament,
 } from '../../tournament/TournamentManager';
@@ -130,6 +131,34 @@ export function registerTournamentHandlers(socket: Socket) {
 			return;
 		}
 		// tournament:started is emitted to all participants inside startTournament()
+	});
+
+	// Close an in-progress tournament (creator only)
+	socket.on('tournament:close-active', async (data: { tournamentId: number }) => {
+		try {
+			const result = await abandonTournament(data.tournamentId, userId);
+			if (!result.success) {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+
+			const io = getIO();
+			for (const participantId of result.participantUserIds) {
+				const participantSockets = userSockets.get(participantId);
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:abandoned', {
+							tournamentId: data.tournamentId,
+							reason: 'Tournament closed by creator',
+						});
+					}
+				}
+			}
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Active close failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to close active tournament' });
+		}
 	});
 
 	// Get tournament bracket state

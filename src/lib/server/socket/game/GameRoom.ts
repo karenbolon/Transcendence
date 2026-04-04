@@ -11,6 +11,7 @@ import {
 	type SpeedPreset,
 } from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
+import { getActiveTournament } from '../../tournament/TournamentManager';
 
 export type { GameResult, GameStateSnapshot };
 
@@ -152,6 +153,20 @@ export class GameRoom {
 		if (player.socketIds.size === 0 &&
 			(this.state.phase === 'playing' || this.state.phase === 'countdown')) {
 			if (this.roomId.startsWith('tournament-')) {
+				const parts = this.roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2]?.replace('r', ''));
+				const tournament = getActiveTournament(tournamentId);
+				const isFinalRound = tournament ? round === tournament.bracket.length : false;
+
+				// In a final, a disconnect/leave should resolve the tournament immediately
+				// instead of leaving the survivor stuck in a paused room.
+				if (isFinalRound) {
+					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+					this.handleForfeit(opponent);
+					return;
+				}
+
 				this.pause(userId);
 				return;
 			}

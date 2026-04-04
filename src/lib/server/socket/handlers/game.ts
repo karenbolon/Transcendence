@@ -447,6 +447,24 @@ export function registerGameHandlers(socket: Socket) {
 
 	// Clean up on disconnect
 	socket.on('disconnect', () => {
+		const userSocketSet = userSockets.get(userId);
+		const remainingAfterThisDisconnect = userSocketSet
+			? (userSocketSet.has(socket.id) ? userSocketSet.size - 1 : userSocketSet.size)
+			: 0;
+
+		// Always remove this socket from the active game room to keep per-room
+		// socket sets accurate. This is per-socket cleanup, not per-user cleanup.
+		const room = getRoomByPlayer(userId);
+		if (room) {
+			room.removeSocket(userId, socket.id);
+		}
+
+		// If the user still has another connected socket/tab, do NOT run user-level
+		// disconnect logic (queue removal, invite cleanup, tournament forfeits, etc.).
+		if (remainingAfterThisDisconnect > 0) {
+			return;
+		}
+
 		// ── Queue cleanup ──
 		if (isInQueue(userId)) {
 			removeFromQueue(userId);
@@ -458,11 +476,6 @@ export function registerGameHandlers(socket: Socket) {
 				clearTimeout(invite.timeout);
 				activeInvites.delete(inviteId);
 			}
-		}
-		// Remove socket from active game room (triggers reconnect timer)
-		const room = getRoomByPlayer(userId);
-		if (room) {
-			room.removeSocket(userId, socket.id);
 		}
 	});
 	// ══════════════════════════════════════════════════════════

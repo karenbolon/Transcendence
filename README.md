@@ -95,6 +95,35 @@ All user-facing text is externalized into translation files and can be switched 
 ```
 
 ---
+
+## Game Networking Architecture
+
+The online multiplayer game uses a **server-authoritative physics** model. The server runs the full physics simulation at 60 Hz and broadcasts the complete game state to both clients. Clients only send their input direction — never positions.
+
+```mermaid
+sequenceDiagram
+    participant P1 as Player 1 (Browser)
+    participant SV as Server (GameRoom)
+    participant P2 as Player 2 (Browser)
+
+    Note over SV: setInterval every ~16.67ms (60 Hz)
+
+    P1->>SV: game:paddle-move { direction: "up" }
+    P2->>SV: game:paddle-move { direction: "down" }
+
+    SV->>SV: tick() — merge inputs into InputState
+    SV->>SV: update(state, dt, mergedInput, settings)
+    Note over SV: Moves paddles, moves ball,<br/>checks collisions, checks scoring
+
+    SV->>P1: game:state { ballX, ballY, paddle1Y, paddle2Y, score, ... }
+    SV->>P2: game:state { ballX, ballY, paddle1Y, paddle2Y, score, ... }
+
+    Note over P1,P2: Both clients render the received state on canvas
+```
+
+`gameEngine.ts` is shared code — the same `update()` function runs on the server inside `GameRoom.tick()`. The server is the single source of truth; clients paint whatever they receive.
+
+---
 # Instructions
 
 ## Prerequisites
@@ -454,7 +483,7 @@ AI tools were used for:
 ---
 
 # Notes
-Compatible with latest Chrome
+Compatible with latest Chrome & Firefox
 No console errors or warnings
 Privacy Policy & Terms of Service are included and accessible in the app
-Built with teamwork, curiosity, and a lot of late-night debugging and coffee...so much coffee 🏓
+Built with teamwork, curiosity, and a lot of late-night debugging and coffee...so much coffee (and tea)🏓

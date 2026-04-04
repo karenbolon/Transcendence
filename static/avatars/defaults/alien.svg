@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <rect fill="#1a1a2e" width="64" height="64"/>
+  <!-- Head -->
+  <rect fill="#4ade80" x="12" y="8" width="40" height="32"/>
+  <rect fill="#22c55e" x="14" y="10" width="36" height="28"/>
+  <!-- Eyes -->
+  <rect fill="#0a0a1a" x="16" y="16" width="14" height="10"/>
+  <rect fill="#0a0a1a" x="34" y="16" width="14" height="10"/>
+  <rect fill="#c77dff" x="18" y="18" width="10" height="6"/>
+  <rect fill="#c77dff" x="36" y="18" width="10" height="6"/>
+  <rect fill="#ffffff" x="22" y="20" width="4" height="2"/>
+  <rect fill="#ffffff" x="40" y="20" width="4" height="2"/>
+  <!-- Mouth -->
+  <rect fill="#0a0a1a" x="26" y="30" width="12" height="4"/>
+  <!-- Body -->
+  <rect fill="#4ade80" x="22" y="40" width="20" height="16"/>
+  <rect fill="#22c55e" x="24" y="42" width="16" height="12"/>
+  <!-- Arms -->
+  <rect fill="#4ade80" x="12" y="42" width="10" height="4"/>
+  <rect fill="#4ade80" x="42" y="42" width="10" height="4"/>
+  <rect fill="#4ade80" x="8" y="44" width="4" height="8"/>
+  <rect fill="#4ade80" x="52" y="44" width="4" height="8"/>
+  <!-- Legs -->
+  <rect fill="#4ade80" x="24" y="56" width="6" height="6"/>
+  <rect fill="#4ade80" x="34" y="56" width="6" height="6"/>
+</svg>

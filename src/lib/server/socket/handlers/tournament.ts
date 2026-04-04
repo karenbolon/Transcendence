@@ -1,5 +1,6 @@
 import type { Socket } from 'socket.io';
 import { getIO, userSockets } from '../index';
+import { getRoomByPlayer } from '../game/RoomManager';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -8,6 +9,7 @@ import {
 	joinTournament,
 	leaveTournament,
 	cancelTournament,
+	abandonTournament,
 	startTournament,
 	getActiveTournament,
 } from '../../tournament/TournamentManager';
@@ -22,26 +24,35 @@ export function registerTournamentHandlers(socket: Socket) {
 		maxPlayers: number;  // 4, 8, or 16
 		settings?: { speedPreset: string; winScore: number };
 	}) => {
-		if (!data.name?.trim()) {
-			socket.emit('tournament:error', { message: 'Tournament name is required' });
-			return;
+		try {
+			if (!data.name?.trim()) {
+				socket.emit('tournament:error', { message: 'Tournament name is required' });
+				return;
+			}
+			if (![4, 8, 16].includes(data.maxPlayers)) {
+				socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' });
+				return;
+			}
+
+			const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+			const id = await createTournament(data.name.trim(), userId, data.maxPlayers, settings);
+
+			// Auto-join the creator
+			const joinResult = await joinTournament(id, userId);
+			if (!joinResult.success) {
+				socket.emit('tournament:error', { message: joinResult.error ?? 'Failed to join created tournament' });
+				return;
+			}
+
+			socket.emit('tournament:created', { tournamentId: id });
+
+			// Broadcast to all clients so tournament list pages refresh
+			const io = getIO();
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Create failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to create tournament' });
 		}
-		if (![4, 8, 16].includes(data.maxPlayers)) {
-			socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' });
-			return;
-		}
-
-		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
-		const id = await createTournament(data.name.trim(), userId, data.maxPlayers, settings);
-
-		// Auto-join the creator
-		await joinTournament(id, userId);
-
-		socket.emit('tournament:created', { tournamentId: id });
-
-		// Broadcast to all clients so tournament list pages refresh
-		const io = getIO();
-		io.emit('tournament:list-updated');
 	});
 
 	// Join a tournament
@@ -131,6 +142,34 @@ export function registerTournamentHandlers(socket: Socket) {
 		// tournament:started is emitted to all participants inside startTournament()
 	});
 
+	// Close an in-progress tournament (creator only)
+	socket.on('tournament:close-active', async (data: { tournamentId: number }) => {
+		try {
+			const result = await abandonTournament(data.tournamentId, userId);
+			if (!result.success) {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+
+			const io = getIO();
+			for (const participantId of result.participantUserIds) {
+				const participantSockets = userSockets.get(participantId);
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:abandoned', {
+							tournamentId: data.tournamentId,
+							reason: 'Tournament closed by creator',
+						});
+					}
+				}
+			}
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Active close failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to close active tournament' });
+		}
+	});
+
 	// Get tournament bracket state
 	socket.on('tournament:status', (data: { tournamentId: number }) => {
 		const tourney = getActiveTournament(data.tournamentId);
@@ -196,13 +235,12 @@ export function registerTournamentHandlers(socket: Socket) {
 				console.log(`[Tournament] Creator ${userId} left scheduled tournament ${tournamentId} - auto-cancelled`);
 			} else if (creatorTournament && creatorTournament.status === 'in_progress') {
 				// Creator disconnected during active tournament
-				// Immediately forfeit them as normal participant (don't wait for reconnect timeout)
-				// This allows tournament to continue and other players to advance
 				const tournamentId = creatorTournament.tournamentId;
-				console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} - queuing forfeit`);
-				
-				// Queue the forfeit immediately instead of waiting for GameRoom timeout
-				await leaveTournament(tournamentId, userId);
+				const activeRoom = getRoomByPlayer(userId);
+				if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${tournamentId}-`)) {
+					console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} outside a live match - queuing forfeit`);
+					await leaveTournament(tournamentId, userId);
+				}
 			}
 
 			// Check if this user is a participant in any ACTIVE tournament (regardless of creator)
@@ -225,8 +263,11 @@ export function registerTournamentHandlers(socket: Socket) {
 				const isCreatorOfThisTournament = creatorTournament?.tournamentId === participantTournament.tournamentId;
 				
 				if (!isCreatorOfThisTournament) {
-					console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} - queuing forfeit`);
-					await leaveTournament(participantTournament.tournamentId, userId);
+					const activeRoom = getRoomByPlayer(userId);
+					if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${participantTournament.tournamentId}-`)) {
+						console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} outside a live match - queuing forfeit`);
+						await leaveTournament(participantTournament.tournamentId, userId);
+					}
 				}
 			}
 		} catch (err) {

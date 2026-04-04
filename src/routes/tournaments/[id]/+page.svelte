@@ -92,6 +92,17 @@
 		});
 	}
 
+	function handleCloseActive() {
+		const socket = getSocket();
+		if (!socket?.connected) { toast.error('Not connected'); return; }
+		console.log('[DEBUG] handleCloseActive called for tournament:', tournament.id);
+		socket.emit('tournament:close-active', { tournamentId: tournament.id });
+		socket.once('tournament:error', (d: { message: string }) => {
+			console.log('[DEBUG] tournament:error on close-active:', d.message);
+			toast.error(d.message);
+		});
+	}
+
 	// Listen for real-time updates
 	onMount(() => {
 		const socket = getSocket();
@@ -179,6 +190,21 @@
 		participants.find((p: any) => p.userId === data.userId) ?? null
 	);
 
+	let myParticipantStatus = $derived(
+		myParticipant?.status ?? data.myParticipantStatus ?? null
+	);
+
+	let userStatusBadge = $derived.by(() => {
+		if (tournament.status !== 'in_progress') return null;
+		if (myParticipantStatus === 'eliminated') {
+			return { label: 'Eliminated', className: 'status-eliminated' };
+		}
+		if (myParticipantStatus === 'active') {
+			return { label: 'Still Alive', className: 'status-active' };
+		}
+		return null;
+	});
+
 	// Derive W/L from bracket data
 	let myRecord = $derived.by(() => {
 		if (!bracket || !myParticipant) return { wins: 0, losses: 0 };
@@ -220,7 +246,17 @@
 		<div class="title-row">
 			<h1 class="title">{tournament.name}</h1>
 			<span class="status status-{tournament.status}">{statusLabel(tournament.status)}</span>
+			{#if userStatusBadge}
+				<span class={`status ${userStatusBadge.className}`}>{userStatusBadge.label}</span>
+			{/if}
 		</div>
+		{#if isCreator && tournament.status === 'in_progress'}
+			<div class="header-actions">
+				<button class="close-active-btn" onclick={handleCloseActive}>
+					Close Tournament
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if tournament.speedPreset}
@@ -285,6 +321,33 @@
 					</div>
 				{/if}
 			</div>
+		</div>
+	{/if}
+
+	{#if tournament.status === 'in_progress' && myParticipantStatus === 'eliminated'}
+		<div class="your-run your-run-eliminated">
+			<div class="your-run-title">Your tournament status</div>
+			<div class="your-run-summary">
+				You have been eliminated. The tournament is still running for the remaining players.
+			</div>
+			{#if myParticipant?.placement || myRecord.losses > 0}
+				<div class="your-run-stats">
+					{#if myParticipant?.placement}
+						<div>
+							<span class="yr-value">{ordinal(myParticipant.placement)}</span>
+							<span class="yr-label">Place</span>
+						</div>
+					{/if}
+					<div>
+						<span class="yr-value green">{myRecord.wins}</span>
+						<span class="yr-label">Wins</span>
+					</div>
+					<div>
+						<span class="yr-value red">{myRecord.losses}</span>
+						<span class="yr-label">Losses</span>
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -405,10 +468,32 @@
 		margin-bottom: 24px;
 	}
 
+	.header-actions {
+		margin-top: 0.85rem;
+	}
+
 	.title-row {
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
+	}
+
+	.close-active-btn {
+		padding: 0.55rem 0.9rem;
+		border-radius: 0.55rem;
+		border: 1px solid rgba(239, 68, 68, 0.28);
+		background: rgba(239, 68, 68, 0.08);
+		color: #fca5a5;
+		font: inherit;
+		font-size: 0.82rem;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s, color 0.15s;
+	}
+
+	.close-active-btn:hover {
+		background: rgba(239, 68, 68, 0.14);
+		border-color: rgba(239, 68, 68, 0.4);
+		color: #fecaca;
 	}
 
 	.title {
@@ -427,6 +512,8 @@
 	.status-scheduled { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
 	.status-in_progress { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
 	.status-finished { background: rgba(255, 255, 255, 0.1); color: #888; }
+	.status-eliminated { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+	.status-active { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
 
 	/* ── Info Bar ───────────────────────── */
 	.info-bar {
@@ -471,6 +558,18 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		margin-bottom: 0.75rem;
+	}
+
+	.your-run-summary {
+		font-size: 0.85rem;
+		line-height: 1.5;
+		color: #d1d5db;
+		margin-bottom: 0.9rem;
+	}
+
+	.your-run-eliminated {
+		background: rgba(239, 68, 68, 0.04);
+		border-color: rgba(239, 68, 68, 0.18);
 	}
 
 	.your-run-stats {

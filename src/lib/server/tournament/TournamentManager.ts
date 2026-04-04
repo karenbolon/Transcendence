@@ -598,6 +598,50 @@ export async function cancelTournament(
 	};
 }
 
+export async function abandonTournament(
+	tournamentId: number,
+	requestedBy: number,
+): Promise<{ success: false } | { success: true; tournamentName: string; participantUserIds: number[] }> {
+	const [tournament] = await db
+		.select()
+		.from(tournaments)
+		.where(eq(tournaments.id, tournamentId));
+	if (!tournament || tournament.created_by !== requestedBy) return { success: false };
+	if (tournament.status !== 'in_progress') return { success: false };
+
+	const participants = await db
+		.select({ userId: tournamentParticipants.user_id })
+		.from(tournamentParticipants)
+		.where(eq(tournamentParticipants.tournament_id, tournamentId));
+
+	const active = activeTournaments.get(tournamentId);
+	if (active) {
+		for (const round of active.bracket) {
+			for (const match of round.matches) {
+				if (match.status === 'playing') {
+					destroyRoom(`tournament-${tournamentId}-r${round.round}-m${match.matchIndex}`);
+				}
+			}
+		}
+		activeTournaments.delete(tournamentId);
+	}
+
+	await db
+		.update(tournaments)
+		.set({
+			status: 'cancelled',
+			finished_at: new Date(),
+			bracket_data: active ? JSON.parse(JSON.stringify(active.bracket)) : tournament.bracket_data,
+		})
+		.where(eq(tournaments.id, tournamentId));
+
+	return {
+		success: true,
+		tournamentName: tournament.name,
+		participantUserIds: participants.map((p) => p.userId),
+	};
+}
+
 export async function startTournament(
 	tournamentId: number,
 	requestedBy: number,
@@ -890,6 +934,10 @@ export async function advanceWinner(
 	winnerScore: number = 0,
 	loserScore: number = 0,
 ): Promise<void> {
+	tournamentLogger.info(
+		{ tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore },
+		'[advanceWinner] entry',
+	);
 	const tourney = activeTournaments.get(tournamentId);
 	if (!tourney) {
 		// Tournament not in memory (e.g., after HMR/server restart).
@@ -1216,6 +1264,14 @@ export async function advanceWinner(
 	// Persist bracket to DB and broadcast to all participants
 	tournamentLogger.info({ tournamentId, stillInMap: activeTournaments.has(tournamentId) }, '[advanceWinner] calling saveBracketToDb');
 	await saveBracketToDb(tournamentId, tourney.bracket);
+	tournamentLogger.info(
+		{
+			tournamentId,
+			status: activeTournaments.has(tournamentId) ? 'in_progress' : 'finished',
+			finalWinnerId: winnerId,
+		},
+		'[advanceWinner] completed',
+	);
 	if (activeTournaments.has(tournamentId)) {
 		emitToParticipants(tournamentId, 'tournament:bracket-update', {
 			tournamentId,

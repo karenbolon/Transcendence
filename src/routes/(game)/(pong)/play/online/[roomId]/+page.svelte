@@ -7,6 +7,7 @@
 	import OnlineGame from '$lib/component/pong/OnlineGame.svelte';
 	import GameOver from '$lib/component/pong/GameOver.svelte';
 	import TournamentGameOver from '$lib/component/tournament/TournamentGameOver.svelte';
+	import TournamentPauseOverlay from '$lib/component/tournament/TournamentPauseOverlay.svelte';
 	import LevelUpModal from '$lib/component/progression/LevelUpModal.svelte';
 	import type { XpBonus, NewAchievement } from '$lib/types/progression';
 	import AmbientBackground from '$lib/component/effect/AmbientBackground.svelte';
@@ -40,6 +41,15 @@
 	let player1 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let player2 = $state({ userId: 0, username: '', displayName: null as string | null, avatarUrl: null as string | null });
 	let gameOverResult: any = $state(null);
+	let cancellationHandled = $state(false);
+	let pauseState = $state<{
+		disconnectedUserId: number | null;
+		remaining: number;
+		buttonsDelay: number;
+		extensionsLeft: number;
+		actionsAvailableAt: number;
+	} | null>(null);
+	let pauseInterval: ReturnType<typeof setInterval> | null = $state(null);
 
 	// In-game chat state
 	let gameMessages = $state<Array<{ id?: number; senderId: number; senderUsername: string; content: string }>>([]);
@@ -78,6 +88,12 @@
 		gameReady = false;
 		gameOverResult = null;
 		tournamentEventData = null;
+		cancellationHandled = false;
+		pauseState = null;
+		if (pauseInterval) {
+			clearInterval(pauseInterval);
+			pauseInterval = null;
+		}
 
 		const socket = getSocket();
 		if (!socket?.connected) {
@@ -142,16 +158,14 @@
 			console.log('[DEBUG game:cancelled] isTournament:', isTournament, '| tournamentId:', tournamentId);
 			console.log('[DEBUG game:cancelled] tournamentEventData at cancel time:', JSON.stringify(tournamentEventData));
 			console.log('[DEBUG game:cancelled] history.length:', history.length);
-			
-				// For tournament matches, emit game:leave BEFORE navigating
-				// so the server can properly process forfeit logic
-				if (isTournament) {
-					console.log('[DEBUG game:cancelled] emitting game:leave for tournament forfeit processing');
-					socket?.emit('game:leave');
-				}
-			
+
+			cancellationHandled = true;
+
 			toast.info(cancelData.reason);
-			if (history.length > 1) {
+			if (isTournament && tournamentId) {
+				console.log('[DEBUG game:cancelled] calling goto(/tournaments/' + tournamentId + ')');
+				goto(`/tournaments/${tournamentId}`);
+			} else if (history.length > 1) {
 				console.log('[DEBUG game:cancelled] calling history.back()');
 				history.back();
 			} else {
@@ -186,6 +200,55 @@
 			}
 		}
 
+		function startPauseTimer() {
+			if (pauseInterval) clearInterval(pauseInterval);
+			pauseInterval = setInterval(() => {
+				if (!pauseState) return;
+				pauseState = {
+					...pauseState,
+					remaining: Math.max(0, pauseState.remaining - 250),
+				};
+				if (pauseState.remaining <= 0 && pauseInterval) {
+					clearInterval(pauseInterval);
+					pauseInterval = null;
+				}
+			}, 250);
+		}
+
+		function handlePaused(eventData: {
+			disconnectedUserId: number | null;
+			remaining: number;
+			buttonsDelay: number;
+			extensionsLeft: number;
+		}) {
+			pauseState = {
+				...eventData,
+				actionsAvailableAt: Date.now() + eventData.buttonsDelay,
+			};
+			startPauseTimer();
+		}
+
+		function handlePauseExtended(eventData: {
+			remaining: number;
+			extensionsLeft: number;
+		}) {
+			if (!pauseState) return;
+			pauseState = {
+				...pauseState,
+				remaining: eventData.remaining,
+				extensionsLeft: eventData.extensionsLeft,
+			};
+			startPauseTimer();
+		}
+
+		function handleResumed() {
+			pauseState = null;
+			if (pauseInterval) {
+				clearInterval(pauseInterval);
+				pauseInterval = null;
+			}
+		}
+
 		// Tournament-specific event handlers
 		function handleTournamentAdvanced(eventData: any) {
 			console.log('[DEBUG tournament:advanced] received:', eventData, '| this tournamentId:', tournamentId);
@@ -210,6 +273,9 @@
 		socket.on('game:joined', handleJoined);
 		socket.on('game:error', handleError);
 		socket.on('game:cancelled', handleCancelled);
+		socket.on('game:paused', handlePaused);
+		socket.on('game:pause-extended', handlePauseExtended);
+		socket.on('game:resumed', handleResumed);
 		socket.on('game:progression', handleProgression);
 		socket.on('chat:message', handleChatMessage);
 		socket.on('chat:sent', handleChatSent);
@@ -230,6 +296,9 @@
 			socket.off('game:joined', handleJoined);
 			socket.off('game:error', handleError);
 			socket.off('game:cancelled', handleCancelled);
+			socket.off('game:paused', handlePaused);
+			socket.off('game:pause-extended', handlePauseExtended);
+			socket.off('game:resumed', handleResumed);
 			socket.off('game:progression', handleProgression);
 			socket.off('chat:message', handleChatMessage);
 			socket.off('chat:sent', handleChatSent);
@@ -245,9 +314,14 @@
 			// and advance the tournament bracket. Without this, the socket stays
 			// connected but the server never receives game:leave or a disconnect,
 			// leaving the tournament stuck as 'in_progress' forever.
-			if (gameReady && !gameOverResult) {
+			if (gameReady && !gameOverResult && !cancellationHandled) {
 				console.log('[DEBUG cleanup] game still active on unmount — emitting game:leave');
 				socket.emit('game:leave');
+			}
+
+			if (pauseInterval) {
+				clearInterval(pauseInterval);
+				pauseInterval = null;
 			}
 		};
 	});
@@ -264,6 +338,16 @@
 		} else {
 			goto('/play');
 		}
+	}
+
+	function requestPauseExtension() {
+		const socket = getSocket();
+		socket?.emit('game:pause-extend');
+	}
+
+	function claimTournamentWin() {
+		const socket = getSocket();
+		socket?.emit('game:claim-win');
 	}
 
 	function sendGameMessage(text?: string) {
@@ -353,6 +437,18 @@
 		if (tournamentEventData.type === 'advanced') return 'advancing' as const;
 		if (tournamentEventData.type === 'eliminated') return 'eliminated' as const;
 		return null;
+	});
+
+	let disconnectedUsername = $derived.by(() => {
+		if (!pauseState?.disconnectedUserId) return 'Player';
+		if (pauseState.disconnectedUserId === player1.userId) return player1.username || 'Player';
+		if (pauseState.disconnectedUserId === player2.userId) return player2.username || 'Player';
+		return 'Player';
+	});
+
+	let canControlPause = $derived.by(() => {
+		if (!pauseState?.disconnectedUserId) return false;
+		return pauseState.disconnectedUserId !== data.userId && Date.now() >= pauseState.actionsAvailableAt;
 	});
 </script>
 
@@ -460,6 +556,16 @@
 			ballSkinId={prefs.ballSkin}
 			effectsConfig={{ preset: prefs.effectsPreset, custom: prefs.effectsCustom }}
 		/>
+		{#if pauseState}
+			<TournamentPauseOverlay
+				disconnectedUsername={disconnectedUsername}
+				remainingMs={pauseState.remaining}
+				canAct={canControlPause}
+				extensionsLeft={pauseState.extensionsLeft}
+				onExtend={requestPauseExtension}
+				onClaimWin={claimTournamentWin}
+			/>
+		{/if}
 		<div class="status-bar">
 			<span class="vs-label">{player1.username} vs {player2.username}</span>
 			<button class="forfeit-btn" onclick={goBack}>Forfeit</button>

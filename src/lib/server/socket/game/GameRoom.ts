@@ -11,7 +11,7 @@ import {
 	type SpeedPreset,
 } from '$lib/game/gameEngine';
 import type { GameResult, GameStateSnapshot } from '$lib/types/game';
-import { advanceWinner } from '../../tournament/TournamentManager';
+import { getActiveTournament } from '../../tournament/TournamentManager';
 
 export type { GameResult, GameStateSnapshot };
 
@@ -38,6 +38,10 @@ export interface GameRoomOptions {
 const TICK_RATE = 60;
 const TICK_INTERVAL = 1000 / TICK_RATE;  // ~16.67ms
 const RECONNECT_TIMEOUT = 15_000;        // 15 seconds to reconnect
+const TOURNAMENT_PAUSE_TIMEOUT = 45_000;
+const PAUSE_EXTENSION_MS = 10_000;
+const MAX_PAUSE_EXTENSIONS = 3;
+const PAUSE_BUTTONS_DELAY = 15_000;
 
 // ── GameRoom Class ────────────────────────────────────────────
 export class GameRoom {
@@ -57,6 +61,11 @@ export class GameRoom {
 	private destroyed = false;
 	private gameEnded = false;
 	private lastTickCount = 0;
+	private paused = false;
+	private pauseTimer: ReturnType<typeof setTimeout> | null = null;
+	private pauseDeadline = 0;
+	private pauseExtensionsUsed = 0;
+	private disconnectedUserId: number | null = null;
 
 	constructor(options: GameRoomOptions) {
 		this.roomId = options.roomId;
@@ -127,6 +136,10 @@ export class GameRoom {
 			this.broadcastEvent(this.roomId, 'game:player-reconnected', { userId });
 		}
 
+		if (this.paused && userId === this.disconnectedUserId) {
+			this.resume();
+		}
+
 		return true;
 	}
 
@@ -136,53 +149,81 @@ export class GameRoom {
 		if (!player) return;
 		player.socketIds.delete(socketId);
 
-		// If player has NO sockets left and game is active → start forfeit timer
-		if (player.socketIds.size === 0 &&
-			(this.state.phase === 'playing' || this.state.phase === 'countdown')) {
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
+		const isLivePhase = this.state.phase === 'playing' || this.state.phase === 'countdown';
+		const isTournamentPreStartDisconnect = isTournamentMatch && this.state.phase === 'menu';
+
+		// Tournament finals can be forfeited before countdown ever begins.
+		// Without this, a player can join and leave in a 2-player final while the
+		// room is still in `menu`, and the tournament remains stuck in progress.
+		if (player.socketIds.size === 0 && (isLivePhase || isTournamentPreStartDisconnect)) {
+			if (isTournamentMatch) {
+				const parts = this.roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2]?.replace('r', ''));
+				const tournament = getActiveTournament(tournamentId);
+				const isFinalRound = tournament ? round === tournament.bracket.length : false;
+
+				console.log('[GameRoom] tournament disconnect evaluation', {
+					roomId: this.roomId,
+					userId,
+					phase: this.state.phase,
+					tournamentId,
+					round,
+					hasActiveTournament: !!tournament,
+					totalRounds: tournament?.bracket.length ?? null,
+					isFinalRound,
+					player1Sockets: this.player1.socketIds.size,
+					player2Sockets: this.player2.socketIds.size,
+				});
+
+				// In a final, a disconnect/leave should resolve the tournament immediately
+				// instead of leaving the survivor stuck in a paused room or menu room.
+				if (isFinalRound) {
+					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+					console.log('[GameRoom] final-round disconnect -> handleForfeit', {
+						roomId: this.roomId,
+						loserId: userId,
+						winnerId: opponent.userId,
+						phase: this.state.phase,
+					});
+					this.handleForfeit(opponent);
+					return;
+				}
+
+				// Pre-start disconnects in earlier rounds should fall back to the existing
+				// join-timeout handling instead of entering the live-match pause flow.
+				if (this.state.phase === 'menu') {
+					console.log('[GameRoom] pre-start non-final disconnect -> waiting for join timeout', {
+						roomId: this.roomId,
+						userId,
+						tournamentId,
+						round,
+					});
+					return;
+				}
+
+				console.log('[GameRoom] non-final live disconnect -> pause flow', {
+					roomId: this.roomId,
+					userId,
+					tournamentId,
+					round,
+				});
+				this.pause(userId);
+				return;
+			}
+
 			this.broadcastEvent(this.roomId, 'game:player-disconnected', {
 				userId, timeout: RECONNECT_TIMEOUT
 			});
 
-			const timer = setTimeout(async () => {
+			const timer = setTimeout(() => {
 				this.disconnectTimers.delete(userId);
 				// Guard against double-forfeit: only process if game hasn't ended
 				if (this.gameEnded) return;
-				
-				const opponent = userId === this.player1.userId ? this.player2 : this.player1;
-				const isTournamentMatch = this.roomId.startsWith('tournament-');
-				const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 
-				// For tournament matches at 0-0, advance opponent immediately
-				// (bypass handleForfeit which would just cancel the game)
-				console.log(`[DEBUG removeSocket timer] isTournamentMatch=${isTournamentMatch} bothZero=${bothZero} roomId=${this.roomId}`);
-				if (isTournamentMatch && bothZero) {
-					try {
-						const parts = this.roomId.split('-');
-						const tournamentId = Number(parts[1]);
-						const round = Number(parts[2].replace('r', ''));
-						const matchIndex = Number(parts[3].replace('m', ''));
-						console.log(`[DEBUG removeSocket] calling advanceWinner(tournamentId=${tournamentId}, round=${round}, matchIndex=${matchIndex}, winner=${opponent.userId}, loser=${userId})`);
-						await advanceWinner(tournamentId, round, matchIndex, opponent.userId, userId, 1, 0);
-						console.log(`[DEBUG removeSocket] advanceWinner completed, emitting game:cancelled`);
-					} catch (err) {
-						console.error('[Tournament] Disconnect advancement failed:', err);
-					}
-					// Clean up game room state (was missing — caused lingering rooms
-					// and the remaining player never receiving a navigation event)
-					this.gameEnded = true;
-					this.stop();
-					this.broadcastEvent(this.roomId, 'game:cancelled', {
-						roomId: this.roomId,
-						reason: 'Player disconnected at 0-0',
-						leftUserId: userId,
-						stayedUserId: opponent.userId,
-						stayedUsername: opponent.username,
-						settings: this.rawSettings,
-					});
-				} else {
-					// For casual games, use standard forfeit logic
-					this.handleForfeit(opponent);
-				}
+				const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+				this.handleForfeit(opponent);
 			}, RECONNECT_TIMEOUT);
 
 			this.disconnectTimers.set(userId, timer);
@@ -214,7 +255,7 @@ export class GameRoom {
 	// ── Game Lifecycle ────────────────────────────────────────
 	/** Start the game (called when both players have joined the room) */
 	start(): void {
-		if (this.interval) return;  // Already started
+		if (this.interval || this.paused) return;  // Already started or paused
 
 		// Begin countdown using existing engine function
 		startCountdown(this.state, this.settings);
@@ -226,7 +267,7 @@ export class GameRoom {
 
 	/** Main game tick — runs 60 times per second on the server */
 	private tick(): void {
-		if (this.destroyed) return;
+		if (this.destroyed || this.paused) return;
 
 		// Calculate delta time since last tick
 		const now = Date.now();
@@ -268,6 +309,102 @@ export class GameRoom {
 
 		// Send current state to both players
 		this.broadcastState(this.roomId, this.getSnapshot());
+	}
+
+	private pause(disconnectedUserId: number): void {
+		if (this.paused || this.gameEnded || this.destroyed) return;
+
+		this.paused = true;
+		this.disconnectedUserId = disconnectedUserId;
+		this.pauseExtensionsUsed = 0;
+		this.pauseDeadline = Date.now() + TOURNAMENT_PAUSE_TIMEOUT;
+		this.stop();
+
+		this.broadcastEvent(this.roomId, 'game:player-disconnected', {
+			userId: disconnectedUserId,
+			timeout: TOURNAMENT_PAUSE_TIMEOUT,
+		});
+		this.broadcastEvent(this.roomId, 'game:paused', {
+			disconnectedUserId,
+			remaining: TOURNAMENT_PAUSE_TIMEOUT,
+			buttonsDelay: PAUSE_BUTTONS_DELAY,
+			extensionsLeft: MAX_PAUSE_EXTENSIONS,
+		});
+
+		this.pauseTimer = setTimeout(() => {
+			this.pauseTimer = null;
+			if (!this.paused || this.gameEnded || this.disconnectedUserId === null) return;
+			const opponent = this.disconnectedUserId === this.player1.userId ? this.player2 : this.player1;
+			this.paused = false;
+			this.disconnectedUserId = null;
+			this.handleForfeit(opponent);
+		}, TOURNAMENT_PAUSE_TIMEOUT);
+	}
+
+	private resume(): void {
+		if (!this.paused || this.gameEnded || this.destroyed) return;
+
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
+
+		this.paused = false;
+		this.disconnectedUserId = null;
+		this.pauseDeadline = 0;
+		this.pauseExtensionsUsed = 0;
+		this.broadcastEvent(this.roomId, 'game:resumed', {});
+		startCountdown(this.state, this.settings);
+		this.lastTick = Date.now();
+		this.interval = setInterval(() => this.tick(), TICK_INTERVAL);
+	}
+
+	extendPause(requestedBy: number): boolean {
+		if (!this.paused || this.gameEnded || this.disconnectedUserId === null) return false;
+		if (requestedBy === this.disconnectedUserId) return false;
+		if (this.pauseExtensionsUsed >= MAX_PAUSE_EXTENSIONS) return false;
+
+		this.pauseExtensionsUsed++;
+
+		const remaining = Math.max(0, this.pauseDeadline - Date.now()) + PAUSE_EXTENSION_MS;
+		this.pauseDeadline = Date.now() + remaining;
+
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+		}
+
+		this.pauseTimer = setTimeout(() => {
+			this.pauseTimer = null;
+			if (!this.paused || this.gameEnded || this.disconnectedUserId === null) return;
+			const opponent = this.disconnectedUserId === this.player1.userId ? this.player2 : this.player1;
+			this.paused = false;
+			this.disconnectedUserId = null;
+			this.handleForfeit(opponent);
+		}, remaining);
+
+		this.broadcastEvent(this.roomId, 'game:pause-extended', {
+			remaining,
+			extensionsLeft: MAX_PAUSE_EXTENSIONS - this.pauseExtensionsUsed,
+		});
+
+		return true;
+	}
+
+	claimWin(claimingUserId: number): boolean {
+		if (!this.paused || this.gameEnded || this.disconnectedUserId === null) return false;
+		if (claimingUserId === this.disconnectedUserId) return false;
+
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
+
+		this.paused = false;
+		const winner = this.getPlayer(claimingUserId);
+		this.disconnectedUserId = null;
+		if (!winner) return false;
+		this.handleForfeit(winner);
+		return true;
 	}
 
 	// ── State Snapshot ────────────────────────────────────────
@@ -344,21 +481,41 @@ export class GameRoom {
 		this.broadcastState(this.roomId, this.getSnapshot());
 		this.broadcastEvent(this.roomId, 'game:over', result);
 
-		this.onGameEnd(result);
+		Promise.resolve(this.onGameEnd(result)).catch((err: unknown) => {
+			console.error('[GameRoom] onGameEnd error:', err);
+		});
 	}
 
 	private handleForfeit(winner: RoomPlayer): void {
 		if (this.gameEnded) return;
 		this.gameEnded = true;
 		this.stop();
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
+		this.paused = false;
+		this.pauseDeadline = 0;
+		this.pauseExtensionsUsed = 0;
+		this.disconnectedUserId = null;
 
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
 		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
-		// For casual games: if game hasn't started or is 0-0, just cancel (no winner recorded)
-		// For tournament matches: ALWAYS record a winner (the non-forfeiting player wins)
+		console.log('[GameRoom] handleForfeit', {
+			roomId: this.roomId,
+			winnerId: winner.userId,
+			loserId: loser.userId,
+			phase: this.state.phase,
+			score1: this.state.score1,
+			score2: this.state.score2,
+			gameNotStarted,
+			bothZero,
+			isTournamentMatch,
+		});
+
 		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted
 				? 'Player left before game started'
@@ -376,11 +533,16 @@ export class GameRoom {
 			return;
 		}
 
-		// For tournament matches at 0-0, still need to record the forfeit win
-		// Fall through to onGameEnd() to advance the bracket
+		if (isTournamentMatch && (gameNotStarted || bothZero)) {
+			if (winner === this.player1) {
+				this.state.score1 = 1;
+				this.state.score2 = 0;
+			} else {
+				this.state.score1 = 0;
+				this.state.score2 = 1;
+			}
+		}
 
-		// Score is 1+ — the remaining player wins by forfeit
-		// OR: Tournament match (even at 0-0) — remaining player wins, forfeiting player is eliminated
 		endGame(this.state, winner.username);
 
 		const result: GameResult = {
@@ -399,7 +561,9 @@ export class GameRoom {
 		};
 
 		this.broadcastEvent(this.roomId, 'game:forfeit', result);
-		this.onGameEnd(result);
+		Promise.resolve(this.onGameEnd(result)).catch((err: unknown) => {
+			console.error('[GameRoom] onGameEnd error (forfeit):', err);
+		});
 	}
 
 	/** Immediate forfeit — player chose to leave (no reconnect timer) */
@@ -423,6 +587,10 @@ export class GameRoom {
 	destroy(): void {
 		this.destroyed = true;
 		this.stop();
+		if (this.pauseTimer) {
+			clearTimeout(this.pauseTimer);
+			this.pauseTimer = null;
+		}
 		for (const timer of this.disconnectTimers.values()) {
 			clearTimeout(timer);
 		}
@@ -445,6 +613,24 @@ export class GameRoom {
 
 	get hasGameEnded(): boolean {
 		return this.gameEnded;
+	}
+
+	get isPaused(): boolean {
+		return this.paused;
+	}
+
+	getPauseState(): {
+		disconnectedUserId: number | null;
+		remaining: number;
+		buttonsDelay: number;
+		extensionsLeft: number;
+	} {
+		return {
+			disconnectedUserId: this.disconnectedUserId,
+			remaining: Math.max(0, this.pauseDeadline - Date.now()),
+			buttonsDelay: PAUSE_BUTTONS_DELAY,
+			extensionsLeft: MAX_PAUSE_EXTENSIONS - this.pauseExtensionsUsed,
+		};
 	}
 
 	private getPlayer(userId: number): RoomPlayer | null {

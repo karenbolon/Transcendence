@@ -636,7 +636,30 @@ class ServerGameRoom {
 		const player = this._getPlayer(userId);
 		if (!player) return;
 		player.socketIds.delete(socketId);
-		if (player.socketIds.size === 0 && (this.state.phase === 'playing' || this.state.phase === 'countdown')) {
+
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
+		const isLivePhase = this.state.phase === 'playing' || this.state.phase === 'countdown';
+		const isTournamentPreStartDisconnect = isTournamentMatch && this.state.phase === 'menu';
+
+		if (player.socketIds.size === 0 && (isLivePhase || isTournamentPreStartDisconnect)) {
+			if (isTournamentMatch) {
+				const parts = this.roomId.split('-');
+				const tournamentId = Number(parts[1]);
+				const round = Number(parts[2]?.replace('r', ''));
+				const tournament = activeTournaments.get(tournamentId);
+				const isFinalRound = tournament ? round === tournament.bracket.length : false;
+
+				// In finals, disconnects should resolve immediately to avoid stuck in-progress tournaments.
+				if (isFinalRound) {
+					const opponent = userId === this.player1.userId ? this.player2 : this.player1;
+					this._handleForfeit(opponent);
+					return;
+				}
+
+				// Non-final pre-start disconnects are handled by join-timeout logic.
+				if (this.state.phase === 'menu') return;
+			}
+
 			broadcastRoomEvent(this.roomId, 'game:player-disconnected', { userId, timeout: RECONNECT_TIMEOUT });
 			const timer = setTimeout(() => {
 				this.disconnectTimers.delete(userId);
@@ -759,8 +782,9 @@ class ServerGameRoom {
 		const loser = winner === this.player1 ? this.player2 : this.player1;
 		const bothZero = this.state.score1 === 0 && this.state.score2 === 0;
 		const gameNotStarted = this.state.phase === 'countdown' || this.state.phase === 'menu';
+		const isTournamentMatch = this.roomId.startsWith('tournament-');
 
-		if (gameNotStarted || bothZero) {
+		if ((gameNotStarted || bothZero) && !isTournamentMatch) {
 			const reason = gameNotStarted ? 'Player left before game started' : 'Player disconnected at 0-0';
 			broadcastRoomEvent(this.roomId, 'game:cancelled', {
 				roomId: this.roomId, reason,
@@ -768,6 +792,17 @@ class ServerGameRoom {
 				stayedUsername: winner.username, settings: this.rawSettings,
 			});
 			return;
+		}
+
+		// Tournament matches must always produce a winner so bracket progression can continue.
+		if (isTournamentMatch && (gameNotStarted || bothZero)) {
+			if (winner === this.player1) {
+				this.state.score1 = 1;
+				this.state.score2 = 0;
+			} else {
+				this.state.score1 = 0;
+				this.state.score2 = 1;
+			}
 		}
 
 		endGameState(this.state, winner.username);
@@ -1368,6 +1403,33 @@ function emitToTournamentUser(userId, event, data) {
 	if (sockets) { for (const sid of sockets) io.to(sid).emit(event, data); }
 }
 
+async function emitToTournamentParticipantsDb(tournamentId, event, data) {
+	const participants = await sql`
+		SELECT user_id FROM tournament_participants
+		WHERE tournament_id = ${tournamentId}
+	`;
+	for (const p of participants) {
+		const sockets = userSockets.get(Number(p.user_id));
+		if (sockets) {
+			for (const sid of sockets) io.to(sid).emit(event, data);
+		}
+	}
+}
+
+async function computeEliminationPlacement(tournamentId) {
+	const [totals] = await sql`
+		SELECT COUNT(*)::int AS total_players
+		FROM tournament_participants
+		WHERE tournament_id = ${tournamentId}
+	`;
+	const [eliminated] = await sql`
+		SELECT COUNT(*)::int AS eliminated_count
+		FROM tournament_participants
+		WHERE tournament_id = ${tournamentId} AND status = 'eliminated'
+	`;
+	return Number(totals?.total_players ?? 0) - Number(eliminated?.eliminated_count ?? 0);
+}
+
 // Bracket generation (mirrors bracket.ts)
 function nextPowerOf2(n) { let p = 1; while (p < n) p *= 2; return p; }
 function seedPairingArr(players) {
@@ -1485,8 +1547,116 @@ function getRoundName(round, totalRounds) {
 }
 
 async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
-	const tourney = activeTournaments.get(tournamentId);
-	if (!tourney) return;
+	let tourney = activeTournaments.get(tournamentId);
+	if (!tourney) {
+		console.warn('[Tournament] advanceTournamentWinner: tournament not in memory, trying DB fallback', {
+			tournamentId, round, matchIndex, winnerId, loserId,
+		});
+
+		const [tournament] = await sql`
+			SELECT id, name, status, bracket_data, speed_preset, win_score, created_by
+			FROM tournaments
+			WHERE id = ${tournamentId}
+		`;
+		if (!tournament || tournament.status !== 'in_progress') return;
+
+		let bracket = null;
+		try {
+			bracket = Array.isArray(tournament.bracket_data)
+				? tournament.bracket_data
+				: (typeof tournament.bracket_data === 'string' ? JSON.parse(tournament.bracket_data) : null);
+		} catch {
+			bracket = null;
+		}
+		const totalRounds = Array.isArray(bracket) ? bracket.length : 0;
+		const isFinalRound = round === totalRounds;
+
+		// Rehydrate in-memory state so non-final rounds can still advance normally.
+		if (Array.isArray(bracket) && bracket.length > 0) {
+			const participants = await sql`
+				SELECT tp.user_id, u.username
+				FROM tournament_participants tp
+				JOIN users u ON u.id = tp.user_id
+				WHERE tp.tournament_id = ${tournamentId}
+			`;
+			const playerMap = new Map();
+			for (const p of participants) {
+				playerMap.set(Number(p.user_id), p.username);
+			}
+
+			activeTournaments.set(tournamentId, {
+				id: tournamentId,
+				name: tournament.name,
+				bracket,
+				settings: {
+					speedPreset: tournament.speed_preset,
+					winScore: Number(tournament.win_score),
+				},
+				createdBy: Number(tournament.created_by),
+				playerMap,
+			});
+			tourney = activeTournaments.get(tournamentId);
+		}
+
+		// If rehydration failed, keep final-only fallback as a safety net.
+		if (!tourney) {
+			if (!isFinalRound) {
+				console.error('[Tournament] advanceTournamentWinner: non-final round cannot be advanced without bracket state', {
+					tournamentId, round, totalRounds,
+				});
+				return;
+			}
+
+			await sql.begin(async (tx) => {
+				await tx`
+					UPDATE tournaments
+					SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
+					WHERE id = ${tournamentId}
+				`;
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'champion', placement = 1
+					WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+				`;
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'eliminated', placement = 2
+					WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}
+				`;
+			});
+
+			emitToTournamentUser(winnerId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round,
+				totalRounds,
+				roundName: 'Final',
+				podium: [],
+				championWins: 0,
+				runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			emitToTournamentUser(loserId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round,
+				totalRounds,
+				roundName: 'Final',
+				podium: [],
+				championWins: 0,
+				runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			io.emit('tournament:list-updated');
+			return;
+		}
+	}
 
 	const roundData = tourney.bracket.find(r => r.round === round);
 	if (!roundData) return;
@@ -1636,6 +1806,139 @@ async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId
 		await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(tourney.bracket)} WHERE id = ${tournamentId}`;
 		emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', { tournamentId, bracket: tourney.bracket });
 	}
+}
+
+async function resolveTournamentForfeitByUser(tournamentId, userId) {
+	const [tournament] = await sql`
+		SELECT id, name, status, bracket_data
+		FROM tournaments
+		WHERE id = ${tournamentId}
+	`;
+	if (!tournament || tournament.status !== 'in_progress') return false;
+
+	const inMemory = activeTournaments.get(tournamentId);
+	if (!inMemory) {
+		// DB-only fallback if process memory does not have this tournament.
+		const placement = await computeEliminationPlacement(tournamentId);
+		await sql`
+			UPDATE tournament_participants
+			SET status = 'eliminated', placement = ${placement}
+			WHERE tournament_id = ${tournamentId}
+			  AND user_id = ${userId}
+			  AND status IN ('registered', 'active')
+		`;
+
+		const activeParticipants = await sql`
+			SELECT user_id FROM tournament_participants
+			WHERE tournament_id = ${tournamentId} AND status = 'active'
+		`;
+		if (activeParticipants.length === 1) {
+			const winnerId = Number(activeParticipants[0].user_id);
+			await sql.begin(async (tx) => {
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'champion', placement = 1
+					WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+				`;
+				await tx`
+					UPDATE tournaments
+					SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
+					WHERE id = ${tournamentId}
+				`;
+			});
+
+			await emitToTournamentParticipantsDb(tournamentId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				tournamentName: tournament.name,
+				podium: [],
+				championWins: 0,
+				bracket: Array.isArray(tournament.bracket_data) ? tournament.bracket_data : [],
+			});
+		}
+
+		io.emit('tournament:list-updated');
+		return true;
+	}
+
+	const remainingMatches = [];
+	for (const round of inMemory.bracket) {
+		for (const match of round.matches) {
+			if (match.status === 'finished' || match.status === 'bye') continue;
+			if (match.player1Id === userId || match.player2Id === userId) {
+				const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id;
+				remainingMatches.push({
+					round: round.round,
+					matchIndex: match.matchIndex,
+					opponentId: opponentId ?? null,
+				});
+			}
+		}
+	}
+
+	for (const rem of remainingMatches) {
+		if (rem.opponentId) {
+			await advanceTournamentWinner(tournamentId, rem.round, rem.matchIndex, rem.opponentId, userId, 1, 0);
+		} else {
+			const placement = await computeEliminationPlacement(tournamentId);
+			await sql`
+				UPDATE tournament_participants
+				SET status = 'eliminated', placement = ${placement}
+				WHERE tournament_id = ${tournamentId}
+				  AND user_id = ${userId}
+				  AND status IN ('registered', 'active')
+			`;
+			const roundData = inMemory.bracket.find((r) => r.round === rem.round);
+			if (roundData) {
+				const m = roundData.matches[rem.matchIndex];
+				if (m) m.status = 'finished';
+			}
+		}
+	}
+
+	const activeParticipants = await sql`
+		SELECT user_id FROM tournament_participants
+		WHERE tournament_id = ${tournamentId} AND status = 'active'
+	`;
+	if (activeParticipants.length === 1) {
+		const winnerId = Number(activeParticipants[0].user_id);
+
+		await sql`
+			UPDATE tournament_participants
+			SET status = 'champion', placement = 1
+			WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+		`;
+		await sql`
+			UPDATE tournaments
+			SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW(), bracket_data = ${JSON.stringify(inMemory.bracket)}
+			WHERE id = ${tournamentId}
+		`;
+
+		const winnerWins = inMemory.bracket.reduce((count, r) => {
+			return count + r.matches.filter((m) => m.winnerId === winnerId).length;
+		}, 0);
+
+		emitToTournamentParticipants(tournamentId, 'tournament:finished', {
+			tournamentId,
+			winnerId,
+			winnerUsername: inMemory.playerMap.get(winnerId),
+			tournamentName: inMemory.name,
+			podium: [],
+			championWins: winnerWins,
+			bracket: inMemory.bracket,
+		});
+		activeTournaments.delete(tournamentId);
+		io.emit('tournament:list-updated');
+		return true;
+	}
+
+	await sql`UPDATE tournaments SET bracket_data = ${JSON.stringify(inMemory.bracket)} WHERE id = ${tournamentId}`;
+	emitToTournamentParticipants(tournamentId, 'tournament:bracket-update', {
+		tournamentId,
+		bracket: inMemory.bracket,
+	});
+	io.emit('tournament:list-updated');
+	return true;
 }
 
 // ── Socket.IO connection handler ──────────────────────────────────
@@ -1827,6 +2130,7 @@ io.on('connection', (socket) => {
 		const room = getRoomByPlayerId(userId);
 		if (!room) return;
 		const roomId = room.roomId;
+		const isTournamentMatch = roomId.startsWith('tournament-');
 		const opponentUserId = userId === room.player1.userId ? room.player2.userId : room.player1.userId;
 		const opponentUsername = userId === room.player1.userId ? room.player2.username : room.player1.username;
 		const settings = room.rawSettings;
@@ -1838,7 +2142,7 @@ io.on('connection', (socket) => {
 		if (activeRooms.has(roomId)) destroyGameRoom(roomId);
 
 		// Re-queue the remaining player if game was cancelled
-		if (isCancellable && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
+		if (isCancellable && !isTournamentMatch && !isInMatchQueue(opponentUserId) && !isPlayerInGame(opponentUserId)) {
 			const opponentSockets = userSockets.get(opponentUserId);
 			if (opponentSockets && opponentSockets.size > 0) {
 				const firstSocketId = opponentSockets.values().next().value;
@@ -2002,24 +2306,29 @@ io.on('connection', (socket) => {
 	// ═══════════════════════════════════════════════════════════════
 
 	socket.on('tournament:create', async (data) => {
-		if (!data.name?.trim()) { socket.emit('tournament:error', { message: 'Tournament name is required' }); return; }
-		if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
+		try {
+			if (!data.name?.trim()) { socket.emit('tournament:error', { message: 'Tournament name is required' }); return; }
+			if (![4, 8, 16].includes(data.maxPlayers)) { socket.emit('tournament:error', { message: 'Max players must be 4, 8, or 16' }); return; }
 
-		const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
-		const [tournament] = await sql`
-			INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
-			VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
-			RETURNING id
-		`;
+			const settings = data.settings ?? { speedPreset: 'normal', winScore: 5 };
+			const [tournament] = await sql`
+				INSERT INTO tournaments (name, game_type, status, created_by, max_players, speed_preset, win_score)
+				VALUES (${data.name.trim()}, 'pong', 'scheduled', ${userId}, ${data.maxPlayers}, ${settings.speedPreset}, ${settings.winScore})
+				RETURNING id
+			`;
 
-		// Auto-join creator
-		await sql`
-			INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
-			VALUES (${tournament.id}, ${userId}, 1, 'registered')
-		`;
+			// Auto-join creator
+			await sql`
+				INSERT INTO tournament_participants (tournament_id, user_id, seed, status)
+				VALUES (${tournament.id}, ${userId}, 1, 'registered')
+			`;
 
-		socket.emit('tournament:created', { tournamentId: tournament.id });
-		io.emit('tournament:list-updated');
+			socket.emit('tournament:created', { tournamentId: tournament.id });
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Create failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to create tournament' });
+		}
 	});
 
 	socket.on('tournament:join', async (data) => {
@@ -2044,11 +2353,26 @@ io.on('connection', (socket) => {
 
 	socket.on('tournament:leave', async (data) => {
 		const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
-		if (!tournament || tournament.status !== 'scheduled') { socket.emit('tournament:error', { message: 'Cannot leave tournament' }); return; }
+		if (!tournament) { socket.emit('tournament:error', { message: 'Cannot leave tournament' }); return; }
 
-		await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
-		socket.emit('tournament:left', { tournamentId: data.tournamentId });
-		io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+		if (tournament.status === 'scheduled' || tournament.status === 'cancelled') {
+			await sql`DELETE FROM tournament_participants WHERE tournament_id = ${data.tournamentId} AND user_id = ${userId}`;
+			socket.emit('tournament:left', { tournamentId: data.tournamentId });
+			io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+			return;
+		}
+
+		if (tournament.status === 'in_progress') {
+			const room = getRoomByPlayerId(userId);
+			if (!room || !room.roomId.startsWith(`tournament-${data.tournamentId}-`)) {
+				await resolveTournamentForfeitByUser(data.tournamentId, userId);
+				socket.emit('tournament:left', { tournamentId: data.tournamentId });
+				io.emit('tournament:player-left', { tournamentId: data.tournamentId, userId, username });
+				return;
+			}
+		}
+
+		socket.emit('tournament:error', { message: 'Cannot leave tournament' });
 	});
 
 	socket.on('tournament:cancel', async (data) => {
@@ -2122,14 +2446,83 @@ io.on('connection', (socket) => {
 		await startTournamentRoundMatches(data.tournamentId, 1);
 	});
 
-	socket.on('tournament:status', (data) => {
+	socket.on('tournament:close-active', async (data) => {
+		try {
+			const [tournament] = await sql`SELECT * FROM tournaments WHERE id = ${data.tournamentId}`;
+			if (!tournament || Number(tournament.created_by) !== userId) {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+			if (tournament.status !== 'in_progress') {
+				socket.emit('tournament:error', { message: 'Cannot close active tournament' });
+				return;
+			}
+
+			const participants = await sql`SELECT user_id FROM tournament_participants WHERE tournament_id = ${data.tournamentId}`;
+
+			const active = activeTournaments.get(data.tournamentId);
+			if (active) {
+				for (const round of active.bracket) {
+					for (const match of round.matches) {
+						if (match.status === 'playing') {
+							destroyGameRoom(`tournament-${data.tournamentId}-r${round.round}-m${match.matchIndex}`);
+						}
+					}
+				}
+				activeTournaments.delete(data.tournamentId);
+			}
+
+			const bracketToPersist = active ? active.bracket : tournament.bracket_data;
+			await sql`
+				UPDATE tournaments
+				SET status = 'cancelled', finished_at = NOW(), bracket_data = ${JSON.stringify(bracketToPersist)}
+				WHERE id = ${data.tournamentId}
+			`;
+
+			for (const p of participants) {
+				const participantSockets = userSockets.get(Number(p.user_id));
+				if (participantSockets) {
+					for (const sid of participantSockets) {
+						io.to(sid).emit('tournament:abandoned', {
+							tournamentId: data.tournamentId,
+							reason: 'Tournament closed by creator',
+						});
+					}
+				}
+			}
+
+			io.emit('tournament:list-updated');
+		} catch (err) {
+			console.error('[Tournament] Active close failed:', err);
+			socket.emit('tournament:error', { message: 'Failed to close active tournament' });
+		}
+	});
+
+	socket.on('tournament:status', async (data) => {
 		const tourney = activeTournaments.get(data.tournamentId);
-		if (!tourney) { socket.emit('tournament:error', { message: 'Tournament not active' }); return; }
-		socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
+		if (tourney) {
+			socket.emit('tournament:status', { tournamentId: data.tournamentId, bracket: tourney.bracket });
+			return;
+		}
+
+		const [tournament] = await sql`
+			SELECT status, bracket_data
+			FROM tournaments
+			WHERE id = ${data.tournamentId}
+		`;
+		if (!tournament) {
+			socket.emit('tournament:error', { message: 'Tournament not active' });
+			return;
+		}
+
+		socket.emit('tournament:status', {
+			tournamentId: data.tournamentId,
+			bracket: Array.isArray(tournament.bracket_data) ? tournament.bracket_data : [],
+		});
 	});
 
 	// ── Disconnect ────────────────────────────────────────────────
-	socket.on('disconnect', () => {
+	socket.on('disconnect', async () => {
 		socketLog.info({ userId, socketId: socket.id }, 'User disconnected');
 
 		const sockets = userSockets.get(userId);
@@ -2156,8 +2549,28 @@ io.on('connection', (socket) => {
 
 		// Remove socket from active game room (triggers reconnect timer)
 		const room = getRoomByPlayerId(userId);
+		const roomIdBeforeDisconnect = room?.roomId ?? null;
 		if (room) {
 			room.removeSocket(userId, socket.id);
+		}
+
+		// If user disconnected outside a live tournament room, process tournament forfeit.
+		const [participantTournament] = await sql`
+			SELECT t.id AS tournament_id
+			FROM tournaments t
+			JOIN tournament_participants tp ON tp.tournament_id = t.id
+			WHERE tp.user_id = ${userId}
+			  AND t.status = 'in_progress'
+			LIMIT 1
+		`;
+		if (participantTournament) {
+			const tournamentId = Number(participantTournament.tournament_id);
+			const wasInThisTournamentRoom =
+				typeof roomIdBeforeDisconnect === 'string' &&
+				roomIdBeforeDisconnect.startsWith(`tournament-${tournamentId}-`);
+			if (!wasInThisTournamentRoom) {
+				await resolveTournamentForfeitByUser(tournamentId, userId);
+			}
 		}
 
 		// Grace period before marking offline

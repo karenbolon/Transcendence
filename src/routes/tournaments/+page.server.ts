@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants, users } from '$lib/server/db/schema';
-import { eq, sql, desc } from 'drizzle-orm';
+import { eq, sql, desc, and, or } from 'drizzle-orm';
 import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -58,8 +58,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		})
 		.from(tournamentParticipants)
 		.innerJoin(tournaments, eq(tournaments.id, tournamentParticipants.tournament_id))
-		.where(eq(tournamentParticipants.user_id, userId))
-		.then(rows => rows.find(r => r.status === 'in_progress') ?? null);
+		.where(and(
+			eq(tournamentParticipants.user_id, userId),
+			eq(tournaments.status, 'in_progress'),
+			or(
+				eq(tournamentParticipants.status, 'registered'),
+				eq(tournamentParticipants.status, 'active'),
+			),
+		))
+		.then(rows => rows[0] ?? null);
 
 	return {
 		tournaments: rows,

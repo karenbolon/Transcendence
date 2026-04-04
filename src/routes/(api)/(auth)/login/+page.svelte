@@ -105,17 +105,17 @@
 			</div>
 		</div>
 
-		<div class="grid grid-cols-2 gap-3">
-			<form method="POST" action="?/oauth42" class="w-full">
+			<div class="grid grid-cols-2 gap-3">
 				<button
-					type="submit"
-					class="btn-secondary w-full py-2 text-sm">
+					type="button"
+					class="btn-secondary w-full py-2 text-sm opacity-60 cursor-not-allowed"
+					disabled
+					title="42 OAuth is not enabled yet">
 					🔗 42 Intra
 				</button>
-			</form>
-			<form method="POST" action="?/github" class="w-full">
-				<button
-					type="submit"
+				<form method="POST" action="?/github" class="w-full">
+					<button
+						type="submit"
 					class="btn-secondary w-full py-2 text-sm">
 					👤 GitHub
 				</button>

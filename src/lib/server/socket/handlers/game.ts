@@ -279,6 +279,9 @@ export function registerGameHandlers(socket: Socket) {
 
 		// Send initial state immediately so the player sees the court before game starts
 		socket.emit('game:state', room.getState());
+		if (room.isPaused) {
+			socket.emit('game:paused', room.getPauseState());
+		}
 
 		// If both players now have at least one socket connected, start the game
 		const p1Ready = room.player1.socketIds.size > 0;
@@ -296,6 +299,24 @@ export function registerGameHandlers(socket: Socket) {
 		const room = getRoomByPlayer(userId);
 		if (!room) return;
 		room.handleInput(userId, data.direction);
+	});
+
+	socket.on('game:pause-extend', () => {
+		const room = getRoomByPlayer(userId);
+		if (!room || !room.isPaused) return;
+		const extended = room.extendPause(userId);
+		if (!extended) {
+			socket.emit('game:error', { message: 'Unable to extend pause' });
+		}
+	});
+
+	socket.on('game:claim-win', () => {
+		const room = getRoomByPlayer(userId);
+		if (!room || !room.isPaused) return;
+		const claimed = room.claimWin(userId);
+		if (!claimed) {
+			socket.emit('game:error', { message: 'Unable to claim win' });
+		}
 	});
 
 	// Decline an invite

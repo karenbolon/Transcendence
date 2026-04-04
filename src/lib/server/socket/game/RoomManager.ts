@@ -81,7 +81,6 @@ export function createRoom(
 			player2,
 			settings,
 			onGameEnd: (result) => handleGameEnd(result),
-			onCancelled: (cancelledRoomId) => destroyRoom(cancelledRoomId),
 			broadcastState,
 			broadcastEvent,
 		});

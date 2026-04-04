@@ -1547,81 +1547,115 @@ function getRoundName(round, totalRounds) {
 }
 
 async function advanceTournamentWinner(tournamentId, round, matchIndex, winnerId, loserId, winnerScore, loserScore) {
-	const tourney = activeTournaments.get(tournamentId);
+	let tourney = activeTournaments.get(tournamentId);
 	if (!tourney) {
 		console.warn('[Tournament] advanceTournamentWinner: tournament not in memory, trying DB fallback', {
 			tournamentId, round, matchIndex, winnerId, loserId,
 		});
 
 		const [tournament] = await sql`
-			SELECT id, name, status, bracket_data
+			SELECT id, name, status, bracket_data, speed_preset, win_score, created_by
 			FROM tournaments
 			WHERE id = ${tournamentId}
 		`;
 		if (!tournament || tournament.status !== 'in_progress') return;
 
-		const bracket = Array.isArray(tournament.bracket_data)
-			? tournament.bracket_data
-			: (typeof tournament.bracket_data === 'string' ? JSON.parse(tournament.bracket_data) : null);
+		let bracket = null;
+		try {
+			bracket = Array.isArray(tournament.bracket_data)
+				? tournament.bracket_data
+				: (typeof tournament.bracket_data === 'string' ? JSON.parse(tournament.bracket_data) : null);
+		} catch {
+			bracket = null;
+		}
 		const totalRounds = Array.isArray(bracket) ? bracket.length : 0;
 		const isFinalRound = round === totalRounds;
 
-		// If we can't recover in-memory state, we can still safely finish a final.
-		if (!isFinalRound) {
-			console.error('[Tournament] advanceTournamentWinner: non-final round cannot be advanced without in-memory bracket', {
-				tournamentId, round, totalRounds,
+		// Rehydrate in-memory state so non-final rounds can still advance normally.
+		if (Array.isArray(bracket) && bracket.length > 0) {
+			const participants = await sql`
+				SELECT tp.user_id, u.username
+				FROM tournament_participants tp
+				JOIN users u ON u.id = tp.user_id
+				WHERE tp.tournament_id = ${tournamentId}
+			`;
+			const playerMap = new Map();
+			for (const p of participants) {
+				playerMap.set(Number(p.user_id), p.username);
+			}
+
+			activeTournaments.set(tournamentId, {
+				id: tournamentId,
+				name: tournament.name,
+				bracket,
+				settings: {
+					speedPreset: tournament.speed_preset,
+					winScore: Number(tournament.win_score),
+				},
+				createdBy: Number(tournament.created_by),
+				playerMap,
 			});
-			return;
+			tourney = activeTournaments.get(tournamentId);
 		}
 
-		await sql.begin(async (tx) => {
-			await tx`
-				UPDATE tournaments
-				SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
-				WHERE id = ${tournamentId}
-			`;
-			await tx`
-				UPDATE tournament_participants
-				SET status = 'champion', placement = 1
-				WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
-			`;
-			await tx`
-				UPDATE tournament_participants
-				SET status = 'eliminated', placement = 2
-				WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}
-			`;
-		});
+		// If rehydration failed, keep final-only fallback as a safety net.
+		if (!tourney) {
+			if (!isFinalRound) {
+				console.error('[Tournament] advanceTournamentWinner: non-final round cannot be advanced without bracket state', {
+					tournamentId, round, totalRounds,
+				});
+				return;
+			}
 
-		emitToTournamentUser(winnerId, 'tournament:finished', {
-			tournamentId,
-			winnerId,
-			loserId,
-			winnerUsername: 'Player',
-			tournamentName: tournament.name,
-			round,
-			totalRounds,
-			roundName: 'Final',
-			podium: [],
-			championWins: 0,
-			runnerUpWins: 0,
-			bracket: bracket ?? [],
-		});
-		emitToTournamentUser(loserId, 'tournament:finished', {
-			tournamentId,
-			winnerId,
-			loserId,
-			winnerUsername: 'Player',
-			tournamentName: tournament.name,
-			round,
-			totalRounds,
-			roundName: 'Final',
-			podium: [],
-			championWins: 0,
-			runnerUpWins: 0,
-			bracket: bracket ?? [],
-		});
-		io.emit('tournament:list-updated');
-		return;
+			await sql.begin(async (tx) => {
+				await tx`
+					UPDATE tournaments
+					SET status = 'finished', winner_id = ${winnerId}, finished_at = NOW()
+					WHERE id = ${tournamentId}
+				`;
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'champion', placement = 1
+					WHERE tournament_id = ${tournamentId} AND user_id = ${winnerId}
+				`;
+				await tx`
+					UPDATE tournament_participants
+					SET status = 'eliminated', placement = 2
+					WHERE tournament_id = ${tournamentId} AND user_id = ${loserId}
+				`;
+			});
+
+			emitToTournamentUser(winnerId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round,
+				totalRounds,
+				roundName: 'Final',
+				podium: [],
+				championWins: 0,
+				runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			emitToTournamentUser(loserId, 'tournament:finished', {
+				tournamentId,
+				winnerId,
+				loserId,
+				winnerUsername: 'Player',
+				tournamentName: tournament.name,
+				round,
+				totalRounds,
+				roundName: 'Final',
+				podium: [],
+				championWins: 0,
+				runnerUpWins: 0,
+				bracket: bracket ?? [],
+			});
+			io.emit('tournament:list-updated');
+			return;
+		}
 	}
 
 	const roundData = tourney.bracket.find(r => r.round === round);
@@ -2515,6 +2549,7 @@ io.on('connection', (socket) => {
 
 		// Remove socket from active game room (triggers reconnect timer)
 		const room = getRoomByPlayerId(userId);
+		const roomIdBeforeDisconnect = room?.roomId ?? null;
 		if (room) {
 			room.removeSocket(userId, socket.id);
 		}
@@ -2530,8 +2565,10 @@ io.on('connection', (socket) => {
 		`;
 		if (participantTournament) {
 			const tournamentId = Number(participantTournament.tournament_id);
-			const activeRoom = getRoomByPlayerId(userId);
-			if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${tournamentId}-`)) {
+			const wasInThisTournamentRoom =
+				typeof roomIdBeforeDisconnect === 'string' &&
+				roomIdBeforeDisconnect.startsWith(`tournament-${tournamentId}-`);
+			if (!wasInThisTournamentRoom) {
 				await resolveTournamentForfeitByUser(tournamentId, userId);
 			}
 		}

@@ -1,5 +1,6 @@
 import type { Socket } from 'socket.io';
 import { getIO, userSockets } from '../index';
+import { getRoomByPlayer } from '../game/RoomManager';
 import { db } from '$lib/server/db';
 import { tournaments, tournamentParticipants } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -196,13 +197,12 @@ export function registerTournamentHandlers(socket: Socket) {
 				console.log(`[Tournament] Creator ${userId} left scheduled tournament ${tournamentId} - auto-cancelled`);
 			} else if (creatorTournament && creatorTournament.status === 'in_progress') {
 				// Creator disconnected during active tournament
-				// Immediately forfeit them as normal participant (don't wait for reconnect timeout)
-				// This allows tournament to continue and other players to advance
 				const tournamentId = creatorTournament.tournamentId;
-				console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} - queuing forfeit`);
-				
-				// Queue the forfeit immediately instead of waiting for GameRoom timeout
-				await leaveTournament(tournamentId, userId);
+				const activeRoom = getRoomByPlayer(userId);
+				if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${tournamentId}-`)) {
+					console.log(`[Tournament] Creator ${userId} disconnected from active tournament ${tournamentId} outside a live match - queuing forfeit`);
+					await leaveTournament(tournamentId, userId);
+				}
 			}
 
 			// Check if this user is a participant in any ACTIVE tournament (regardless of creator)
@@ -225,8 +225,11 @@ export function registerTournamentHandlers(socket: Socket) {
 				const isCreatorOfThisTournament = creatorTournament?.tournamentId === participantTournament.tournamentId;
 				
 				if (!isCreatorOfThisTournament) {
-					console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} - queuing forfeit`);
-					await leaveTournament(participantTournament.tournamentId, userId);
+					const activeRoom = getRoomByPlayer(userId);
+					if (!activeRoom || !activeRoom.roomId.startsWith(`tournament-${participantTournament.tournamentId}-`)) {
+						console.log(`[Tournament] Non-creator user ${userId} disconnected from active tournament ${participantTournament.tournamentId} outside a live match - queuing forfeit`);
+						await leaveTournament(participantTournament.tournamentId, userId);
+					}
 				}
 			}
 		} catch (err) {
